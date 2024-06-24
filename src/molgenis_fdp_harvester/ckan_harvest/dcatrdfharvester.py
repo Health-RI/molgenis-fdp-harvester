@@ -249,7 +249,7 @@ class DCATRDFHarvester(DCATHarvester):
 
                 guids_in_source.append(guid)
 
-                obj = HarvestObject(guid=guid, content=json.dumps(dataset))
+                obj = HarvestObject(guid=dataset["id"], content=json.dumps(dataset))
 
                 self._harvest_objects.append(obj)
         except Exception as e:
@@ -271,9 +271,8 @@ class DCATRDFHarvester(DCATHarvester):
         # Reusing the fetch stage to get a list of IDs
         # Note: very specific to current EUCAIM collections
         try:
-            self._existing_dataset_guid = [
-                x["id"] for x in molgenis_session.get(self.entity_name)
-            ]
+            existing_ids = molgenis_session.get(self.entity_name)
+            self._existing_dataset_guid = [x["id"] for x in existing_ids]
         except Exception as e:
             log.error(
                 "fetch_stage: Error getting list of uids %s: %r / %s",
@@ -314,7 +313,7 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             if harvest_object.guid in self._existing_dataset_guid:
                 log.info("Updating dataset %s" % dataset["name"])
-                molgenis_session.update_all("EUCAIM_collections", [dataset])
+                molgenis_session.update_all(self.entity_name, [dataset])
             else:
                 log.info("Adding dataset %s" % dataset["name"])
                 molgenis_session.add(self.entity_name, dataset)

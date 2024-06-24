@@ -74,7 +74,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["tags"] = tags
 
         # These values are fake. They need to be made "real"
-        log.warn("Filling in fake values")
+        log.warning("Filling in fake values")
         dataset_dict["biobank"] = "CHAI-4"
         dataset_dict["provider"] = "CHAIMELEON"
         dataset_dict["order_of_magnitude"] = 1

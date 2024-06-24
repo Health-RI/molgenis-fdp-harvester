@@ -7,7 +7,7 @@ from molgenis_fdp_harvester.ckan_harvest.dcatrdfharvester import DCATRDFHarveste
 from molgenis_fdp_harvester.ckan_harvest.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
-from molgenis.client import Session
+import molgenis.client
 
 
 @click.command()
@@ -29,7 +29,7 @@ def cli(
     username: str,
     password: str,
 ):
-    molgenis_session = Session(host)
+    molgenis_session = molgenis.client.Session(host)
     molgenis_session.login(username, password)
 
     harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], entity)

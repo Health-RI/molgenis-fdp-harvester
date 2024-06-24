@@ -1,0 +1,30 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ldp: <http://www.w3.org/ns/ldp#> .
+
+<http://example.com/catalog> a dcat:Resource,
+    dcat:Catalog;
+  dcterms:title "Test catalog"@en;
+  <http://www.w3.org/2000/01/rdf-schema#label> "Test catalog";
+  <https://w3id.org/fdp/fdp-o#metadataIssued> "2024-04-11T14:49:51.641090794Z"^^xsd:dateTime;
+  <https://w3id.org/fdp/fdp-o#metadataModified> "2024-06-06T09:59:10.549157649Z"^^xsd:dateTime;
+  dcterms:license <http://rdflicense.appspot.com/rdflicense/cc-by-nc-nd3.0>;
+  dcterms:description "Catalog for test example datasets"@en;
+  <https://w3id.org/fdp/fdp-o#metadataIdentifier> <http://example.com/catalog#identifier>;
+  dcterms:accessRights <http://example.com/catalog#accessRights>;
+  dcterms:publisher <https://harrypotter.fandom.com/wiki/Hogwarts_School_of_Witchcraft_and_Wizardry>;
+  dcterms:isPartOf <http://example.com>;
+  dcterms:issued "2024-04-11T14:49:51.641090794Z"^^xsd:dateTime;
+  dcterms:modified "2024-04-11T14:49:51.641090794Z"^^xsd:dateTime;
+  dcat:dataset <http://example.com/dataset1>, <http://example.com/dataset2>;
+    # <https://fdp-test.healthdata.nl/dataset/3d87ae61-d49f-4036-b587-d196d1ad2d26>, <https://fdp-test.healthdata.nl/dataset/d8ef545d-10cf-4f5e-906a-5fc2704ad564>,
+    # <https://fdp-test.healthdata.nl/dataset/93197c81-a680-4c9b-b3f4-600d20b5d19e>;
+  dcat:themeTaxonomy <https://harrypotter.fandom.com/wiki/Muggle_Studies>, <https://harrypotter.fandom.com/wiki/Half-blood>,
+    <https://harrypotter.fandom.com/wiki/Muggle-born>, <https://harrypotter.fandom.com/wiki/Pure-blood>,
+    <https://harrypotter.fandom.com/wiki/List_of_spells>, <https://harrypotter.fandom.com/wiki/House-elf> .
+
+<http://example.com/catalog#accessRights>
+  a dcterms:RightsStatement;
+  dcterms:description "This resource has no access restriction" .

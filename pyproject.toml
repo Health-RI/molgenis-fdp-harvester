@@ -64,6 +64,18 @@ check = "mypy --install-types --non-interactive {args:src/molgenis_fdp_harvester
 detached = true
 dependencies = ["black>=23.1.0", "mypy>=1.0.0", "ruff>=0.0.243"]
 
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-mock",
+  "requests-mock",
+  "pytest-cov",
+  "pytest-click",
+]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
 [tool.coverage.run]
 source_pkgs = ["molgenis_fdp_harvester", "tests"]
 branch = true
@@ -82,19 +94,19 @@ exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
 
 [tool.ruff.lint]
-# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
-# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
-# McCabe complexity (`C901`) by default.
 select = ["E4", "E7", "E9", "F"]
 ignore = []
 
 
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
 [tool.ruff.format]
-# Like Black, use double quotes for strings.
 quote-style = "double"
 
-# Like Black, indent with spaces, rather than tabs.
 indent-style = "space"
 
-# Like Black, respect magic trailing commas.
 skip-magic-trailing-comma = false
+# Like Black, use double quotes for strings.
+# Like Black, indent with spaces, rather than tabs.
+# Like Black, respect magic trailing commas.
