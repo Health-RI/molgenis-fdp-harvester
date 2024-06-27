@@ -112,26 +112,6 @@ class DCATRDFHarvester(DCATHarvester):
                 guid = source_url.rstrip("/") + "/" + guid
         return guid
 
-    def _mark_datasets_for_deletion(self, guids_in_source, harvest_job):
-        """
-        Given a list of guids in the remote source, checks which in the DB
-        need to be deleted
-
-        To do so it queries all guids in the DB for this source and calculates
-        the difference.
-
-        For each of these creates a HarvestObject with the dataset id, marked
-        for deletion.
-
-        Returns a list with the ids of the Harvest Objects to delete.
-        """
-
-        log.warning("_mark_datasets_for_deletion: stub")
-        return None
-
-    def validate_config(self, source_config):
-        log.warning("validate_config: stub")
-
     def gather_stage(self, harvest_root_uri):
 
         log.debug("In DCATRDFHarvester gather_stage")

@@ -12,17 +12,6 @@
 import json
 
 from rdflib import term
-
-# import ckantoolkit as toolkit
-
-# from ckan.lib.munge import munge_tag
-
-# from ckanext.dcat.utils import (
-#     resource_uri,
-#     DCAT_EXPOSE_SUBCATALOGS,
-#     DCAT_CLEAN_TAGS,
-#     publisher_uri_organization_fallback,
-# )
 from .baseparser import RDFProfile, munge_tag
 from .baseparser import (
     DCAT,
@@ -33,7 +22,6 @@ from .baseparser import (
     SPDX,
 )
 
-# config = toolkit.config
 DCAT_CLEAN_TAGS = False
 NORMALIZE_CKAN_FORMAT = True
 
@@ -243,26 +231,4 @@ class EuropeanDCATAPProfile(RDFProfile):
 
             dataset_dict["resources"].append(resource_dict)
 
-        # TODO: remove, dead code
-        if self.compatibility_mode:
-            # Tweak the resulting dict to make it compatible with previous
-            # versions of the ckanext-dcat parsers
-            for extra in dataset_dict["extras"]:
-                if extra["key"] in (
-                    "issued",
-                    "modified",
-                    "publisher_name",
-                    "publisher_email",
-                ):
-                    extra["key"] = "dcat_" + extra["key"]
-
-                if extra["key"] == "language":
-                    extra["value"] = ",".join(sorted(json.loads(extra["value"])))
-
         return dataset_dict
-
-    def graph_from_dataset(self, dataset_dict, dataset_ref):
-        raise NotImplementedError("FDP export is handled by MOLGENIS")
-
-    def graph_from_catalog(self, catalog_dict, catalog_ref):
-        raise NotImplementedError("FDP export is handled by MOLGENIS")
