@@ -12,10 +12,11 @@
 import logging
 import re
 
+from unidecode import unidecode
+
 from molgenis_fdp_harvester.ckan_harvest.baseparser import (
     _munge_to_length,
     munge_tag,
-    substitute_ascii_equivalents,
 )
 
 
@@ -27,7 +28,7 @@ PACKAGE_NAME_MAX_LENGTH = 100
 
 def munge_title_to_name(name: str) -> str:
     """Munge a package title into a package name."""
-    name = substitute_ascii_equivalents(name)
+    name = unidecode(name)
     # convert spaces and separators
     name = re.sub("[ .:/]", "-", name)
     # take out not-allowed characters

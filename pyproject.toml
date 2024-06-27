@@ -71,6 +71,7 @@ dependencies = [
   "requests-mock",
   "pytest-cov",
   "pytest-click",
+  "unidecode ~= 1.3",
 ]
 
 [[tool.hatch.envs.test.matrix]]
