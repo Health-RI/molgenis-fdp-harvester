@@ -2,17 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-from unittest.mock import ANY, Mock, patch
-import pytest
+from unittest.mock import patch
 import requests
-import requests_mock as rm
 from urllib.parse import urlparse
-import molgenis.client
-
-from molgenis_fdp_harvester.ckan_harvest.dcatrdfharvester import DCATRDFHarvester
-from molgenis_fdp_harvester.ckan_harvest.molgenis_dcat_profile import (
-    MolgenisEUCAIMDCATAPProfile,
-)
 
 from molgenis_fdp_harvester.harvester import cli
 

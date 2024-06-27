@@ -9,17 +9,15 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 
-import datetime
 import json
 from urllib.parse import quote
 import re
 import logging
 
-from dateutil.parser import parse as parse_date
 from rdflib import term, URIRef, BNode, Literal
-from rdflib.namespace import Namespace, RDF, XSD, SKOS, RDFS, DCAT, FOAF, TIME, OWL
+from rdflib.namespace import Namespace, RDF, SKOS, RDFS, DCAT, FOAF, TIME, OWL
 from rdflib.namespace import DCTERMS as DCT
-from geomet import wkt, InvalidGeoJSONException
+from geomet import wkt
 from unidecode import unidecode
 
 log = logging.getLogger(__name__)
