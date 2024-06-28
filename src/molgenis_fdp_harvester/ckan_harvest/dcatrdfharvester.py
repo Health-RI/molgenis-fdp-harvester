@@ -53,6 +53,7 @@ class DCATRDFHarvester(DCATHarvester):
 
     def __init__(self, profiles: List, entity_name: str):
         super().__init__()
+        self._existing_dataset_guid = None
         self._profiles = profiles
         self.entity_name = entity_name
 
