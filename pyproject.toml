@@ -1,0 +1,113 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+dependencies = [
+  "click",
+  "rdflib",
+  "python-dateutil",
+  "pandas",
+  "geomet",
+  "requests",
+  "molgenis-py-client",
+]
+name = "molgenis-fdp-harvester"
+dynamic = ["version"]
+description = 'This project contains a FAIR Data Point harvester for MOLGENIS.'
+readme = "README.md"
+requires-python = ">=3.8"
+license = "AGPL-3.0-or-later"
+keywords = []
+authors = [{ name = "Mark Janse", email = "mark.janse@health-ri.nl" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+[project.urls]
+Documentation = "https://github.com/unknown/molgenis-fdp-harvester#readme"
+Issues = "https://github.com/unknown/molgenis-fdp-harvester/issues"
+Source = "https://github.com/unknown/molgenis-fdp-harvester"
+
+[project.scripts]
+harvest = "molgenis_fdp_harvester.harvester:cli"
+
+[tool.hatch.version]
+path = "src/molgenis_fdp_harvester/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = ["coverage[toml]>=6.5", "pytest"]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = ["- coverage combine", "coverage report", "coverage xml"]
+cov = ["test-cov", "cov-report"]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.types]
+dependencies = ["mypy>=1.0.0"]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/molgenis_fdp_harvester tests}"
+
+[tool.hatch.envs.lint]
+detached = true
+dependencies = ["black>=23.1.0", "mypy>=1.0.0", "ruff>=0.0.243"]
+
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest",
+  "pytest-mock",
+  "requests-mock",
+  "pytest-cov",
+  "pytest-click",
+  "unidecode ~= 1.3",
+]
+
+[[tool.hatch.envs.test.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+[tool.coverage.run]
+source_pkgs = ["molgenis_fdp_harvester", "tests"]
+branch = true
+parallel = true
+omit = ["src/molgenis_fdp_harvester/__about__.py"]
+
+[tool.coverage.paths]
+molgenis_fdp_harvester = [
+  "src/molgenis_fdp_harvester",
+  "*/molgenis-fdp-harvester/src/molgenis_fdp_harvester",
+]
+tests = ["tests", "*/molgenis-fdp-harvester/tests"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+
+
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+[tool.ruff.format]
+quote-style = "double"
+
+indent-style = "space"
+
+skip-magic-trailing-comma = false
+# Like Black, use double quotes for strings.
+# Like Black, indent with spaces, rather than tabs.
+# Like Black, respect magic trailing commas.
