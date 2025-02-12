@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 import click
+from molgenis_emx2_pyclient import Client
 
-from molgenis_fdp_harvester.ckan_harvest.dcatrdfharvester import DCATRDFHarvester
-from molgenis_fdp_harvester.ckan_harvest.molgenis_dcat_profile import (
+from ckan_harvest.dcatrdfharvester import DCATRDFHarvester
+from ckan_harvest.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
-import molgenis.client
 
 
 @click.command()
@@ -29,17 +29,15 @@ def cli(
     username: str,
     password: str,
 ):
-    molgenis_session = molgenis.client.Session(host)
-    molgenis_session.login(username, password)
-
     harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], entity)
 
     harvest.gather_stage(fdp)
-    # for object in harvest._harvest_objects:
-    #     print(object.content)
-    harvest.fetch_stage(molgenis_session)
-    for object in harvest._harvest_objects:
-        harvest.import_stage(object, molgenis_session)
+
+    with Client(url=host, schema="Eucaim") as client:
+        client.signin(username, password)
+        harvest.fetch_stage(client)
+        for object in harvest._harvest_objects:
+            harvest.import_stage(object, client)
 
 
 if __name__ == "__main__":
