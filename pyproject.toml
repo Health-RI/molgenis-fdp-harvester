@@ -11,6 +11,7 @@ dependencies = [
   "geomet",
   "requests",
   "molgenis-py-client",
+  "unidecode"
 ]
 name = "molgenis-fdp-harvester"
 dynamic = ["version"]
