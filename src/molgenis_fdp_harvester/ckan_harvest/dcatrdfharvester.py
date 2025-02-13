@@ -296,7 +296,6 @@ class DCATRDFHarvester(DCATHarvester):
                 molgenis_client.update_all(self.entity_name, [dataset])
             else:
                 log.info("Adding dataset %s" % dataset["name"])
-                molgenis_client.add(self.entity_name, dataset)
                 molgenis_client.save_schema(table=self.entity_name, data=[dataset])
         except Exception as e:
             log.error(
