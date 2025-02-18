@@ -293,7 +293,7 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             if harvest_object.guid in self._existing_dataset_guid:
                 log.info("Updating dataset %s" % dataset["name"])
-                molgenis_client.update_all(self.entity_name, [dataset])
+                molgenis_client.save_schema(table=self.entity_name, data=[dataset])
             else:
                 log.info("Adding dataset %s" % dataset["name"])
                 molgenis_client.save_schema(table=self.entity_name, data=[dataset])
