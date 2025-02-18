@@ -2,12 +2,18 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """
-Create a token on the host MOLGENIS server and store this token as an environment variable named MOLGENIS_TOKEN:
+Create a token on the host MOLGENIS server and store this token as an environment variable named MOLGENIS_TOKEN,
+either by creating a .env file in the working directory containing the single line
+MOLGENIS_TOKEN="..."
+or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
+The user creating this token requires editing permissions on the host schema.
 """
+import logging
 import os
 
 import click
+from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
 from ckan_harvest.dcatrdfharvester import DCATRDFHarvester
@@ -15,6 +21,8 @@ from ckan_harvest.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
 
+load_dotenv()
+logging.basicConfig(level="INFO")
 
 @click.command()
 @click.option("--fdp", help="FAIR Data Point catalog URL to harvest", required=True)
@@ -23,7 +31,7 @@ from ckan_harvest.molgenis_dcat_profile import (
               required=False, default="Eucaim")
 @click.option(
     "--table",
-    help="Table of MOLGENIS host to harvest to (e.g. EUCAIM_collections)",
+    help="Table of MOLGENIS host to harvest to.",
     required=False,
     default="collections"
 )
