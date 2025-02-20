@@ -29,17 +29,17 @@ def cli(
     username: str,
     password: str,
 ):
-    molgenis_session = molgenis.client.Session(host)
-    molgenis_session.login(username, password)
+    # molgenis_session = molgenis.client.Session(host)
+    # molgenis_session.login(username, password)
 
     harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], entity)
 
     harvest.gather_stage(fdp)
     # for object in harvest._harvest_objects:
     #     print(object.content)
-    harvest.fetch_stage(molgenis_session)
-    for object in harvest._harvest_objects:
-        harvest.import_stage(object, molgenis_session)
+    # harvest.fetch_stage(molgenis_session)
+    # for object in harvest._harvest_objects:
+    #     harvest.import_stage(object, molgenis_session)
 
 
 if __name__ == "__main__":

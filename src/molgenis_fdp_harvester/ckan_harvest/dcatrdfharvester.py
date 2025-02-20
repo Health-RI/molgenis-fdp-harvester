@@ -248,7 +248,9 @@ class DCATRDFHarvester(DCATHarvester):
 
         return self._harvest_objects
 
-    def fetch_stage(self, molgenis_session: Session) -> List[str]:
+    # def fetch_stage(self, molgenis_session: Session) -> List[str]:
+    def fetch_stage(self) -> List[str]:
+
         # Reusing the fetch stage to get a list of IDs
         # Note: very specific to current EUCAIM collections
         try:
@@ -289,6 +291,7 @@ class DCATRDFHarvester(DCATHarvester):
             return False
 
         dataset = self.modify_package_dict(dataset, {}, harvest_object)
+
 
         # Check if a dataset with the same guid exists
         try:

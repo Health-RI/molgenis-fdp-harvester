@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # SPDX-FileContributor: Stichting Health-RI
-
+from urllib import parse
 # This material is copyright (c) Open Knowledge.
 # It is open and licensed under the GNU Affero General Public License (AGPL) v3.0
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
@@ -28,7 +28,7 @@ import logging
 # )
 from .baseparser import RDFProfile, munge_tag
 from .baseparser import (
-    DCT,
+    DCT, DCAT
 )
 
 log = logging.getLogger(__name__)
@@ -57,8 +57,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["uri"] = str(dataset_ref)
         # Basic fields
         for key, predicate in (
+            ("id", DCT.identifier),
             ("name", DCT.title),
             ("description", DCT.description),
+            ("biobank", DCAT.inSeries),
         ):
             value = self._object_value(dataset_ref, predicate)
             if value:
@@ -74,16 +76,21 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["tags"] = tags
 
         # These values are fake. They need to be made "real"
-        log.warning("Filling in fake values")
-        dataset_dict["biobank"] = "CHAI-4"
-        dataset_dict["provider"] = "CHAIMELEON"
-        dataset_dict["order_of_magnitude"] = 1
-        dataset_dict["country"] = "EU"
-        dataset_dict["collection_method"] = "OTHER"
-        dataset_dict["type"] = "ORIGINAL_DATASETS"
-        dataset_dict["imaging_modality"] = "MR"
-        dataset_dict["image_access_type"] = "BY_REQUEST"
-        dataset_dict["intended_purpose"] = "placeholder"
+        # log.warning("Filling in fake values")
+
+        # FIXME: Find out how to properly do the query splitting
+        series_url = parse.urlparse(dataset_dict["biobank"])
+        dataset_dict["biobank"] = series_url.query.split('=')[1]
+        print(dataset_dict)
+        # dataset_dict["biobank"] = "CHAI-4"
+        # dataset_dict["provider"] = "CHAIMELEON"
+        # dataset_dict["order_of_magnitude"] = 1
+        # dataset_dict["country"] = "EU"
+        # dataset_dict["collection_method"] = "OTHER"
+        # dataset_dict["type"] = "ORIGINAL_DATASETS"
+        # dataset_dict["imaging_modality"] = "MR"
+        # dataset_dict["image_access_type"] = "BY_REQUEST"
+        # dataset_dict["intended_purpose"] = "placeholder"
 
         return dataset_dict
 
