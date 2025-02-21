@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # SPDX-FileContributor: Stichting Health-RI
-from urllib import parse
 # This material is copyright (c) Open Knowledge.
 # It is open and licensed under the GNU Affero General Public License (AGPL) v3.0
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
@@ -12,10 +11,11 @@ from urllib import parse
 from typing import Dict
 
 from rdflib import URIRef, FOAF
+from yarl import URL
 
 import logging
 
-
+from .baseharvester import munge_title_to_name
 # import ckantoolkit as toolkit
 
 # from ckan.lib.munge import munge_tag
@@ -26,7 +26,7 @@ import logging
 #     DCAT_CLEAN_TAGS,
 #     publisher_uri_organization_fallback,
 # )
-from .baseparser import RDFProfile, munge_tag
+from .baseparser import RDFProfile, munge_tag, URIRefOrLiteral
 from .baseparser import (
     DCT, DCAT
 )
@@ -57,10 +57,19 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["uri"] = str(dataset_ref)
         # Basic fields
         for key, predicate in (
-            ("id", DCT.identifier),
+            # ("id", DCT.identifier),
             ("name", DCT.title),
             ("description", DCT.description),
             ("biobank", DCAT.inSeries),
+            ("provider", DCT.publisher),
+            ("order_of_magnitude", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/order_of_magnitude")),
+            ("imaging_modality", URIRef("https:/www.eucaim.org/hasImageModality")),
+            ("geographical_coverage", DCT.spatial),
+            ("type", DCT.type),
+            ("intended_purpose", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/intended_purpose")),
+            ("image_access_type",
+             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_type")),
+            ("collection_method", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/collection_method"))
         ):
             value = self._object_value(dataset_ref, predicate)
             if value:
@@ -78,10 +87,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # These values are fake. They need to be made "real"
         # log.warning("Filling in fake values")
 
-        # FIXME: Find out how to properly do the query splitting
-        series_url = parse.urlparse(dataset_dict["biobank"])
-        dataset_dict["biobank"] = series_url.query.split('=')[1]
-        print(dataset_dict)
+        # dataset_dict["biobank"] = URL(dataset_dict["biobank"]).query.get('id')
+        dataset_dict["biobank"] = munge_title_to_name(dataset_dict["biobank"])
+        query_property_list = ['order_of_magnitude', 'imaging_modality','geographical_coverage','type',
+                               'image_access_type', 'collection_method']
+        for query_property in query_property_list:
+           dataset_dict[query_property] = URL(dataset_dict[query_property]).query.get('name')
         # dataset_dict["biobank"] = "CHAI-4"
         # dataset_dict["provider"] = "CHAIMELEON"
         # dataset_dict["order_of_magnitude"] = 1
@@ -100,9 +111,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["uri"] = str(dataset_ref)
         # Basic fields
         for key, predicate in (
-                ("id", DCT.identifier),
+                # ("id", DCT.identifier),
                 ("name", DCT.title),
                 ("description", DCT.description),
+                ("geographical_coverage", DCT.spatial),
+                ("juridical_person", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/juridical_person")),
         ):
             value = self._object_value(dataset_ref, predicate)
             if value:
@@ -120,10 +133,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # # These values are fake. They need to be made "real"
         # # log.warning("Filling in fake values")
 
-        # # FIXME: Find out how to properly do the query splitting
-        # series_url = parse.urlparse(dataset_dict["biobank"])
-        # dataset_dict["biobank"] = series_url.query.split('=')[1]
-        # print(dataset_dict)
+        query_property_list = ['geographical_coverage']
+        for query_property in query_property_list:
+            dataset_dict[query_property] = URL(dataset_dict[query_property]).query.get('name')
         # # dataset_dict["biobank"] = "CHAI-4"
         # # dataset_dict["provider"] = "CHAIMELEON"
         # # dataset_dict["order_of_magnitude"] = 1
@@ -144,10 +156,19 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         for key, predicate in (
                 ("id", FOAF.openid),
                 ("name", FOAF.openid),
+                ("email", FOAF.mbox),
+                ("first_name", FOAF.firstName),
+                ("last_name", FOAF.lastName),
+                ("country", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/country")),
         ):
             value = self._object_value(dataset_ref, predicate)
             if value:
                 dataset_dict[key] = value
+
+        query_property_list = ['country']
+        for query_property in query_property_list:
+            dataset_dict[query_property] = URL(dataset_dict[query_property]).query.get('name')
+        dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):

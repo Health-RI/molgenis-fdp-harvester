@@ -17,9 +17,8 @@ from typing import List, Dict
 import logging
 import hashlib
 import traceback
-
-from molgenis_fdp_harvester.ckan_harvest.baseharvester import munge_title_to_name
-from molgenis.client import Session
+from molgenis_emx2_pyclient import Client
+from .baseharvester import munge_title_to_name
 
 
 # import ckan.plugins as p
@@ -53,9 +52,13 @@ class DCATRDFHarvester(DCATHarvester):
 
     def __init__(self, profiles: List, entity_name: str):
         super().__init__()
-        self._existing_dataset_guid = None
+        self._existing_dataset_guid = dict()
         self._profiles = profiles
         self.entity_name = entity_name
+        self.concept_table_link = {'dataset': 'collections',
+                                   'datasetseries': 'biobanks',
+                                   'person': 'persons'}
+        self.concept_types = ['dataset', 'datasetseries', 'person']
 
     def info(self):
         return {
@@ -239,7 +242,9 @@ class DCATRDFHarvester(DCATHarvester):
         guid = self._get_guid(concept_dict, source_url=concept_dict["uri"])
 
         # FIXME molgenis ID cannot be URI but has to be alphanumeric string
-        concept_dict["id"] = munge_title_to_name(guid)
+        # If there already is an identifier, don't add another identifier
+        if not concept_dict.get("id"):
+            concept_dict["id"] = munge_title_to_name(guid)
         # dataset["extras"].append({"key": "guid", "value": guid})
 
         if not guid:
@@ -259,24 +264,25 @@ class DCATRDFHarvester(DCATHarvester):
         self._harvest_objects.append(obj)
         return guids_in_source
 
-    # def fetch_stage(self, molgenis_session: Session) -> List[str]:
-    def fetch_stage(self) -> List[str]:
-
+    #def fetch_stage(self, molgenis_client: Client) -> List[str]:
+    def fetch_stage(self, molgenis_client: Client) -> None:
         # Reusing the fetch stage to get a list of IDs
         # Note: very specific to current EUCAIM collections
-        try:
-            existing_ids = molgenis_session.get(self.entity_name)
-            self._existing_dataset_guid = [x["id"] for x in existing_ids]
-        except Exception as e:
-            log.error(
-                "fetch_stage: Error getting list of uids %s: %r / %s",
-                (self.entity_name, e, traceback.format_exc()),
-            )
-            self._existing_dataset_guid = []
+        for concept_type in self.concept_types:
+            entity_name = self.concept_table_link[concept_type]
+            try:
+                existing_ids = molgenis_client.get(entity_name)
+                self._existing_dataset_guid[concept_type] = [x["id"] for x in existing_ids]
+            except Exception as e:
+                log.error(
+                    "fetch_stage: Error getting list of uids %s: %r / %s",
+                    (entity_name, e, traceback.format_exc()),
+                )
+                self._existing_dataset_guid[concept_type] = []
+        return
+        # return self._existing_dataset_guid
 
-        return self._existing_dataset_guid
-
-    def import_stage(self, harvest_object: HarvestObject, molgenis_session: Session):
+    def import_stage(self, harvest_object: HarvestObject, molgenis_client: Client):
 
         log.debug("In DCATRDFHarvester import_stage")
 
@@ -296,22 +302,23 @@ class DCATRDFHarvester(DCATHarvester):
         except ValueError:
             log.error(
                 "import_stage: Could not parse content for object {0}".format(
-                    harvest_object.id
+                    harvest_object.guid
                 ),
             )
             return False
 
         dataset = self.modify_package_dict(dataset, {}, harvest_object)
+        concept_type = dataset['concept_type']
+        entity_name = self.concept_table_link[concept_type]
 
 
         # Check if a dataset with the same guid exists
         try:
-            if harvest_object.guid in self._existing_dataset_guid:
+            if harvest_object.guid in self._existing_dataset_guid[concept_type]:
                 log.info("Updating dataset %s" % dataset["name"])
-                molgenis_session.update_all(self.entity_name, [dataset])
             else:
                 log.info("Adding dataset %s" % dataset["name"])
-                molgenis_session.add(self.entity_name, dataset)
+            molgenis_client.save_schema(table=entity_name, data=[dataset])
         except Exception as e:
             log.error(
                 "import_stage: Error importing dataset %s: %r / %s"

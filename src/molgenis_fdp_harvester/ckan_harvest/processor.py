@@ -16,7 +16,7 @@ import rdflib.parser
 from rdflib import FOAF
 from rdflib.namespace import Namespace, RDF, DCAT
 
-from molgenis_fdp_harvester.utils import HarvesterException
+from ..utils import HarvesterException
 
 
 HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
