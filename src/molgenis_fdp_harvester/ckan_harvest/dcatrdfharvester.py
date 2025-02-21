@@ -13,7 +13,7 @@ from builtins import str
 
 # from past.builtins import basestring
 import json
-from typing import List
+from typing import List, Dict
 import logging
 import hashlib
 import traceback
@@ -122,9 +122,9 @@ class DCATRDFHarvester(DCATHarvester):
         # Get file contents of first page
         next_page_url = harvest_root_uri
 
-        guids_in_source = []
+        guids_in_source = {'dataset': [], 'datasetseries': [], 'person': []}
         last_content_hash = None
-        self._names_taken = []
+        self._names_taken = {'dataset': [], 'datasetseries': [], 'person': []}
 
         parser = RDFParser(self._profiles)
 
@@ -168,20 +168,22 @@ class DCATRDFHarvester(DCATHarvester):
             if not parser:
                 return []
 
-            try:
-                # Data
-                for dataset in parser.dataset_in_catalog():
-                    # get content
-                    dataset_content, dataset_rdf_format = self._get_content_and_type(
-                        dataset, 1, content_type=None
-                    )
-                    parser.parse(dataset_content, _format=dataset_rdf_format)
-            except HarvesterException as e:
-                self._save_gather_error(
-                    "Error parsing the acquired dataset: {0}".format(e),
-                )
-                # return []
-                break
+            # Data
+            # try:
+            #     # Data
+            #     for dataset in parser.dataset_in_catalog():
+            #         print(dataset)
+            #         # get content
+            #         dataset_content, dataset_rdf_format = self._get_content_and_type(
+            #             dataset, 1, content_type=None
+            #         )
+            #         parser.parse(dataset_content, _format=dataset_rdf_format)
+            # except HarvesterException as e:
+            #     self._save_gather_error(
+            #         "Error parsing the acquired dataset: {0}".format(e),
+            #     )
+            #     # return []
+            #     break
 
             # get the next page
             # FIXME: separate this out now that parser is global (else it'll always return a next page that isn't necessarily THE next page)
@@ -189,50 +191,12 @@ class DCATRDFHarvester(DCATHarvester):
 
         try:
             # source_dataset = model.Package.get(harvest_job.source.id)
+            for person in parser.persons():
+                guids_in_source =  self._gather_concept(person, guids_in_source, concept_type='person')
+            for dataset_series in parser.datasetseries():
+                guids_in_source =  self._gather_concept(dataset_series, guids_in_source, concept_type='datasetseries')
             for dataset in parser.datasets():
-                if not dataset.get("name"):
-                    dataset["name"] = self._gen_new_name(dataset["title"])
-                if dataset["name"] in self._names_taken:
-                    suffix = (
-                        len(
-                            [
-                                i
-                                for i in self._names_taken
-                                if i.startswith(dataset["name"] + "-")
-                            ]
-                        )
-                        + 1
-                    )
-                    dataset["name"] = "{}-{}".format(dataset["name"], suffix)
-                self._names_taken.append(dataset["name"])
-
-                # Unless already set by the parser, get the owner organization (if any)
-                # from the harvest source dataset
-                # if not dataset.get("owner_org"):
-                #     if source_dataset.owner_org:
-                #         dataset["owner_org"] = source_dataset.owner_org
-
-                # Try to get a unique identifier for the harvested dataset
-                guid = self._get_guid(dataset, source_url=dataset["uri"])
-
-                # FIXME molgenis ID cannot be URI but has to be alphanumeric string
-                dataset["id"] = munge_title_to_name(guid)
-                # dataset["extras"].append({"key": "guid", "value": guid})
-
-                if not guid:
-                    self._save_gather_error(
-                        "Could not get a unique identifier for dataset: {0}".format(
-                            dataset
-                        ),
-                        # harvest_job,
-                    )
-                    continue
-
-                guids_in_source.append(guid)
-
-                obj = HarvestObject(guid=dataset["id"], content=json.dumps(dataset))
-
-                self._harvest_objects.append(obj)
+                guids_in_source =  self._gather_concept(dataset, guids_in_source, concept_type='dataset')
         except Exception as e:
             self._save_gather_error(
                 "Error when processsing dataset: %r / %s" % (e, traceback.format_exc()),
@@ -247,6 +211,53 @@ class DCATRDFHarvester(DCATHarvester):
         # object_ids.extend(object_ids_to_delete)
 
         return self._harvest_objects
+
+    def _gather_concept(self, concept_dict: Dict, guids_in_source: Dict, concept_type: str):
+        if not concept_dict.get("name"):
+                concept_dict["name"] = self._gen_new_name(concept_dict["title"])
+        if concept_dict["name"] in self._names_taken[concept_type]:
+            suffix = (
+                    len(
+                        [
+                            i
+                            for i in self._names_taken
+                            if i.startswith(concept_dict["name"] + "-")
+                        ]
+                    )
+                    + 1
+            )
+            concept_dict["name"] = "{}-{}".format(concept_dict["name"], suffix)
+        self._names_taken[concept_type].append(concept_dict["name"])
+
+        # Unless already set by the parser, get the owner organization (if any)
+        # from the harvest source dataset
+        # if not dataset.get("owner_org"):
+        #     if source_dataset.owner_org:
+        #         dataset["owner_org"] = source_dataset.owner_org
+
+        # Try to get a unique identifier for the harvested dataset
+        guid = self._get_guid(concept_dict, source_url=concept_dict["uri"])
+
+        # FIXME molgenis ID cannot be URI but has to be alphanumeric string
+        concept_dict["id"] = munge_title_to_name(guid)
+        # dataset["extras"].append({"key": "guid", "value": guid})
+
+        if not guid:
+            self._save_gather_error(
+                "Could not get a unique identifier for {0}: {1}".format(
+                    concept_type,
+                    concept_dict
+                ),
+                # harvest_job,
+            )
+            return guids_in_source
+
+        guids_in_source[concept_type].append(guid)
+
+        obj = HarvestObject(guid=concept_dict["id"], content=json.dumps(concept_dict))
+
+        self._harvest_objects.append(obj)
+        return guids_in_source
 
     # def fetch_stage(self, molgenis_session: Session) -> List[str]:
     def fetch_stage(self) -> List[str]:

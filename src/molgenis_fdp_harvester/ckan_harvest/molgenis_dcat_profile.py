@@ -11,7 +11,7 @@ from urllib import parse
 
 from typing import Dict
 
-from rdflib import URIRef
+from rdflib import URIRef, FOAF
 
 import logging
 
@@ -92,6 +92,62 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["image_access_type"] = "BY_REQUEST"
         # dataset_dict["intended_purpose"] = "placeholder"
 
+        return dataset_dict
+
+    def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
+        # dataset_dict["extras"] = []
+        # dataset_dict["resources"] = []
+        dataset_dict["uri"] = str(dataset_ref)
+        # Basic fields
+        for key, predicate in (
+                ("id", DCT.identifier),
+                ("name", DCT.title),
+                ("description", DCT.description),
+        ):
+            value = self._object_value(dataset_ref, predicate)
+            if value:
+                dataset_dict[key] = value
+
+        # # TODO store keywords somewhere
+        # # replace munge_tag to noop if there's no need to clean tags
+        # do_clean = DCAT_CLEAN_TAGS
+        # tags_val = [
+        #     munge_tag(tag) if do_clean else tag for tag in self._keywords(dataset_ref)
+        # ]
+        # tags = [{"name": tag} for tag in tags_val]
+        # # dataset_dict["tags"] = tags
+
+        # # These values are fake. They need to be made "real"
+        # # log.warning("Filling in fake values")
+
+        # # FIXME: Find out how to properly do the query splitting
+        # series_url = parse.urlparse(dataset_dict["biobank"])
+        # dataset_dict["biobank"] = series_url.query.split('=')[1]
+        # print(dataset_dict)
+        # # dataset_dict["biobank"] = "CHAI-4"
+        # # dataset_dict["provider"] = "CHAIMELEON"
+        # # dataset_dict["order_of_magnitude"] = 1
+        # # dataset_dict["country"] = "EU"
+        # # dataset_dict["collection_method"] = "OTHER"
+        # # dataset_dict["type"] = "ORIGINAL_DATASETS"
+        # # dataset_dict["imaging_modality"] = "MR"
+        # # dataset_dict["image_access_type"] = "BY_REQUEST"
+        # # dataset_dict["intended_purpose"] = "placeholder"
+
+        return dataset_dict
+
+    def parse_person(self, dataset_dict: Dict, dataset_ref: URIRef):
+        # dataset_dict["extras"] = []
+        # dataset_dict["resources"] = []
+        dataset_dict["uri"] = str(dataset_ref)
+        # Basic fields
+        for key, predicate in (
+                ("id", FOAF.openid),
+                ("name", FOAF.openid),
+        ):
+            value = self._object_value(dataset_ref, predicate)
+            if value:
+                dataset_dict[key] = value
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):

@@ -35,8 +35,8 @@ def cli(
     harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], entity)
 
     harvest.gather_stage(fdp)
-    # for object in harvest._harvest_objects:
-    #     print(object.content)
+    for object in harvest._harvest_objects:
+        print(object.content)
     # harvest.fetch_stage(molgenis_session)
     # for object in harvest._harvest_objects:
     #     harvest.import_stage(object, molgenis_session)

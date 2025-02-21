@@ -13,6 +13,7 @@ import xml
 
 import rdflib
 import rdflib.parser
+from rdflib import FOAF
 from rdflib.namespace import Namespace, RDF, DCAT
 
 from molgenis_fdp_harvester.utils import HarvesterException
@@ -71,6 +72,26 @@ class RDFParser(RDFProcessor):
         and queries
         """
         for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
+            yield dataset
+
+    def _datasetseries(self):
+        """
+        Generator that returns all DCAT datasets on the graph
+
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
+        """
+        for dataset in self.g.subjects(RDF.type, DCAT.DatasetSeries):
+            yield dataset
+
+    def _persons(self):
+        """
+        Generator that returns all DCAT datasets on the graph
+
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
+        """
+        for dataset in self.g.subjects(RDF.type, FOAF.Person):
             yield dataset
 
     def _catalogs(self):
@@ -156,6 +177,48 @@ class RDFParser(RDFProcessor):
             for profile_class in self._profiles:
                 profile = profile_class(self.g)
                 profile.parse_dataset(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'dataset'
+
+            yield dataset_dict
+
+    def datasetseries(self):
+        """
+        Generator that returns CKAN datasets parsed from the RDF graph
+
+        Each dataset is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._datasetseries():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_datasetseries(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'datasetseries'
+
+            yield dataset_dict
+
+    def persons(self):
+        """
+        Generator that returns CKAN datasets parsed from the RDF graph
+
+        Each dataset is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._persons():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_person(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'person'
 
             yield dataset_dict
 
