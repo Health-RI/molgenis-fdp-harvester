@@ -17,9 +17,8 @@ from typing import List
 import logging
 import hashlib
 import traceback
-
-from molgenis_fdp_harvester.ckan_harvest.baseharvester import munge_title_to_name
-from molgenis.client import Session
+from molgenis_emx2_pyclient import Client
+from .baseharvester import munge_title_to_name
 
 
 # import ckan.plugins as p
@@ -248,11 +247,11 @@ class DCATRDFHarvester(DCATHarvester):
 
         return self._harvest_objects
 
-    def fetch_stage(self, molgenis_session: Session) -> List[str]:
+    def fetch_stage(self, molgenis_client: Client) -> List[str]:
         # Reusing the fetch stage to get a list of IDs
         # Note: very specific to current EUCAIM collections
         try:
-            existing_ids = molgenis_session.get(self.entity_name)
+            existing_ids = molgenis_client.get(self.entity_name)
             self._existing_dataset_guid = [x["id"] for x in existing_ids]
         except Exception as e:
             log.error(
@@ -263,7 +262,7 @@ class DCATRDFHarvester(DCATHarvester):
 
         return self._existing_dataset_guid
 
-    def import_stage(self, harvest_object: HarvestObject, molgenis_session: Session):
+    def import_stage(self, harvest_object: HarvestObject, molgenis_client: Client):
 
         log.debug("In DCATRDFHarvester import_stage")
 
@@ -294,10 +293,10 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             if harvest_object.guid in self._existing_dataset_guid:
                 log.info("Updating dataset %s" % dataset["name"])
-                molgenis_session.update_all(self.entity_name, [dataset])
+                molgenis_client.save_schema(table=self.entity_name, data=[dataset])
             else:
                 log.info("Adding dataset %s" % dataset["name"])
-                molgenis_session.add(self.entity_name, dataset)
+                molgenis_client.save_schema(table=self.entity_name, data=[dataset])
         except Exception as e:
             log.error(
                 "import_stage: Error importing dataset %s: %r / %s"

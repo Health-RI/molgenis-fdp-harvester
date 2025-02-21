@@ -14,7 +14,7 @@ import re
 
 from unidecode import unidecode
 
-from molgenis_fdp_harvester.ckan_harvest.baseparser import (
+from .baseparser import (
     _munge_to_length,
     munge_tag,
 )
