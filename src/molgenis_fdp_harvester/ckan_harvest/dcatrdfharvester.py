@@ -50,15 +50,12 @@ class HarvestObject(object):
 class DCATRDFHarvester(DCATHarvester):
     _names_taken = []
 
-    def __init__(self, profiles: List, entity_name: str):
+    def __init__(self, profiles: List, concept_table_dict: Dict[str, str]):
         super().__init__()
         self._existing_dataset_guid = dict()
         self._profiles = profiles
-        self.entity_name = entity_name
-        self.concept_table_link = {'dataset': 'collections',
-                                   'datasetseries': 'biobanks',
-                                   'person': 'persons'}
-        self.concept_types = ['dataset', 'datasetseries', 'person']
+        self.concept_table_link = concept_table_dict
+        self.concept_types = [concept for concept in self.concept_table_link.keys()]
 
     def info(self):
         return {
@@ -125,9 +122,9 @@ class DCATRDFHarvester(DCATHarvester):
         # Get file contents of first page
         next_page_url = harvest_root_uri
 
-        guids_in_source = {'dataset': [], 'datasetseries': [], 'person': []}
+        guids_in_source = {concept : list() for concept in self.concept_types}
         last_content_hash = None
-        self._names_taken = {'dataset': [], 'datasetseries': [], 'person': []}
+        self._names_taken = {concept : list() for concept in self.concept_types}
 
         parser = RDFParser(self._profiles)
 

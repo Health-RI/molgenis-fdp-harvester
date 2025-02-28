@@ -11,6 +11,13 @@ The user creating this token requires editing permissions on the host schema.
 """
 import logging
 import os
+from pathlib import Path
+
+# Python < 3.11 does not have tomllib, but tomli provides same functionality
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 import click
 from dotenv import load_dotenv
@@ -29,11 +36,17 @@ logging.basicConfig(level="INFO")
 @click.option("--host", help="MOLGENIS host to harvest to", required=True)
 @click.option("--schema", help="Schema on MOLGENIS host to harvest to",
               required=False, default="Eucaim")
+# @click.option(
+#     "--table",
+#     help="Table of MOLGENIS host to harvest to.",
+#     required=False,
+#     default="collections"
+# )
 @click.option(
-    "--table",
-    help="Table of MOLGENIS host to harvest to.",
-    required=False,
-    default="collections"
+    "--config",
+    help="Configuration.",
+    required=True,
+    type=click.Path(exists=True, path_type=Path, readable=True)
 )
 @click.option(
     "--token", help="Authentication token of the user harvesting data.",
@@ -43,10 +56,14 @@ def cli(
     fdp: str,
     host: str,
     schema: str,
-    table: str,
+    config: click.Path,
     token: str,
 ):
-    harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], table)
+    with open(config, "rb") as fname:
+        config = tomllib.load(fname)
+    concept_table_dict = config['concept_table_link']
+
+    harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], concept_table_dict)
 
     harvest.gather_stage(fdp)
 
