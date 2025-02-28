@@ -74,6 +74,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["extras"] = []
         # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
+        dataset_url = URL(str(dataset_ref))
+        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
         # Basic fields
         query_property_list = ['order_of_magnitude', 'imaging_modality','geographical_coverage','type',
                                'image_access_type', 'collection_method', 'body_part_examined',
@@ -86,26 +88,24 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("description", DCT.description),
             ("biobank", DCAT.inSeries),
             ("provider", DCT.publisher),
-            ("order_of_magnitude", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/order_of_magnitude")),
+            ("order_of_magnitude", URIRef(f"{catalogue_base_url}/column/order_of_magnitude")),
             ("imaging_modality", URIRef("https:/www.eucaim.org/hasImageModality")),
-            ("intended_purpose", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/intended_purpose")),
-            ("image_access_type",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_type")),
+            ("geographical_coverage", DCT.spatial),
+            ("type", DCT.type),
+            ("intended_purpose", URIRef(f"{catalogue_base_url}/column/intended_purpose")),
+            ("image_access_type", URIRef(f"{catalogue_base_url}/column/image_access_type")),
             ("collection_method", URIRef("http://www.healthdcatap.org/healthCategory")),
-            ("head",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/head")),
-            ("contact",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/contact")),
+            ("head", URIRef(f"{catalogue_base_url}/column/head")),
+            ("contact", URIRef(f"{catalogue_base_url}/column/contact")),
             ("number_of_subjects", URIRef("http://www.healthdcatap.org/numberofUniqueIndividuals")),
             ("number_of_records", URIRef("http://www.healthdcatap.org/numberofRecords")),
             ("number_of_series", URIRef("https:/www.eucaim.org/nbrofSeries")),
             ("body_part_examined", URIRef("https:/www.eucaim.org/hasImageBodyPart")),
             ("condition", URIRef("https:/www.eucaim.org/hasCondition")),
-            ("topography", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/topography")),
+            ("topography", URIRef(f"{catalogue_base_url}/column/topography")),
             ("vendor", URIRef("https:/www.eucaim.org/hasImageVendor")),
-            ("image_year_range", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_year_range")),
-            ("image_size",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_size")),
+            ("image_year_range", URIRef(f"{catalogue_base_url}/column/image_year_range")),
+            ("image_size", URIRef(f"{catalogue_base_url}/column/image_size")),
             ("sex", URIRef("https:/www.eucaim.org/hasAssociatedSex")),
             ("age_high", URIRef("http://www.healthdcatap.org/maxTypicalAge")),
             ("age_low", URIRef("http://www.healthdcatap.org/minTypicalAge")),
@@ -114,33 +114,23 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("interoperability_tier", ADMS.interoperabilityLevel),
             ("provenance", DCT.provenance),
             ("intented_purpose", URIRef("https://w3id.org/dpv/dpv-skos#hasPurpose")),
-            ("terms_of_use", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/terms_of_use")),
-            ("commercial_use",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/commercial_use")),
-            ("image_access_description",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_description")),
-            ("image_access_fee",
-             URIRef(
-                 "http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_fee")),
-            ("image_access_uri",
-             URIRef(
-                 "http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_uri")),
-            ("publication_uri",
-             URIRef(
-                 "http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/publication_uri")),
-            ("applicable_legislation",
-             URIRef(
-                 "http://data.europa.eu/r5r/applicableLegislation")),
+            ("terms_of_use", URIRef(f"{catalogue_base_url}/column/terms_of_use")),
+            ("commercial_use", URIRef(f"{catalogue_base_url}/column/commercial_use")),
+            ("image_access_description", URIRef(f"{catalogue_base_url}/column/image_access_description")),
+            ("image_access_fee", URIRef(f"{catalogue_base_url}/column/image_access_fee")),
+            ("image_access_uri", URIRef(f"{catalogue_base_url}/column/image_access_uri")),
+            ("publication_uri", URIRef(f"{catalogue_base_url}/column/publication_uri")),
+            ("applicable_legislation", URIRef("http://data.europa.eu/r5r/applicableLegislation")),
             ("legal_basis", URIRef("https://w3id.org/dpv/dpv-skos#hasLegalBasis")),
             ("retention_period", URIRef("http://www.healthdcatap.org/retentionPeriod")),
             ("rights", DCT.rights),
-            ("hdab", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/health_data_access_body")),
+            ("hdab", URIRef(f"{catalogue_base_url}/column/health_data_access_body")),
             ("quality_label", URIRef("http://www.w3.org/ns/dqv#hasQualityAnnotation")),
             ("coding_systems", URIRef("http://www.healthdcatap.org/hasCodingSystem")),
-            ("metadata_issued", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/metadata_issued")),
+            ("metadata_issued", URIRef(f"{catalogue_base_url}/column/metadata_issued")),
             ("last_modified", DCT.modified),
             ("version", DCAT.version),
-            ("withdrawn", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/withdrawn")),
+            ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
@@ -167,13 +157,14 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         except KeyError:
             pass
 
-
         return dataset_dict
 
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
         # dataset_dict["extras"] = []
         # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
+        dataset_url = URL(str(dataset_ref))
+        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
         # Basic fields
         key_predicate_tuple = (
             # ("id", DCT.identifier),
@@ -184,10 +175,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("juridical_person", DCT.publisher),
             ("url", DCAT.landingPage),
             ("contact", DCAT.contactPoint),
-            ("head", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/head")),
-            ("role", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/role")),
-            ("network", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/network")),
-            ("withdrawn", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/withdrawn")),
+            ("head", URIRef(f"{catalogue_base_url}/column/head")),
+            ("role", URIRef(f"{catalogue_base_url}/column/role")),
+            ("network", URIRef(f"{catalogue_base_url}/column/network")),
+            ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
         )
         query_property_list = ['geographical_coverage']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
@@ -220,21 +211,23 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["extras"] = []
         # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
+        dataset_url = URL(str(dataset_ref))
+        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
         # Basic fields
         key_predicate_tuple = (
             ("id", FOAF.openid),
             ("name", FOAF.openid),
             ("email", FOAF.mbox),
-            ("title_before_name", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/title_before_name")),
-            ("title_after_name", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/title_after_name")),
+            ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
+            ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
             ("first_name", FOAF.firstName),
             ("last_name", FOAF.lastName),
             ("phone", FOAF.phone),
-            ("address", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/address")),
-            ("zip", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/zip")),
-            ("city", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/city")),
-            ("country", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/country")),
-            ("role", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/role")),
+            ("address", URIRef(f"{catalogue_base_url}/column/address")),
+            ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
+            ("city", URIRef(f"{catalogue_base_url}/column/city")),
+            ("country", URIRef(f"{catalogue_base_url}/column/country")),
+            ("role", URIRef(f"{catalogue_base_url}/column/role")),
         )
         query_property_list = ['country']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
