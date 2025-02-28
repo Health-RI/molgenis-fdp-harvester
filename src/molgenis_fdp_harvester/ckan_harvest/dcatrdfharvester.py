@@ -261,7 +261,6 @@ class DCATRDFHarvester(DCATHarvester):
         self._harvest_objects.append(obj)
         return guids_in_source
 
-    #def fetch_stage(self, molgenis_client: Client) -> List[str]:
     def fetch_stage(self, molgenis_client: Client) -> None:
         # Reusing the fetch stage to get a list of IDs
         # Note: very specific to current EUCAIM collections
@@ -277,7 +276,6 @@ class DCATRDFHarvester(DCATHarvester):
                 )
                 self._existing_dataset_guid[concept_type] = []
         return
-        # return self._existing_dataset_guid
 
     def import_stage(self, harvest_object: HarvestObject, molgenis_client: Client):
 

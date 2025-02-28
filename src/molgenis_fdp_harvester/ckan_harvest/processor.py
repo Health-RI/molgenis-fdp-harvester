@@ -76,7 +76,7 @@ class RDFParser(RDFProcessor):
 
     def _datasetseries(self):
         """
-        Generator that returns all DCAT datasets on the graph
+        Generator that returns all DCAT dataset series on the graph
 
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
@@ -86,7 +86,7 @@ class RDFParser(RDFProcessor):
 
     def _persons(self):
         """
-        Generator that returns all DCAT datasets on the graph
+        Generator that returns all FOAF Persons on the graph
 
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
@@ -96,7 +96,7 @@ class RDFParser(RDFProcessor):
 
     def _catalogs(self):
         """
-        Generator that returns all DCAT datasets on the graph
+        Generator that returns all DCAT catalogs on the graph
 
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries, or for get requests
@@ -184,9 +184,9 @@ class RDFParser(RDFProcessor):
 
     def datasetseries(self):
         """
-        Generator that returns CKAN datasets parsed from the RDF graph
+        Generator that returns dataset series parsed from the RDF graph
 
-        Each dataset is passed to all the loaded profiles before being
+        Each dataset series is passed to all the loaded profiles before being
         yielded, so it can be further modified by each one of them.
 
         Returns a dataset dict that can be passed to eg `package_create`
@@ -204,9 +204,9 @@ class RDFParser(RDFProcessor):
 
     def persons(self):
         """
-        Generator that returns CKAN datasets parsed from the RDF graph
+        Generator that returns FOAF persons parsed from the RDF graph
 
-        Each dataset is passed to all the loaded profiles before being
+        Each person object is passed to all the loaded profiles before being
         yielded, so it can be further modified by each one of them.
 
         Returns a dataset dict that can be passed to eg `package_create`
