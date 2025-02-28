@@ -34,7 +34,7 @@ Point into a graph using `rdflib` and an `RDFParser` object. After that the data
 retrieved from the graph and parsed by the profile `MolgenisEUCAIMDCATAPProfile`, using the methods 
 `RDFParser.datatsets()`, `RDFParser.datasetseries()`, and `RDFParser.persons()` respectively. The gather stage
 ends with the creation of a list of `HarvestObject`s. With `DCATRDFHarvester.fetch_stage()`, it is checked if 
-the IDs of the concepts are unique. In the `DCATRDFHarvester.harvest_stage()` method the API calls to the harvesting
+the IDs of the concepts are unique. In the `DCATRDFHarvester.import_stage()` method the API calls to the harvesting
 MOLGENIS catalogue are made.
 
 This harvester is tested on https://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf, where the metadata is shown
