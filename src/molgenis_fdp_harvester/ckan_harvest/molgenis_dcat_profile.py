@@ -92,8 +92,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("image_access_type",
              URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_type")),
             ("collection_method", URIRef("http://www.healthdcatap.org/healthCategory")),
-            ("acronym",
-             URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/acronym")),
             ("head",
              URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/head")),
             ("contact",
