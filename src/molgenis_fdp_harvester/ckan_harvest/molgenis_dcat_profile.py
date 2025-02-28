@@ -92,7 +92,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
              URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/image_access_type")),
             ("collection_method", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Collections/column/collection_method"))
         )
-        dataset_dict = self._extract_dataset_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
         # TODO store keywords somewhere
         # replace munge_tag to noop if there's no need to clean tags
@@ -129,7 +129,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("withdrawn", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Biobanks/column/withdrawn")),
         )
         query_property_list = ['geographical_coverage']
-        dataset_dict = self._extract_dataset_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
         # # TODO store keywords somewhere
         # # replace munge_tag to noop if there's no need to clean tags
@@ -165,7 +165,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("country", URIRef("http://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf/Persons/column/country")),
         )
         query_property_list = ['country']
-        dataset_dict = self._extract_dataset_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
         dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
         return dataset_dict
