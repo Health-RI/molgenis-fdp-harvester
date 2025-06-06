@@ -142,6 +142,7 @@ class HarvesterBase(object):
         """
 
         ideal_name = ideal_name[:PACKAGE_NAME_MAX_LENGTH]
+        return ideal_name
 
     def _get_user_name(self):
         """
