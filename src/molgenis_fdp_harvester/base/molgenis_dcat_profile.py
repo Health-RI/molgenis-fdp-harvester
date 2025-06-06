@@ -15,20 +15,10 @@ from yarl import URL
 
 import logging
 
-from .baseharvester import munge_title_to_name
-# import ckantoolkit as toolkit
-
-# from ckan.lib.munge import munge_tag
-
-# from ckanext.dcat.utils import (
-#     resource_uri,
-#     DCAT_EXPOSE_SUBCATALOGS,
-#     DCAT_CLEAN_TAGS,
-#     publisher_uri_organization_fallback,
-# )
-from .baseparser import RDFProfile, munge_tag, URIRefOrLiteral
-from .baseparser import (
-    DCT, DCAT, ADMS, SKOS
+from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
+from molgenis_fdp_harvester.base.baseparser import RDFProfile, munge_tag
+from molgenis_fdp_harvester.base.baseparser import (
+    DCT, DCAT, ADMS
 )
 
 log = logging.getLogger(__name__)
