@@ -15,20 +15,25 @@ from molgenis_fdp_harvester.utils import HarvesterException
 log = logging.getLogger(__name__)
 
 class DCATRDFHarvester(DCATHarvester):
-    _names_taken = []
-
+    """DCAT RDF Harvester for processing RDF data into Molgenis."""
+    
+    
     def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client):
         super().__init__()
         self._profiles = profiles
         self.concept_table_link = concept_table_dict
-        self.concept_types = [concept for concept in self.concept_table_link.keys()]
+        self.concept_types = list(self.concept_table_link.keys())
         self.molgenis_client = molgenis_client
-
         self.parser = RDFParser(self._profiles)
-
-        self.guids_in_harvest = {concept : list() for concept in self.concept_types}
-        self.guids_in_db = {concept : list() for concept in self.concept_types}
-        self._names_taken = {concept : list() for concept in self.concept_types}
+        
+        # Initialize tracking dictionaries
+        self._initialize_tracking_dictionaries()
+        
+    def _initialize_tracking_dictionaries(self):
+        """Initialize dictionaries for tracking GUIDs and names."""
+        self.guids_in_harvest = {concept: [] for concept in self.concept_types}
+        self.guids_in_db = {concept: [] for concept in self.concept_types}
+        self._names_taken = {concept: [] for concept in self.concept_types}
 
     def info(self):
         return {
@@ -38,40 +43,66 @@ class DCATRDFHarvester(DCATHarvester):
         }
 
     def gather_stage(self, harvest_root_uri):
+        """Gather stage: discover and prepare objects for harvesting."""
+        log.info(f"Starting gather stage for URI: {harvest_root_uri}")
 
-        log.debug("In DCATRDFHarvester gather_stage")
-
-        # Load RDF into the parser
-        self._get_paginated_rdf(harvest_root_uri)
-
-        # Extract the GUIDs from the harvested RDF in the parser
         try:
-            for person in self.parser.persons():
-                self._gather_concept_guid(person, concept_type='person')
-            for dataset_series in self.parser.datasetseries():
-                self._gather_concept_guid(dataset_series, concept_type='datasetseries')
-            for dataset in self.parser.datasets():
-                self._gather_concept_guid(dataset, concept_type='dataset')
+            # Load and parse RDF content
+            self._load_rdf_content(harvest_root_uri)
+            
+            # Extract concepts from RDF
+            self._extract_concepts_from_rdf()
+            
+            # Get existing records from database
+            self._load_existing_records()
+            
+            # Create harvest objects
+            self._create_harvest_objects()
+            
+            log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
+            return self._harvest_objects
+            
         except Exception as e:
-            log.error(
-                "Error when processsing dataset: %r / %s" % (e, traceback.format_exc()),
-            )
-            return []
+            log.error(f"Error in gather stage: {e}")
+            raise HarvesterException(f"Failed to gather objects: {e}")
 
-        # Extract the existing GUIDs
+    def _load_rdf_content(self, harvest_root_uri):
+        """Load RDF content from the source URI."""
+        try:
+            self._get_rdf(harvest_root_uri)
+        except Exception as e:
+            raise HarvesterException(f"Failed to load RDF from {harvest_root_uri}: {e}")
+
+    def _extract_concepts_from_rdf(self):
+        """Extract all concept types from the parsed RDF."""
+        try:
+            extraction_methods = [
+                ('person', self.parser.persons),
+                ('datasetseries', self.parser.datasetseries), 
+                ('dataset', self.parser.datasets)
+            ]
+            
+            for concept_type, extraction_method in extraction_methods:
+                for concept in extraction_method():
+                    self._gather_concept_guid(concept, concept_type)
+                    
+        except Exception as e:
+            log.error(f"Error extracting concepts from RDF: {e}")
+            raise HarvesterException(f"Failed to extract concepts: {e}")
+
+    def _load_existing_records(self):
+        """Load existing records from the database for comparison."""
         for concept_type in self.concept_types:
             entity_name = self.concept_table_link[concept_type]
             try:
                 existing_ids = self.molgenis_client.get(entity_name)
                 self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
             except Exception as e:
-                log.error(
-                    "fetch_stage: Error getting list of uids %s: %r / %s",
-                    (entity_name, e, traceback.format_exc()),
-                )
+                log.error(f"Error getting list of uids for {entity_name}: {e}")
                 self.guids_in_db[concept_type] = []
 
-        # Compare GUIDs from the harvest and those already existing, and create the HarvestObjects
+    def _create_harvest_objects(self):
+        """Create harvest objects based on differences between harvested and existing GUIDs."""
         for concept_type in self.concept_types:
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
             # guids_in_db = set(self.guids_in_db[concept_type])
@@ -106,30 +137,39 @@ class DCATRDFHarvester(DCATHarvester):
     def fetch_stage(self, harvest_object: HarvestObject):
         return self._gather_concept(harvest_object)
 
-    def _gather_concept(self, harvest_object: HarvestObject):
+    def _generate_unique_name(self, title, concept_type):
+        """Generate a unique name for a concept, handling duplicates."""
+        base_name = self._gen_new_name(title) if title else "unnamed"
+
+        if base_name not in self._names_taken[concept_type]:
+            self._names_taken[concept_type].append(base_name)
+            return base_name
+
+        # Handle duplicates by appending a suffix
+        duplicate_count = len([
+            name for name in self._names_taken[concept_type]
+            if name.startswith(f"{base_name}-")
+        ]) + 1
+
+        unique_name = f"{base_name}-{duplicate_count}"
+        self._names_taken[concept_type].append(unique_name)
+        return unique_name
+
+    def _fetch_concept(self, harvest_object):
+        """Prepare a concept dictionary with required fields."""
         concept_type = harvest_object.concept_type
         concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
-        if not concept_dict.get("name"):
-            concept_dict["name"] = self._gen_new_name(concept_dict["title"])
-        if concept_dict["name"] in self._names_taken[concept_type]:
-            suffix = (
-                    len(
-                        [
-                            i
-                            for i in self._names_taken
-                            if i.startswith(concept_dict["name"] + "-")
-                        ]
-                    )
-                    + 1
-            )
-            concept_dict["name"] = "{}-{}".format(concept_dict["name"], suffix)
-        self._names_taken[concept_type].append(concept_dict["name"])
 
-        # If there already is an identifier, don't add another identifier
+        # Ensure required fields
+        if not concept_dict.get("name"):
+            title = concept_dict.get("title")
+            concept_dict["name"] = self._generate_unique_name(title, concept_type)
+
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
         harvest_object.content = json.dumps(concept_dict)
+
         return harvest_object
 
     def import_stage(self, harvest_object: HarvestObject):
@@ -175,9 +215,8 @@ class DCATRDFHarvester(DCATHarvester):
                 )
             return False
 
-    def _get_paginated_rdf(self, harvest_root_uri):
+    def _get_rdf(self, harvest_root_uri):
         next_page_url = harvest_root_uri
-        last_content_hash = None
         rdf_format = None
 
         content, rdf_format = self._get_content_and_type(
@@ -190,48 +229,6 @@ class DCATRDFHarvester(DCATHarvester):
             self._save_gather_error(
                 "Error parsing the RDF file: {0}".format(e), next_page_url
             )
-            # return []
-
-        # while next_page_url:
-        #     if not next_page_url:
-        #         # return []
-        #         break
-
-        #     content, rdf_format = self._get_content_and_type(
-        #         next_page_url, 1, content_type=rdf_format
-        #     )
-
-        #     # MD5 is not cryptographically secure anymore, but this is not a security function.
-        #     # It is used as a fast hash function to make sure no duplicate data is received
-        #     content_hash = hashlib.md5()
-        #     if content:
-        #         content_hash.update(content.encode("utf8"))
-
-        #     if last_content_hash:
-        #         if content_hash.digest() == last_content_hash.digest():
-        #             log.warning(
-        #                 "Remote content was the same even when using a paginated URL, skipping"
-        #             )
-        #             break
-        #     else:
-        #         last_content_hash = content_hash
-
-        #     if not content:
-        #         break
-        #         # return []
-
-        #     try:
-        #         self.parser.parse(content, _format=rdf_format)
-        #     except HarvesterException as e:
-        #         self._save_gather_error(
-        #             "Error parsing the RDF file: {0}".format(e), next_page_url
-        #         )
-        #         # return []
-        #         break
-
-        #     if not self.parser:
-        #         return []
-        #     next_page_url = self.parser.next_page()
 
     def _get_dict_value(self, _dict, key, default=None):
         """

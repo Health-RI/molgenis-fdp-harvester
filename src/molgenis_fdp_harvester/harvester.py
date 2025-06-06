@@ -57,25 +57,51 @@ def cli(
     token: str,
     input_type: str
 ):
-    with open(config, "rb") as fname:
-        config = tomllib.load(fname)
-    concept_table_dict = config['concept_table_link']
-    concept_type_order = {'person': 0, 'datasetseries': 1, 'dataset': 2}
-
+    """Run the harvester with the specified configuration."""
+    # Load configuration
+    config_data = load_config(config)
+    concept_table_dict = config_data['concept_table_link']
+    
+    # Define processing order for concept types
+    CONCEPT_TYPE_ORDER = {'person': 0, 'datasetseries': 1, 'dataset': 2}
 
     with Client(url=host, schema=schema, token=token) as client:
-        if input_type == 'rdf':
-            harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], concept_table_dict, client)
-        else:  # input_type == 'fdp'
-            harvest = FDPHarvester([MolgenisEUCAIMDCATAPProfile], concept_table_dict, client)
+        # Create appropriate harvester
+        harvester = create_harvester(input_type, concept_table_dict, client)
+        
+        # Execute harvesting process
+        execute_harvest(harvester, fdp, CONCEPT_TYPE_ORDER)
 
-        harvest.gather_stage(fdp)
-        harvest._harvest_objects.sort(key=lambda obj: concept_type_order[obj.concept_type])
-        for object in harvest._harvest_objects:
-            object = harvest.fetch_stage(object)
-            print(object.content)
-        #     harvest.import_stage(object)
+def load_config(config_path):
+    """Load and parse the configuration file."""
+    with open(config_path, "rb") as f:
+        return tomllib.load(f)
 
+def create_harvester(input_type, concept_table_dict, client):
+    """Create the appropriate harvester based on input type."""
+    profiles = [MolgenisEUCAIMDCATAPProfile]
+    
+    if input_type == 'rdf':
+        return DCATRDFHarvester(profiles, concept_table_dict, client)
+    elif input_type == 'fdp':
+        return FDPHarvester(profiles, concept_table_dict, client)
+    else:
+        raise ValueError(f"Unknown input_type: {input_type}")
+
+def execute_harvest(harvester, source_url, concept_type_order):
+    """Execute the complete harvesting process."""
+    # Gather objects to harvest
+    harvester.gather_stage(source_url)
+    
+    # Sort by dependency order
+    harvester._harvest_objects.sort(
+        key=lambda obj: concept_type_order[obj.concept_type]
+    )
+    
+    # Process each object
+    for harvest_object in harvester._harvest_objects:
+        harvest_object = harvester.fetch_stage(harvest_object)
+        harvester.import_stage(harvest_object)
 
 if __name__ == "__main__":
     cli()
