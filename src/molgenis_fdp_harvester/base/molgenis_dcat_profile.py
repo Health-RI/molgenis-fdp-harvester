@@ -190,15 +190,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         query_property_list = ['geographical_coverage']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
-        try:
-            dataset_dict["contact"] = URL(dataset_dict["contact"]).query.get('id')
-        except KeyError:
-            pass
-        try:
-            dataset_dict["head"] = URL(dataset_dict["head"]).query.get('id')
-        except KeyError:
-            pass
-        dataset_dict["network"] = URL(dataset_dict["network"]).query.get('id')
+        get_id_properties = ['contact', 'head', 'network']
+        for prop in get_id_properties:
+            try:
+                dataset_dict[prop] = URL(dataset_dict[prop]).query.get('id')
+            except KeyError:
+                pass
 
         return dataset_dict
 

@@ -135,7 +135,7 @@ class DCATRDFHarvester(DCATHarvester):
             self.guids_in_harvest[concept_type].append(guid)
 
     def fetch_stage(self, harvest_object: HarvestObject):
-        return self._gather_concept(harvest_object)
+        return self._fetch_concept(harvest_object)
 
     def _generate_unique_name(self, title, concept_type):
         """Generate a unique name for a concept, handling duplicates."""
@@ -208,6 +208,7 @@ class DCATRDFHarvester(DCATHarvester):
             else: # harvest_object.status == "change"
                 log.info("Updating dataset %s" % dataset["name"])
             self.molgenis_client.save_schema(table=entity_name, data=[dataset])
+            return True
         except Exception as e:
             log.error(
                 "import_stage: Error importing dataset %s: %r / %s"
