@@ -1,20 +1,47 @@
 # MOLGENIS FDP Harvester
 
-[![PyPI - Version](https://img.shields.io/pypi/v/molgenis-fdp-harvester.svg)](https://pypi.org/project/molgenis-fdp-harvester)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/molgenis-fdp-harvester.svg)](https://pypi.org/project/molgenis-fdp-harvester)
-
 -----
-
-## Table of Contents**
-
-- [Installation](#installation)
-- [License](#license)
 
 ## Installation
 
 ```console
-pip install molgenis-fdp-harvester
+git clone https://github.com/Health-RI/molgenis-fdp-harvester.git
+cd molgenis-fdp-harvester
+pip install .
 ```
+
+## Usage
+
+```console
+Usage: harvest [OPTIONS]
+
+Options:
+  --fdp TEXT     FAIR Data Point catalog URL to harvest  [required]
+  --host TEXT    MOLGENIS host to harvest to  [required]
+  --schema TEXT  Schema on MOLGENIS host to harvest to
+  --config PATH  Configuration.  [required]
+  --token TEXT   Authentication token of the user harvesting data.
+  --help         Show this message and exit.
+```
+The configuration contains a linking table between the concept types, used internally in the script to separate the
+handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
+
+## Workings
+
+This harvester is an adaptation of the [CKAN DCAT harvester](https://github.com/ckan/ckanext-dcat). 
+In this harvester the method `DCATRDFHarvester.gather_stage()` is used to first load the RDF data from the FAIR Data 
+Point into a graph using `rdflib` and an `RDFParser` object. After that the datasets, datasetseries and persons are 
+retrieved from the graph and parsed by the profile `MolgenisEUCAIMDCATAPProfile`, using the methods 
+`RDFParser.datatsets()`, `RDFParser.datasetseries()`, and `RDFParser.persons()` respectively. The gather stage
+ends with the creation of a list of `HarvestObject`s. With `DCATRDFHarvester.fetch_stage()`, it is checked if 
+the IDs of the concepts are unique. In the `DCATRDFHarvester.import_stage()` method the API calls to the harvesting
+MOLGENIS catalogue are made.
+
+This harvester is tested on https://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf, where the metadata is shown
+on one big page. In other FAIR Data Points multiple links need to be traversed to for example get the dataset metadata. 
+The harvester has not been tested with those kinds of FAIR Data Points.
+
+
 
 ## License
 
