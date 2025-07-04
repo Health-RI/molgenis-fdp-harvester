@@ -34,9 +34,9 @@ classifiers = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/molgenis-fdp-harvester#readme"
-Issues = "https://github.com/unknown/molgenis-fdp-harvester/issues"
-Source = "https://github.com/unknown/molgenis-fdp-harvester"
+Documentation = "https://github.com/health-ri/molgenis-fdp-harvester#readme"
+Issues = "https://github.com/health-ri/molgenis-fdp-harvester/issues"
+Source = "https://github.com/health-ri/molgenis-fdp-harvester"
 
 [project.scripts]
 harvest = "molgenis_fdp_harvester.harvester:cli"
