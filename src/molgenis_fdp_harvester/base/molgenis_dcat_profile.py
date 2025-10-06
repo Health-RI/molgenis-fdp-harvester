@@ -118,6 +118,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("last_modified", DCT.modified),
             ("version", DCAT.version),
             ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
+            ("publisherType", URIRef("https://healthdcat-ap.github.io/#healthdcatappublishertype")),
+            ("format", DCT.format)
         )
 
     def _get_query_fields(self):
