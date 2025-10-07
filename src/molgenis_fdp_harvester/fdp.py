@@ -8,6 +8,7 @@ from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider import FairDataPointRecordProvider
+from molgenis_fdp_harvester.fdp_harvester.domain.identifier import Identifier
 from molgenis_fdp_harvester.rdf import DCATRDFHarvester
 
 log = logging.getLogger(__name__)
@@ -44,8 +45,6 @@ class FDPHarvester(DCATRDFHarvester):
                     (entity_name, e, traceback.format_exc()),
                 )
                 self.guids_in_db[concept_type] = []
-
-        print(self.guids_in_harvest)
 
         for concept_type in self.concept_types:
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
@@ -117,12 +116,13 @@ class FDPHarvester(DCATRDFHarvester):
             identifier = harvest_object.guid
             try:
                 record = self.record_provider.get_record_by_id(identifier)
+                harvest_object.guid = Identifier(identifier).get_id_value()
 
                 if record:
                     try:
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
-                        harvest_object = self._gather_concept(harvest_object)
+                        harvest_object = self._fetch_concept(harvest_object)
                         # harvest_object.content = record  # TODO move JSON stuff to record provider for Gisweb harvester
                     except Exception as e:
                         log.error(
