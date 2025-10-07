@@ -193,7 +193,6 @@ def test_import_stage_success(mock_json_loads, harvester, mock_client):
     mock_json_loads.return_value = {"name": "Test Dataset", "concept_type": "dataset"}
 
     # Call method
-    print(harvest_object.content)
     result = harvester.import_stage(harvest_object)
 
     # Verify
