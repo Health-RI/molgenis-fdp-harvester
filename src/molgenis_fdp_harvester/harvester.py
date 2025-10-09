@@ -13,6 +13,8 @@ import logging
 import os
 from pathlib import Path
 
+from molgenis_fdp_harvester.fdp import FDPHarvester
+
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
 try:
     import tomllib
@@ -47,7 +49,7 @@ logging.basicConfig(level="INFO")
     "--token", help="Authentication token of the user harvesting data.",
     required=False, default=os.environ.get("MOLGENIS_TOKEN")
 )
-@click.option("--input_type", type=click.Choice(['rdf']), required=True)
+@click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
 def cli(
     fdp: str,
     host: str,
@@ -60,24 +62,27 @@ def cli(
     # Load configuration
     config_data = load_config(config)
     concept_table_dict = config_data['concept_table_link']
-    
+    harvester_config = config_data.get('harvester_config', {})
+
     # Define processing order for concept types
     CONCEPT_TYPE_ORDER = {'person': 0, 'datasetseries': 1, 'dataset': 2}
 
     with Client(url=host, schema=schema, token=token) as client:
         # Create appropriate harvester
-        harvester = create_harvester(input_type, concept_table_dict, client)
-        
+        harvester = create_harvester(input_type, concept_table_dict, client, harvester_config)
+
         # Execute harvesting process
         execute_harvest(harvester, fdp, CONCEPT_TYPE_ORDER)
 
 
-def create_harvester(input_type, concept_table_dict, client):
+def create_harvester(input_type, concept_table_dict, client, harvester_config):
     """Create the appropriate harvester based on input type."""
     profiles = [MolgenisEUCAIMDCATAPProfile]
-    
+
     if input_type == 'rdf':
-        return DCATRDFHarvester(profiles, concept_table_dict, client)
+        return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)
+    elif input_type == 'fdp':
+        return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
     else:
         raise ValueError(f"Unknown input_type: {input_type}")
 
@@ -85,15 +90,22 @@ def execute_harvest(harvester, source_url, concept_type_order):
     """Execute the complete harvesting process."""
     # Gather objects to harvest
     harvester.gather_stage(source_url)
-    
-    # Sort by dependency order
+
+    # Process fetch stage for all objects to identify datasets without datasetseries
+    for harvest_object in harvester._harvest_objects:
+        harvest_object = harvester.fetch_stage(harvest_object)
+
+    # Generate missing datasetseries and update dataset references
+    if hasattr(harvester, 'generate_missing_datasetseries'):
+        harvester.generate_missing_datasetseries()
+
+    # Sort by dependency order (now including auto-generated datasetseries)
     harvester._harvest_objects.sort(
         key=lambda obj: concept_type_order[obj.concept_type]
     )
-    
-    # Process each object
+
+    # Import all objects in dependency order
     for harvest_object in harvester._harvest_objects:
-        harvest_object = harvester.fetch_stage(harvest_object)
         harvester.import_stage(harvest_object)
 
 if __name__ == "__main__":

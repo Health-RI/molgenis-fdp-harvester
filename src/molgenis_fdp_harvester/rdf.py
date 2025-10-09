@@ -16,16 +16,17 @@ log = logging.getLogger(__name__)
 
 class DCATRDFHarvester(DCATHarvester):
     """DCAT RDF Harvester for processing RDF data into Molgenis."""
-    
-    
-    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client):
+
+
+    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
         super().__init__()
         self._profiles = profiles
         self.concept_table_link = concept_table_dict
         self.concept_types = list(self.concept_table_link.keys())
         self.molgenis_client = molgenis_client
         self.parser = RDFParser(self._profiles)
-        
+        self.harvester_config = harvester_config or {}
+
         # Initialize tracking dictionaries
         self._initialize_tracking_dictionaries()
         
@@ -34,6 +35,7 @@ class DCATRDFHarvester(DCATHarvester):
         self.guids_in_harvest = {concept: [] for concept in self.concept_types}
         self.guids_in_db = {concept: [] for concept in self.concept_types}
         self._names_taken = {concept: [] for concept in self.concept_types}
+        self._datasets_without_datasetseries = []  # Track datasets that need auto-generated datasetseries
 
     def info(self):
         return {
@@ -157,9 +159,73 @@ class DCATRDFHarvester(DCATHarvester):
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
+        # Check if this is a dataset without a datasetseries and auto_create is enabled
+        if concept_type == 'dataset' and self.harvester_config.get('auto_create_datasetseries', False):
+            if 'biobank' not in concept_dict or not concept_dict['biobank']:
+                # Track this dataset for later datasetseries creation
+                self._datasets_without_datasetseries.append({
+                    'dataset_name': concept_dict.get('name'),
+                    'dataset_id': concept_dict.get('id'),
+                    'dataset_description': concept_dict.get('description', ''),
+                    'dataset_guid': harvest_object.guid
+                })
+
         harvest_object.content = json.dumps(concept_dict)
 
         return harvest_object
+
+    def _create_datasetseries_for_dataset(self, dataset_info):
+        """Create a datasetseries (biobank) HarvestObject for a dataset."""
+        # Use the same name as the dataset
+        datasetseries_name = dataset_info['dataset_name']
+        datasetseries_id = dataset_info['dataset_id']
+
+        # Create minimal datasetseries content
+        datasetseries_dict = {
+            'id': datasetseries_id,
+            'name': datasetseries_name,
+            'description': dataset_info.get('dataset_description', f"Auto-generated datasetseries for {datasetseries_name}"),
+            'concept_type': 'datasetseries'
+        }
+
+        # Create HarvestObject for the datasetseries
+        # Use a synthetic GUID based on the dataset GUID
+        datasetseries_guid = f"{dataset_info['dataset_guid']}_datasetseries"
+
+        datasetseries_object = HarvestObject(
+            guid=datasetseries_guid,
+            status="new",
+            concept_type="datasetseries"
+        )
+        datasetseries_object.content = json.dumps(datasetseries_dict)
+
+        return datasetseries_object, datasetseries_id
+
+    def generate_missing_datasetseries(self):
+        """Generate datasetseries for all datasets that need them and update dataset references."""
+        if not self._datasets_without_datasetseries:
+            return
+
+        log.info(f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them")
+
+        # Create datasetseries objects and update corresponding datasets
+        for dataset_info in self._datasets_without_datasetseries:
+            # Create the datasetseries HarvestObject
+            datasetseries_object, datasetseries_id = self._create_datasetseries_for_dataset(dataset_info)
+
+            # Add to harvest objects list
+            self._harvest_objects.append(datasetseries_object)
+
+            # Update the corresponding dataset to reference this datasetseries
+            for harvest_obj in self._harvest_objects:
+                if harvest_obj.concept_type == 'dataset' and harvest_obj.guid == dataset_info['dataset_guid']:
+                    # Update the dataset's content to include the biobank reference
+                    dataset_dict = json.loads(harvest_obj.content)
+                    dataset_dict['biobank'] = datasetseries_id
+                    harvest_obj.content = json.dumps(dataset_dict)
+                    break
+
+        log.info(f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries")
 
     def import_stage(self, harvest_object: HarvestObject):
         """
