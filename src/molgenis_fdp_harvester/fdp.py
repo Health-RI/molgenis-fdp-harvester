@@ -25,8 +25,8 @@ log = logging.getLogger(__name__)
 class FDPHarvester(DCATRDFHarvester):
     record_provider = None
 
-    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client):
-        super().__init__(profiles, concept_table_dict, molgenis_client)
+    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
+        super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
 
     def gather_stage(self, harvest_root_uri):
         result = []
