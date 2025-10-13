@@ -24,19 +24,19 @@ def parser(profiles):
 
 @pytest.fixture
 def catalog_data():
-    with open("tests/catalog.ttl", "r") as f:
+    with open("tests/test_data/rdf_catalog.ttl", "r") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset1_data():
-    with open("tests/dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset2_data():
-    with open("tests/dataset2.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset2.ttl", "r") as f:
         return f.read()
 
 def test_parser_initialization(profiles):
