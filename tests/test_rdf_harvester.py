@@ -42,7 +42,7 @@ def harvester(profiles, concept_table_dict, mock_client):
 
 @pytest.fixture
 def catalog_url():
-    return "tests/catalog.ttl"
+    return "tests/test_data/rdf_catalog.ttl"
 
 def test_harvester_initialization(harvester, profiles, concept_table_dict, mock_client):
     """Test that the harvester initializes correctly"""
@@ -63,8 +63,8 @@ def test_harvester_initialization(harvester, profiles, concept_table_dict, mock_
 def test_gather_stage(mock_load_records, mock_get_rdf, harvester, catalog_url):
     """Test the gather_stage method"""
     # Setup parser with mock data
-    harvester.parser.parse(open('tests/dataset1.ttl').read(), _format='turtle')
-    harvester.parser.parse(open('tests/dataset2.ttl').read(), _format='turtle')
+    harvester.parser.parse(open('tests/test_data/rdf_dataset1.ttl').read(), _format='turtle')
+    harvester.parser.parse(open('tests/test_data/rdf_dataset2.ttl').read(), _format='turtle')
 
     # Call gather_stage
     result = harvester.gather_stage(catalog_url)

@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2024 Stichting Health-RI
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix fdp: <https://w3id.org/fdp/fdp-o#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://example.com/fdp>
+    a fdp:FairDataPoint ;
+    dcterms:title "Example FDP" ;
+    dcterms:description "This is an example FAIR Data Point without catalogs." ;
+    dcterms:issued "2025-03-07T00:00:00Z"^^xsd:dateTime ;
+    dcterms:modified "2025-03-07T00:00:00Z"^^xsd:dateTime ;
+    dcterms:license <https://creativecommons.org/publicdomain/zero/1.0/> ;
+    dcterms:publisher <https://example.com/publisher> ;
+    dcterms:contactPoint <https://example.com/contact> .
+
+<https://example.com/publisher>
+    a foaf:Organization ;
+    foaf:name "Example Organization" .
+
+<https://example.com/contact>
+    a foaf:Person ;
+    foaf:name "FAIR Data Support" ;
+    foaf:mbox "mailto:support@example.com" .

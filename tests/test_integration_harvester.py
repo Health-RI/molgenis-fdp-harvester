@@ -44,7 +44,7 @@ def harvester(profiles, concept_table_dict, mock_client):
 
 @pytest.fixture
 def catalog_url():
-    url = os.path.abspath("tests/rdf_testdata.ttl")
+    url = os.path.abspath("tests/test_data/rdf_testdata.ttl")
     assert os.path.exists(url), f"Test file not found: {url}"
     return url
 

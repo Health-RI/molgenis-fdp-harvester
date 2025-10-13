@@ -17,7 +17,7 @@ def rdf_graph():
     g = rdflib.ConjunctiveGraph()
 
     # Load test RDF data
-    with open("tests/dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
         dataset1_data = f.read()
 
     g.parse(data=dataset1_data, format="turtle")
