@@ -105,20 +105,9 @@ class DCATRDFHarvester(DCATHarvester):
         """Create harvest objects based on differences between harvested and existing GUIDs."""
         for concept_type in self.concept_types:
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
-            # guids_in_db = set(self.guids_in_db[concept_type])
             if guids_in_harvest:
-                # new = guids_in_harvest - guids_in_db
-                # delete = guids_in_db - guids_in_harvest
-                # change = guids_in_db & guids_in_harvest
                 for guid in guids_in_harvest:
                     self._harvest_objects.append(HarvestObject(guid=guid, status="new", concept_type=concept_type))
-                # for guid in new:
-                #     self._harvest_objects.append(HarvestObject(guid=guid, status="new", concept_type=concept_type))
-                # for guid in change:
-                #     self._harvest_objects.append(HarvestObject(guid=guid, status="change", concept_type=concept_type))
-                # for guid in delete:
-                #     self._harvest_objects.append(
-                #         HarvestObject(guid=guid, status="delete", concept_type=concept_type))
 
         return self._harvest_objects
 
