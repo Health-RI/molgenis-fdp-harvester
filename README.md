@@ -71,4 +71,5 @@ renamed to key-value combinations that are compatible with the receiving Molgeni
 for this renaming can be found in the profile, in our case `MolgenisEUCAIMDCATAPProfile`.
 
 Following this conversion, the `harvester.import_stage()` is called per HarvestObject. The `import_stage()` method
-takes the information and performs the Molgenis API calls to submit the objects to the EUCAIM catalogue. 
+takes the information and performs the Molgenis API calls to submit the objects to the EUCAIM catalogue.
+
