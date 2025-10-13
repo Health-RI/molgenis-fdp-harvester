@@ -13,8 +13,15 @@
 ## Installation
 
 ```console
-pip install molgenis-fdp-harvester
+git clone https://github.com/Health-RI/molgenis-fdp-harvester.git 
+cd molgenis-fdp-harvester
+pip install .
 ```
+
+Authentication for submitting catalogue entries to the receiving catalogue is done through access tokens.
+In the Molgens EMX2 catalogue generate an access token by clicking 'Hi {username}' in the top right corner,
+and entering a token name under 'Create a token'. Store this token in an environment file `.env`, by writing
+`MOLGENIS_TOKEN={token}`. This will be loaded when starting the harvester. 
 
 ## License
 
@@ -44,4 +51,5 @@ renamed to key-value combinations that are compatible with the receiving Molgeni
 for this renaming can be found in the profile, in our case `MolgenisEUCAIMDCATAPProfile`.
 
 Following this conversion, the `harvester.import_stage()` is called per HarvestObject. The `import_stage()` method
-takes the information and performs the Molgenis API calls to submit the objects to the EUCAIM catalogue. 
+takes the information and performs the Molgenis API calls to submit the objects to the EUCAIM catalogue.
+
