@@ -45,8 +45,6 @@ class FDPHarvester(DCATRDFHarvester):
                 )
                 self.guids_in_db[concept_type] = []
 
-        print(self.guids_in_harvest)
-
         for concept_type in self.concept_types:
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
             guids_in_db = set(self.guids_in_db[concept_type])
