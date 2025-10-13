@@ -13,8 +13,6 @@ import logging
 import os
 from pathlib import Path
 
-from molgenis_fdp_harvester.fdp import FDPHarvester
-
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
 try:
     import tomllib
@@ -48,7 +46,7 @@ logging.basicConfig(level="INFO")
     "--token", help="Authentication token of the user harvesting data.",
     required=False, default=os.environ.get("MOLGENIS_TOKEN")
 )
-@click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
+@click.option("--input_type", type=click.Choice(['rdf']), required=True)
 def cli(
     fdp: str,
     host: str,
@@ -83,8 +81,6 @@ def create_harvester(input_type, concept_table_dict, client):
     
     if input_type == 'rdf':
         return DCATRDFHarvester(profiles, concept_table_dict, client)
-    elif input_type == 'fdp':
-        return FDPHarvester(profiles, concept_table_dict, client)
     else:
         raise ValueError(f"Unknown input_type: {input_type}")
 
