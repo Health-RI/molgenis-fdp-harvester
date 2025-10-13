@@ -226,7 +226,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         query_property_list = ['country']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
-        dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
+        if dataset_dict["email"].startswith("mailto:"):
+            dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
