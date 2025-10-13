@@ -10,6 +10,12 @@ cd molgenis-fdp-harvester
 pip install .
 ```
 
+Authentication for submitting catalogue entries to the receiving catalogue is done through access tokens.
+In the Molgenis EMX2 catalogue generate an access token by clicking 'Hi {username}' in the top right corner,
+and entering a token name under 'Create a token'. Store this token in an environment file `.env`, by writing
+`MOLGENIS_TOKEN={token}`. This will be loaded when starting the harvester. 
+
+
 ## Usage
 
 ```console
