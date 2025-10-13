@@ -64,14 +64,14 @@ class DCATRDFHarvester(DCATHarvester):
             
         except Exception as e:
             log.error(f"Error in gather stage: {e}")
-            raise HarvesterException(f"Failed to gather objects: {e}")
+            raise HarvesterException(f"Failed to gather objects: {e}") from e
 
     def _load_rdf_content(self, harvest_root_uri):
         """Load RDF content from the source URI."""
         try:
             self._get_rdf(harvest_root_uri)
         except Exception as e:
-            raise HarvesterException(f"Failed to load RDF from {harvest_root_uri}: {e}")
+            raise HarvesterException(f"Failed to load RDF from {harvest_root_uri}: {e}") from e
 
     def _extract_concepts_from_rdf(self):
         """Extract all concept types from the parsed RDF."""
@@ -88,7 +88,7 @@ class DCATRDFHarvester(DCATHarvester):
                     
         except Exception as e:
             log.error(f"Error extracting concepts from RDF: {e}")
-            raise HarvesterException(f"Failed to extract concepts: {e}")
+            raise HarvesterException(f"Failed to extract concepts: {e}") from e
 
     def _load_existing_records(self):
         """Load existing records from the database for comparison."""
