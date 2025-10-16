@@ -27,6 +27,7 @@ from .rdf import DCATRDFHarvester
 from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
+from .config import load_config
 
 load_dotenv()
 logging.basicConfig(level="INFO")
@@ -70,10 +71,6 @@ def cli(
         # Execute harvesting process
         execute_harvest(harvester, fdp, CONCEPT_TYPE_ORDER)
 
-def load_config(config_path):
-    """Load and parse the configuration file."""
-    with open(config_path, "rb") as f:
-        return tomllib.load(f)
 
 def create_harvester(input_type, concept_table_dict, client):
     """Create the appropriate harvester based on input type."""
