@@ -1,4 +1,12 @@
+# Example configuration file for Molgenis FDP Harvester
+
+# Table mappings for different concept types
 [concept_table_link]
+person = "persons"
 dataset = "collections"
 datasetseries = "biobanks"
-person = "persons"
+
+# Harvester configuration settings
+[harvester_config]
+# Whether to automatically create dataset series for datasets without one
+auto_create_datasetseries = true

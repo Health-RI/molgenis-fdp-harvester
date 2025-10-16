@@ -19,10 +19,13 @@ name = "molgenis-fdp-harvester"
 dynamic = ["version"]
 description = 'This project contains a FAIR Data Point harvester for MOLGENIS.'
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
 keywords = []
-authors = [{ name = "Mark Janse", email = "mark.janse@health-ri.nl" }]
+authors = [
+  { name = "Mark Janse", email = "mark.janse@health-ri.nl" },
+  { name = "Alexander Harms", email = "alexander.harms@health-ri.nl" }
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",

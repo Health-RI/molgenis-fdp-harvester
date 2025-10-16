@@ -222,6 +222,21 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def get_concept(self, uri_ref, concept_type):
+        concept_dict = {}
+        for profile_class in self._profiles:
+            profile = profile_class(self.g)
+            if concept_type == 'person':
+                profile.parse_person(concept_dict, uri_ref)
+            elif concept_type == 'dataset':
+                profile.parse_dataset(concept_dict, uri_ref)
+            elif concept_type == 'datasetseries':
+                profile.parse_datasetseries(concept_dict, uri_ref)
+
+        concept_dict['concept_type'] = concept_type
+
+        return concept_dict
+
     def dataset_in_catalog(self):
         """
         Generator that returns URIRef of all datasets referred to in Catalogs

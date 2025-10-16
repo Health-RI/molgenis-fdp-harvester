@@ -15,20 +15,10 @@ from yarl import URL
 
 import logging
 
-from .baseharvester import munge_title_to_name
-# import ckantoolkit as toolkit
-
-# from ckan.lib.munge import munge_tag
-
-# from ckanext.dcat.utils import (
-#     resource_uri,
-#     DCAT_EXPOSE_SUBCATALOGS,
-#     DCAT_CLEAN_TAGS,
-#     publisher_uri_organization_fallback,
-# )
-from .baseparser import RDFProfile, munge_tag, URIRefOrLiteral
-from .baseparser import (
-    DCT, DCAT, ADMS, SKOS
+from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
+from molgenis_fdp_harvester.base.baseparser import RDFProfile, munge_tag
+from molgenis_fdp_harvester.base.baseparser import (
+    DCT, DCAT, ADMS
 )
 
 log = logging.getLogger(__name__)
@@ -42,47 +32,44 @@ DISTRIBUTION_LICENSE_FALLBACK_CONFIG = "ckanext.dcat.resource.inherit.license"
 
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
-    """
-    An RDF profile based on the DCAT-AP for data portals in Europe
-
-    More information and specification:
-
-    https://joinup.ec.europa.eu/asset/dcat_application_profile
-
-    """
-    def _extract_name_from_query(self, value: Union[list, str]):
+    """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
+    
+    def _extract_name_from_query(self, value: Union[list, str]) -> Union[list, str, None]:
+        """Extract 'name' parameter from URL query strings."""
         if isinstance(value, list):
-            value = [URL(val).query.get('name') for val in value]
-        else:
-            value = URL(value).query.get('name')
-        return value
+            return [URL(val).query.get('name') for val in value if val]
+        elif isinstance(value, str):
+            return URL(value).query.get('name')
+        return None
 
-    def _extract_concept_dict(self, concept_ref, concept_dict: Dict, key_predicate_tuple: tuple, query_property_list: list):
-        for key, predicate in key_predicate_tuple:
+    def _extract_concept_dict(self, concept_ref, concept_dict: Dict, 
+                            field_mappings: tuple, query_fields: list) -> Dict:
+        """Extract RDF properties into a concept dictionary."""
+        for field_name, predicate in field_mappings:
             value = self._object_value(concept_ref, predicate)
-            if len(value) == 1:
+            
+            if not value:
+                continue
+                
+            # Handle single-item lists
+            if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            if value:
-                if key in query_property_list:
-                    value = self._extract_name_from_query(value)
-                if isinstance(value, list):
-                    value = ",".join(value)
-                concept_dict[key] = value
+            
+            # Extract query parameters for specific fields
+            if field_name in query_fields:
+                value = self._extract_name_from_query(value)
+                
+            # Convert lists to comma-separated strings
+            if isinstance(value, list):
+                value = ",".join(str(v) for v in value if v)
+                
+            concept_dict[field_name] = value
+            
         return concept_dict
 
-    def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef):
-        # dataset_dict["extras"] = []
-        # dataset_dict["resources"] = []
-        dataset_dict["uri"] = str(dataset_ref)
-        dataset_url = URL(str(dataset_ref))
-        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
-        # Basic fields
-        query_property_list = ['order_of_magnitude', 'imaging_modality','geographical_coverage','type',
-                               'image_access_type', 'collection_method', 'body_part_examined',
-                               'condition', 'topography', 'vendor', 'sex', 'interoperability_tier',
-                               'terms_of_use', 'rights', 'hdab', 'coding_systems', 'theme']
-        key_predicate_tuple = (
-            # ("id", DCT.identifier),
+    def _get_dataset_field_mappings(self, catalogue_base_url):
+        """Get field mappings for dataset parsing."""
+        return (
             ("name", DCT.title),
             ("acronym", DCT.alternative),
             ("description", DCT.description),
@@ -131,33 +118,55 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("last_modified", DCT.modified),
             ("version", DCAT.version),
             ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
+            ("publisherType", URIRef("https://healthdcat-ap.github.io/#healthdcatappublishertype")),
+            ("format", DCT.format)
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
-        # TODO store keywords somewhere
-        # replace munge_tag to noop if there's no need to clean tags
-        do_clean = DCAT_CLEAN_TAGS
-        tags_val = [
-            munge_tag(tag) if do_clean else tag for tag in self._keywords(dataset_ref)
+    def _get_query_fields(self):
+        """Get list of fields that need query parameter extraction."""
+        return [
+            'order_of_magnitude', 'imaging_modality', 'geographical_coverage', 
+            'type', 'image_access_type', 'collection_method', 'body_part_examined',
+            'condition', 'topography', 'vendor', 'sex', 'interoperability_tier',
+            'terms_of_use', 'rights', 'hdab', 'coding_systems', 'theme'
         ]
-        tags = [{"name": tag} for tag in tags_val]
-        # dataset_dict["tags"] = tags
 
-        # These values are fake. They need to be made "real"
-        # log.warning("Filling in fake values")
-
-        # dataset_dict["biobank"] = URL(dataset_dict["biobank"]).query.get('id')
-        dataset_dict["biobank"] = munge_title_to_name(dataset_dict["biobank"])
-        try:
-            dataset_dict["head"] = URL(dataset_dict["head"]).query.get('id')
-        except KeyError:
-            pass
-        try:
-            dataset_dict["contact"] = URL(dataset_dict["contact"]).query.get('id')
-        except KeyError:
-            pass
-
+    def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef) -> Dict:
+        """Parse dataset from RDF reference into dictionary."""
+        dataset_dict["uri"] = str(dataset_ref)
+        dataset_url = URL(str(dataset_ref))
+        catalogue_base_url = URL.build(
+            scheme=dataset_url.scheme, 
+            host=dataset_url.host, 
+            path=dataset_url.path
+        )
+        
+        field_mappings = self._get_dataset_field_mappings(catalogue_base_url)
+        query_fields = self._get_query_fields()
+        
+        dataset_dict = self._extract_concept_dict(
+            dataset_ref, dataset_dict, field_mappings, query_fields
+        )
+        
+        # Post-process specific fields
+        self._post_process_dataset_fields(dataset_dict)
+        
         return dataset_dict
+
+    def _post_process_dataset_fields(self, dataset_dict):
+        """Post-process specific dataset fields."""
+        # Handle biobank field
+        if "biobank" in dataset_dict:
+            dataset_dict["biobank"] = munge_title_to_name(dataset_dict["biobank"])
+        
+        # Handle optional fields with URL queries
+        for field in ["head", "contact"]:
+            if field in dataset_dict:
+                try:
+                    dataset_dict[field] = URL(dataset_dict[field]).query.get('id')
+                except (KeyError, TypeError):
+                    pass  # Field missing or malformed - keep original value
+
 
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
         # dataset_dict["extras"] = []
@@ -183,27 +192,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         query_property_list = ['geographical_coverage']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
-        # # TODO store keywords somewhere
-        # # replace munge_tag to noop if there's no need to clean tags
-        # do_clean = DCAT_CLEAN_TAGS
-        # tags_val = [
-        #     munge_tag(tag) if do_clean else tag for tag in self._keywords(dataset_ref)
-        # ]
-        # tags = [{"name": tag} for tag in tags_val]
-        # # dataset_dict["tags"] = tags
-
-        # # These values are fake. They need to be made "real"
-        # # log.warning("Filling in fake values")
-
-        try:
-            dataset_dict["contact"] = URL(dataset_dict["contact"]).query.get('id')
-        except KeyError:
-            pass
-        try:
-            dataset_dict["head"] = URL(dataset_dict["head"]).query.get('id')
-        except KeyError:
-            pass
-        dataset_dict["network"] = URL(dataset_dict["network"]).query.get('id')
+        get_id_properties = ['contact', 'head', 'network']
+        for prop in get_id_properties:
+            try:
+                dataset_dict[prop] = URL(dataset_dict[prop]).query.get('id')
+            except KeyError:
+                pass
 
         return dataset_dict
 
@@ -232,7 +226,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         query_property_list = ['country']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
 
-        dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
+        if dataset_dict["email"].startswith("mailto:"):
+            dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):

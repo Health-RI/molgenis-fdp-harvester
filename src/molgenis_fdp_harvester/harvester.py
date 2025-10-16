@@ -23,10 +23,11 @@ import click
 from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
-from .ckan_harvest.dcatrdfharvester import DCATRDFHarvester
-from .ckan_harvest.molgenis_dcat_profile import (
+from .rdf import DCATRDFHarvester
+from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
+from .config import load_config
 
 load_dotenv()
 logging.basicConfig(level="INFO")
@@ -36,12 +37,6 @@ logging.basicConfig(level="INFO")
 @click.option("--host", help="MOLGENIS host to harvest to", required=True)
 @click.option("--schema", help="Schema on MOLGENIS host to harvest to",
               required=False, default="Eucaim")
-# @click.option(
-#     "--table",
-#     help="Table of MOLGENIS host to harvest to.",
-#     required=False,
-#     default="collections"
-# )
 @click.option(
     "--config",
     help="Configuration.",
@@ -52,26 +47,54 @@ logging.basicConfig(level="INFO")
     "--token", help="Authentication token of the user harvesting data.",
     required=False, default=os.environ.get("MOLGENIS_TOKEN")
 )
+@click.option("--input_type", type=click.Choice(['rdf']), required=True)
 def cli(
     fdp: str,
     host: str,
     schema: str,
     config: click.Path,
     token: str,
+    input_type: str
 ):
-    with open(config, "rb") as fname:
-        config = tomllib.load(fname)
-    concept_table_dict = config['concept_table_link']
-
-    harvest = DCATRDFHarvester([MolgenisEUCAIMDCATAPProfile], concept_table_dict)
-
-    harvest.gather_stage(fdp)
+    """Run the harvester with the specified configuration."""
+    # Load configuration
+    config_data = load_config(config)
+    concept_table_dict = config_data['concept_table_link']
+    
+    # Define processing order for concept types
+    CONCEPT_TYPE_ORDER = {'person': 0, 'datasetseries': 1, 'dataset': 2}
 
     with Client(url=host, schema=schema, token=token) as client:
-        harvest.fetch_stage(client)
-        for object in harvest._harvest_objects:
-            harvest.import_stage(object, client)
+        # Create appropriate harvester
+        harvester = create_harvester(input_type, concept_table_dict, client)
+        
+        # Execute harvesting process
+        execute_harvest(harvester, fdp, CONCEPT_TYPE_ORDER)
 
+
+def create_harvester(input_type, concept_table_dict, client):
+    """Create the appropriate harvester based on input type."""
+    profiles = [MolgenisEUCAIMDCATAPProfile]
+    
+    if input_type == 'rdf':
+        return DCATRDFHarvester(profiles, concept_table_dict, client)
+    else:
+        raise ValueError(f"Unknown input_type: {input_type}")
+
+def execute_harvest(harvester, source_url, concept_type_order):
+    """Execute the complete harvesting process."""
+    # Gather objects to harvest
+    harvester.gather_stage(source_url)
+    
+    # Sort by dependency order
+    harvester._harvest_objects.sort(
+        key=lambda obj: concept_type_order[obj.concept_type]
+    )
+    
+    # Process each object
+    for harvest_object in harvester._harvest_objects:
+        harvest_object = harvester.fetch_stage(harvest_object)
+        harvester.import_stage(harvest_object)
 
 if __name__ == "__main__":
     cli()
