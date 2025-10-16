@@ -76,7 +76,7 @@ def test_gather_stage(mock_load_records, mock_get_rdf, harvester, catalog_url):
     mock_load_records.assert_called_once()
 
     # Verify harvest objects were created
-    assert len(result) > 0
+    assert len(result) == 2
     assert isinstance(result[0], HarvestObject)
 
 def test_load_existing_records(harvester, mock_client):
@@ -147,18 +147,20 @@ def test_get_guid(harvester):
 def test_generate_unique_name(harvester):
     """Test _generate_unique_name method"""
     # Test first name
-    name1 = harvester._generate_unique_name("Test Dataset", "dataset")
-    assert name1 == "test-dataset"
+    test_name = "Test Dataset"
+    test_concept = "dataset"
+    converted_name = "test-dataset"
+
+    name1 = harvester._generate_unique_name(test_name, test_concept)
+    name2 = harvester._generate_unique_name(test_name, test_concept)
+    name3 = harvester._generate_unique_name(test_name, test_concept)
+
+    assert name1 == converted_name
+    assert name2 == converted_name + "-1"
+    assert name3 == converted_name + "-2"
+
     assert name1 in harvester._names_taken["dataset"]
-
-    # Test duplicate name
-    name2 = harvester._generate_unique_name("Test Dataset", "dataset")
-    assert name2 == "test-dataset-1"
     assert name2 in harvester._names_taken["dataset"]
-
-    # Test another duplicate
-    name3 = harvester._generate_unique_name("Test Dataset", "dataset")
-    assert name3 == "test-dataset-2"
     assert name3 in harvester._names_taken["dataset"]
 
 

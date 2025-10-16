@@ -72,10 +72,11 @@ class HarvesterBase(object):
         implements(IHarvester)
     """
 
-    config = None
-    _user_name = None
-    _gather_errors = []
-    _harvest_objects = []
+    def __init__(self):
+        self.config = None
+        self._user_name = None
+        self._gather_errors = []
+        self._harvest_objects = []
 
     def _save_gather_error(self, *args):
         log.warning("Harvester gather error: %s", args)

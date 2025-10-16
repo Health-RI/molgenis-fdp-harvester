@@ -44,13 +44,15 @@ def test_parse_dataset(profile, dataset_ref):
     assert dataset_dict["description"] == "Impact of muggle technical inventions on word's magic presense"
 
 
-def test_extract_name_from_query(profile):
+def test_extract_name_from_query_single_url(profile):
     """Test _extract_name_from_query method"""
     # Test with a single URL string
     single_url = "http://example.com/resource?name=test_name"
     result = profile._extract_name_from_query(single_url)
     assert result == "test_name"
 
+
+def test_extract_name_from_query_url_list(profile):
     # Test with a list of URL strings
     url_list = [
         "http://example.com/resource1?name=test_name1",
@@ -59,6 +61,8 @@ def test_extract_name_from_query(profile):
     result = profile._extract_name_from_query(url_list)
     assert result == ["test_name1", "test_name2"]
 
+
+def test_extract_name_from_query_none(profile):
     # Test with URL without name parameter
     no_name_url = "http://example.com/resource"
     result = profile._extract_name_from_query(no_name_url)
