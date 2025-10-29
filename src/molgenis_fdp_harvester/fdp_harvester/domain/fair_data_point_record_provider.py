@@ -29,22 +29,22 @@ class FairDataPointRecordProvider:
         self.fair_data_point = FairDataPoint(fdp_end_point)
 
     def get_record_ids(self, concept_type: str = 'all') -> Dict.keys:
-        log.debug("FAIR Data Point get_records from {}".format(self.fair_data_point.fdp_end_point))
-        result = dict()
-        for fdp_record in self._breath_first_search_records(self.fair_data_point.fdp_end_point):
-            if fdp_record.is_catalog() and concept_type in ['catalog', 'all']:
+        log.debug(f"FAIR Data Point get_records from {self.fair_data_point.fdp_end_point}")
+        result = {}
+        for fdp_record in self._breadth_first_search_records(self.fair_data_point.fdp_end_point):
+            if fdp_record.is_catalog() and concept_type in {'catalog', 'all'}:
                 identifier = Identifier("")
                 identifier.add("catalog", str(fdp_record.url))
                 result[identifier.guid] = fdp_record.url
-            elif fdp_record.is_dataset() and concept_type in ['dataset', 'all']:
+            elif fdp_record.is_dataset() and concept_type in {'dataset', 'all'}:
                 identifier = Identifier("")
                 identifier.add("dataset", str(fdp_record.url))
                 result[identifier.guid] = fdp_record.url
-            elif fdp_record.is_datasetseries() and concept_type in ['datasetseries', 'all']:
+            elif fdp_record.is_datasetseries() and concept_type in {'datasetseries', 'all'}:
                 identifier = Identifier("")
                 identifier.add("datasetseries", str(fdp_record.url))
                 result[identifier.guid] = fdp_record.url
-            elif fdp_record.is_person() and concept_type in ['person', 'all']:
+            elif fdp_record.is_person() and concept_type in {'person', 'all'}:
                 identifier = Identifier("")
                 identifier.add("person", str(fdp_record.url))
                 result[identifier.guid] = fdp_record.url
@@ -55,9 +55,7 @@ class FairDataPointRecordProvider:
         Get additional information for FDP record.
         """
         log.debug(
-            "FAIR data point get_record_by_id from {} for {}".format(
-                self.fair_data_point.fdp_end_point, guid
-            )
+            f"FAIR data point get_record_by_id from {self.fair_data_point.fdp_end_point} for {guid}"
         )
 
         identifier = Identifier(guid)
@@ -97,9 +95,7 @@ class FairDataPointRecordProvider:
                     g=g, subject_uri=subject_uri, contact_point_uri=contact_point_uri
                 )
 
-        result = g.serialize(format="ttl")
-
-        return result
+        return g.serialize(format="ttl")
 
     @staticmethod
     def _parse_contact_point(g: Graph, subject_uri: URIRef, contact_point_uri: URIRef):
@@ -131,15 +127,14 @@ class FairDataPointRecordProvider:
         subject_uri = URIRef(subject)
         predicate_uri = URIRef(predicate)
 
-        for value in graph.objects(subject=subject_uri, predicate=predicate_uri):
-            yield value
+        yield from graph.objects(subject=subject_uri, predicate=predicate_uri)
 
     def _map_record(self, url: str):
         mapper = GraphToFdpRecordMapper(url)
         graph = self.fair_data_point.get_graph(url)
         return mapper.map(graph)
 
-    def _breath_first_search_records(self, start_url: str):
+    def _breadth_first_search_records(self, start_url: str):
         queue = deque([start_url])
         visited = set()
         while queue:

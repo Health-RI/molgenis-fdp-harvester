@@ -20,8 +20,7 @@ def get_graph_by_id(*args, **kwargs):
     file_id = args[0]
     file_id = "_".join(file_id.split("/")[-2:])
     path_to_file = Path(TEST_DATA_DIRECTORY, f"{file_id}.ttl")
-    graph = Graph().parse(path_to_file)
-    return graph
+    return Graph().parse(path_to_file)
 
 
 class TestRecordProvider:

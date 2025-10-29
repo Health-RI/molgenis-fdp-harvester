@@ -96,8 +96,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
         harvest_object = harvester.fetch_stage(harvest_object)
 
     # Generate missing datasetseries and update dataset references
-    if hasattr(harvester, 'generate_missing_datasetseries'):
-        harvester.generate_missing_datasetseries()
+    harvester.generate_missing_datasetseries()
 
     # Sort by dependency order (now including auto-generated datasetseries)
     harvester._harvest_objects.sort(

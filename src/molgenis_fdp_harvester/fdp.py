@@ -13,15 +13,6 @@ from molgenis_fdp_harvester.rdf import DCATRDFHarvester
 
 log = logging.getLogger(__name__)
 
-
-# def text_traceback():
-#     with warnings.catch_warnings():
-#         warnings.simplefilter("ignore")
-#         res = "the original traceback:".join(
-#             cgitb.text(sys.exc_info()).split("the original traceback:")[1:]
-#         ).strip()
-#     return res
-
 class FDPHarvester(DCATRDFHarvester):
     record_provider = None
 
@@ -94,14 +85,13 @@ class FDPHarvester(DCATRDFHarvester):
         except Exception as e:
             # log.error("Exception: %s" % text_traceback())
             log.error(
-                "Error gathering the identifiers from the RecordProvider: [%s]"
-                % str(e)
+                f"Error gathering the identifiers from the RecordProvider: [{str(e)}]"
             )
 
     def fetch_stage(self, harvest_object: HarvestObject):
-        logger = logging.getLogger(__name__ + ".fetch_stage")
+        logger = logging.getLogger(f"{__name__}.fetch_stage")
 
-        logger.debug("Starting fetch_stage for harvest object [%s]", harvest_object.guid)
+        logger.debug(f"Starting fetch_stage for harvest object [{harvest_object.guid}]")
 
         result = False
 
@@ -138,10 +128,7 @@ class FDPHarvester(DCATRDFHarvester):
                     result = False
 
             except Exception as e:  # Broad exception because of unpredictability of Exceptions
-                log.error(
-                    "Error getting the record with identifier [%s] from record provider"
-                    % identifier
-                )
+                log.error(f"Error getting the record with identifier [{identifier}] from record provider")
                 result = False
 
         return harvest_object

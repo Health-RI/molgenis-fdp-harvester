@@ -160,15 +160,16 @@ class DCATRDFHarvester(DCATHarvester):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
         # Check if this is a dataset without a datasetseries and auto_create is enabled
-        if concept_type == 'dataset' and self.harvester_config.get('auto_create_datasetseries', False):
-            if 'biobank' not in concept_dict or not concept_dict['biobank']:
-                # Track this dataset for later datasetseries creation
-                self._datasets_without_datasetseries.append({
-                    'dataset_name': concept_dict.get('name'),
-                    'dataset_id': concept_dict.get('id'),
-                    'dataset_description': concept_dict.get('description', ''),
-                    'dataset_guid': harvest_object.guid
-                })
+        if (concept_type == 'dataset'
+                and self.harvester_config.get('auto_create_datasetseries', False)
+                and ('biobank' not in concept_dict or not concept_dict['biobank'])):
+                    # Track this dataset for later datasetseries creation
+                    self._datasets_without_datasetseries.append({
+                        'dataset_name': concept_dict.get('name'),
+                        'dataset_id': concept_dict.get('id'),
+                        'dataset_description': concept_dict.get('description', ''),
+                        'dataset_guid': harvest_object.guid
+                    })
 
         harvest_object.content = json.dumps(concept_dict)
 
