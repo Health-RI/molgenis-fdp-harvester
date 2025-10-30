@@ -32,22 +32,6 @@ Options:
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
 
-## Workings
-
-This harvester is an adaptation of the [CKAN DCAT harvester](https://github.com/ckan/ckanext-dcat). 
-In this harvester the method `DCATRDFHarvester.gather_stage()` is used to first load the RDF data from the FAIR Data 
-Point into a graph using `rdflib` and an `RDFParser` object. After that the datasets, datasetseries and persons are 
-retrieved from the graph and parsed by the profile `MolgenisEUCAIMDCATAPProfile`, using the methods 
-`RDFParser.datatsets()`, `RDFParser.datasetseries()`, and `RDFParser.persons()` respectively. The gather stage
-ends with the creation of a list of `HarvestObject`s. With `DCATRDFHarvester.fetch_stage()`, it is checked if 
-the IDs of the concepts are unique. In the `DCATRDFHarvester.import_stage()` method the API calls to the harvesting
-MOLGENIS catalogue are made.
-
-This harvester is tested on https://catalogue-eucaim.grycap.i3m.upv.es/Eucaim/api/rdf, where the metadata is shown
-on one big page. In other FAIR Data Points multiple links need to be traversed to for example get the dataset metadata. 
-The harvester has not been tested with those kinds of FAIR Data Points.
-
-
 
 ## License
 
@@ -66,16 +50,40 @@ as the `harvester` object.
 In `create_harvester()` the profile, in this case `MolgenisEUCAIMDCATAPProfile` is given as input to the harvester object.
 After creating the harvester, the harvest is executed in `execute_harvest()`. 
 
-This starts with `harvest.gather_stage()`, which retrieves all the items to harvest from the supplied endpoint.
+The structure of every harvester is as follows:
+- `harvester.gather_stage()`: Collect all IDs of the classes to harvest and compare these IDs with the existing ones in the catalogue. This step creates `HarvestObject`s with just the ID (`guid`) and the class/concept type.
+- `harvester.fetch_stage()`: Iterate over all `HarvestObject`s and retrieve the content of the classes. 
+- `harvester.generate_missing_datasetseries()`: The current EUCAIM Molgenis model requires a DatasetSeries, so for Datasets that do not have DatasetSeries, one will be created.
+- Sorting: There is a dependency between the classes, e.g., when a Dataset is submitted any referenced Agents already need to be known in the catalogue. To allow for this, the `HarvestObject`s are sorted based on concept type.
+- `harvester.import_stage()`: Submit the `HarvestObject`s to the Molgenis catalogue through the APIs. 
+
+The most straightforward of the two harvesters is the `DCATRDFHarvester`. 
+This harvester is an adaptation of the [CKAN DCAT harvester](https://github.com/ckan/ckanext-dcat).
+In  `harvest.gather_stage()`, the entire RDF is retrieved from the endpoint and converted to a graph.
 The harvested RDF gets converted to a Graph, from which the objects are subsequently extracted. In this process 
 `RDFParser` is used for the conversion and the extraction.
 
-To make sure to adhere to all dependencies between the harvested objects, the list of HarvestObjects are sorted.
-After sorting, the method `harvester.fetch_stage()` is called per HarvestObject. 
-In this stage the contents of the HarvestObject, e.g., a Dataset, which were harvested from the endpoint, are 
-renamed to key-value combinations that are compatible with the receiving Molgenis catalogue. The methods 
-for this renaming can be found in the profile, in our case `MolgenisEUCAIMDCATAPProfile`.
+In the `harvester.fetch_stage()` method the concepts are 
+retrieved from the graph and parsed by the profile `MolgenisEUCAIMDCATAPProfile`, using the 
+respective methods per concept. 
+In this stage the contents of the `HarvestObject`, e.g., a Dataset, which were harvested from the endpoint, are 
+renamed to key-value combinations that are compatible with the receiving Molgenis catalogue. 
 
-Following this conversion, the `harvester.import_stage()` is called per HarvestObject. The `import_stage()` method
+Following this conversion, the `harvester.import_stage()` is called per `HarvestObject`. The `import_stage()` method
 takes the information and performs the Molgenis API calls to submit the objects to the EUCAIM catalogue.
+
+The `FDPHarvester` follows the same stages. 
+It is based on the [GDI FAIR Data Point harvester for CKAN](https://github.com/GenomicDataInfrastructure/gdi-userportal-ckanext-fairdatapoint).
+The major difference between an FDP endpoint and an RDF endpoint, is that in an FDP endpoint not all metadata is presented at once.
+You start at a central point, and through LDP (Linked Data Platform) structures all classes, e.g., Datasets, are linked.
+To harvest the endpoint, first all linked classes are collected.
+For the traversal of the endpoint, the `FairDataPointRecordProvider` class is used. This will handle the exploration
+of the linked LDP structures and return the record, e.g., Dataset, IDs, through the `FairDataPointRecordProvider.get_record_ids()`
+method. In `FDPHarvester.gather_stage()` these record IDs are converted into `HarvestObject`s.
+
+In `FDPHarvester.fetch_stage()` the RDF data related to the ID in the `HarvestObject` is retrieved and converted to a graph.
+Similar to the `DCATRDFHarvester` the `fetch_stage()` method then extracts the classes from this graph.
+This content is then added to the `HarvestObject`.
+After sorting the `HarvestObject`s are then submitted to the Molgenis catalogue using the `import_stage()` method
+which is inherited from the `DCATRDFHarvester` class.
 
