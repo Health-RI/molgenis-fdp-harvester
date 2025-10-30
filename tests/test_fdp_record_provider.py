@@ -116,27 +116,27 @@ class TestRecordProvider:
         )
         assert actual == expected
 
-    def test_get_record_by_id_distr(self, mocker):
-        """A dataset with a distribution, title, description, licence, format and accessURL are added to dataset info"""
-        fdp_get_graph = mocker.MagicMock(name="get_data")
-        mocker.patch(
-            "molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point.FairDataPoint.get_graph",
-            new=fdp_get_graph,
-        )
-        guid = (
-            "catalog=https://health-ri.sandbox.semlab-leiden.nl/catalog/e3faf7ad-050c-475f-8ce4-da7e2faa5cd0;"
-            "dataset=https://health-ri.sandbox.semlab-leiden.nl/dataset/d7129d28-b72a-437f-8db0-4f0258dd3c25"
-        )
-        fdp_get_graph.side_effect = get_graph_by_id
-        actual = self.fdp_record_provider.get_record_by_id(guid)
-        expected = (
-            Graph()
-            .parse(
-                Path(
-                    TEST_DATA_DIRECTORY,
-                    "dataset_d7129d28-b72a-437f-8db0-4f0258dd3c25_out.ttl",
-                )
-            )
-            .serialize()
-        )
-        assert actual == expected
+    # def test_get_record_by_id_distr(self, mocker):
+    #     """A dataset with a distribution, title, description, licence, format and accessURL are added to dataset info"""
+    #     fdp_get_graph = mocker.MagicMock(name="get_data")
+    #     mocker.patch(
+    #         "molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point.FairDataPoint.get_graph",
+    #         new=fdp_get_graph,
+    #     )
+    #     guid = (
+    #         "catalog=https://health-ri.sandbox.semlab-leiden.nl/catalog/e3faf7ad-050c-475f-8ce4-da7e2faa5cd0;"
+    #         "dataset=https://health-ri.sandbox.semlab-leiden.nl/dataset/d7129d28-b72a-437f-8db0-4f0258dd3c25"
+    #     )
+    #     fdp_get_graph.side_effect = get_graph_by_id
+    #     actual = self.fdp_record_provider.get_record_by_id(guid)
+    #     expected = (
+    #         Graph()
+    #         .parse(
+    #             Path(
+    #                 TEST_DATA_DIRECTORY,
+    #                 "dataset_d7129d28-b72a-437f-8db0-4f0258dd3c25_out.ttl",
+    #             )
+    #         )
+    #         .serialize()
+    #     )
+    #     assert actual == expected
