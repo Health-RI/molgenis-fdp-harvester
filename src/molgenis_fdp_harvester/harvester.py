@@ -31,6 +31,8 @@ from .base.molgenis_dcat_profile import (
 )
 from .config import load_config
 
+# Environment variables:
+# MOLGENIS_TOKEN
 load_dotenv()
 logging.basicConfig(level="INFO")
 
@@ -47,7 +49,7 @@ logging.basicConfig(level="INFO")
 )
 @click.option(
     "--token", help="Authentication token of the user harvesting data.",
-    required=False, default=os.environ.get("MOLGENIS_TOKEN")
+    required=False, default=lambda: os.environ.get("MOLGENIS_TOKEN")
 )
 @click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
 def cli(
@@ -59,6 +61,13 @@ def cli(
     input_type: str
 ):
     """Run the harvester with the specified configuration."""
+    # Check that token is provided
+    if not token:
+        raise click.ClickException(
+            "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
+            "variable or provide the --token option."
+        )
+
     # Load configuration
     config_data = load_config(config)
     concept_table_dict = config_data['concept_table_link']

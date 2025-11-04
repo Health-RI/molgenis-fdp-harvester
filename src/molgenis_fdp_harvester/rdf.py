@@ -34,7 +34,7 @@ class DCATRDFHarvester(DCATHarvester):
         """Initialize dictionaries for tracking GUIDs and names."""
         self.guids_in_harvest = {concept: [] for concept in self.concept_types}
         self.guids_in_db = {concept: [] for concept in self.concept_types}
-        self._names_taken = {concept: [] for concept in self.concept_types}
+        # self._names_taken = {concept: [] for concept in self.concept_types}
         self._datasets_without_datasetseries = []  # Track datasets that need auto-generated datasetseries
 
     def info(self):
@@ -56,8 +56,8 @@ class DCATRDFHarvester(DCATHarvester):
             self._extract_concepts_from_rdf()
             
             # Get existing records from database
-            self._load_existing_records()
-            
+            self._get_guids_in_db()
+
             # Create harvest objects
             self._create_harvest_objects()
             
@@ -92,7 +92,7 @@ class DCATRDFHarvester(DCATHarvester):
             log.error(f"Error extracting concepts from RDF: {e}")
             raise HarvesterException(f"Failed to extract concepts: {e}") from e
 
-    def _load_existing_records(self):
+    def _get_guids_in_db(self):
         """Load existing records from the database for comparison."""
         for concept_type in self.concept_types:
             entity_name = self.concept_table_link[concept_type]
@@ -100,7 +100,7 @@ class DCATRDFHarvester(DCATHarvester):
                 existing_ids = self.molgenis_client.get(entity_name)
                 self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
             except Exception as e:
-                log.error(f"Error getting list of uids for {entity_name}: {e}")
+                log.error(f"fetch_stage: Error getting list of uids {str(entity_name)}: {repr(e)} / {str(traceback.format_exc())}")
                 self.guids_in_db[concept_type] = []
 
     def _create_harvest_objects(self):
@@ -128,23 +128,23 @@ class DCATRDFHarvester(DCATHarvester):
     def fetch_stage(self, harvest_object: HarvestObject):
         return self._fetch_concept(harvest_object)
 
-    def _generate_unique_name(self, title, concept_type):
-        """Generate a unique name for a concept, handling duplicates."""
-        base_name = self._gen_new_name(title) if title else "unnamed"
+    # def _generate_unique_name(self, title, concept_type):
+    #     """Generate a unique name for a concept, handling duplicates."""
+    #     base_name = self._gen_new_name(title) if title else "unnamed"
 
-        if base_name not in self._names_taken[concept_type]:
-            self._names_taken[concept_type].append(base_name)
-            return base_name
+    #     if base_name not in self._names_taken[concept_type]:
+    #         self._names_taken[concept_type].append(base_name)
+    #         return base_name
 
-        # Handle duplicates by appending a suffix
-        duplicate_count = len([
-            name for name in self._names_taken[concept_type]
-            if name.startswith(f"{base_name}-")
-        ]) + 1
+    #     # Handle duplicates by appending a suffix
+    #     duplicate_count = len([
+    #         name for name in self._names_taken[concept_type]
+    #         if name.startswith(f"{base_name}-")
+    #     ]) + 1
 
-        unique_name = f"{base_name}-{duplicate_count}"
-        self._names_taken[concept_type].append(unique_name)
-        return unique_name
+    #     unique_name = f"{base_name}-{duplicate_count}"
+    #     self._names_taken[concept_type].append(unique_name)
+    #     return unique_name
 
     def _fetch_concept(self, harvest_object):
         """Prepare a concept dictionary with required fields."""
@@ -153,8 +153,8 @@ class DCATRDFHarvester(DCATHarvester):
 
         # Ensure required fields
         if not concept_dict.get("name"):
-            title = concept_dict.get("title")
-            concept_dict["name"] = self._generate_unique_name(title, concept_type)
+            concept_dict['name'] = concept_dict.get("title")
+            # concept_dict["name"] = self._generate_unique_name(title, concept_type)
 
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
@@ -240,19 +240,13 @@ class DCATRDFHarvester(DCATHarvester):
             return True
 
         if harvest_object.content is None:
-            log.error(
-                "import_stage: Empty content for object {0}".format(harvest_object.guid),
-            )
+            log.error(f"import_stage: Empty content for object {harvest_object.guid}")
             return False
 
         try:
             dataset = json.loads(harvest_object.content)
         except ValueError:
-            log.error(
-                "import_stage: Could not parse content for object {0}".format(
-                    harvest_object.guid
-                ),
-            )
+            log.error(f"import_stage: Could not parse content for object {harvest_object.guid}")
             return False
 
         concept_type = dataset['concept_type']
@@ -260,16 +254,15 @@ class DCATRDFHarvester(DCATHarvester):
 
         try:
             if harvest_object.status == "new":
-                log.info("Adding dataset %s" % dataset["name"])
+                log.info(f"Adding dataset {dataset['name']}")
             else: # harvest_object.status == "change"
-                log.info("Updating dataset %s" % dataset["name"])
+                log.info(f"Updating dataset {dataset['name']}")
             self.molgenis_client.save_schema(table=entity_name, data=[dataset])
             return True
         except Exception as e:
             log.error(
-                "import_stage: Error importing dataset %s: %r / %s"
-                % (dataset.get("name", ""), e, traceback.format_exc()),
-                )
+                f"import_stage: Error importing dataset {dataset.get('name', '')}: {repr(e)} / {traceback.format_exc()}"
+            )
             return False
 
     def _get_rdf(self, harvest_root_uri):

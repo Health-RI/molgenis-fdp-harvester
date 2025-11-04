@@ -16,19 +16,12 @@ from yarl import URL
 import logging
 
 from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
-from molgenis_fdp_harvester.base.baseparser import RDFProfile, munge_tag
+from molgenis_fdp_harvester.base.baseparser import RDFProfile
 from molgenis_fdp_harvester.base.baseparser import (
     DCT, DCAT, ADMS
 )
 
 log = logging.getLogger(__name__)
-
-# config = toolkit.config
-DCAT_CLEAN_TAGS = False
-NORMALIZE_CKAN_FORMAT = True
-
-
-DISTRIBUTION_LICENSE_FALLBACK_CONFIG = "ckanext.dcat.resource.inherit.license"
 
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):

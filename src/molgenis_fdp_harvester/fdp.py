@@ -25,17 +25,7 @@ class FDPHarvester(DCATRDFHarvester):
         self.setup_record_provider(harvest_root_uri)
 
         self._get_guids_in_harvest()
-        for concept_type in self.concept_types:
-            entity_name = self.concept_table_link[concept_type]
-            try:
-                existing_ids = self.molgenis_client.get(entity_name)
-                self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
-            except Exception as e:
-                log.error(
-                    "fetch_stage: Error getting list of uids %s: %r / %s",
-                    (entity_name, e, traceback.format_exc()),
-                )
-                self.guids_in_db[concept_type] = []
+        self._get_guids_in_db()
 
         for concept_type in self.concept_types:
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
@@ -67,40 +57,31 @@ class FDPHarvester(DCATRDFHarvester):
             for concept_type in self.concept_types:
                 for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
                     try:
-                        log.info("Got identifier [%s] from RecordProvider", identifier)
+                        log.info(f"Got identifier {str(identifier)} from RecordProvider")
                         if identifier is None:
-                            log.error(
-                                "RecordProvider returned empty identifier [%r], skipping..."
-                                % identifier
-                            )
+                            log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
                             continue
 
                         self.guids_in_harvest[concept_type].append(identifier)
                     except Exception as e:
-                        log.error(
-                            "Error for identifier [%s] in gather phase: [%r]"
-                            % (identifier, e)
-                        )
+                        log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
                         continue
         except Exception as e:
             # log.error("Exception: %s" % text_traceback())
-            log.error(
-                f"Error gathering the identifiers from the RecordProvider: [{str(e)}]"
-            )
+            log.error(f"Error gathering the identifiers from the RecordProvider: [{str(e)}]")
+
 
     def fetch_stage(self, harvest_object: HarvestObject):
         logger = logging.getLogger(f"{__name__}.fetch_stage")
 
         logger.debug(f"Starting fetch_stage for harvest object [{harvest_object.guid}]")
 
-        result = False
-
         # Check harvest object status
         status = harvest_object.status
 
         if status == "delete":
             # No need to fetch anything, just pass to the import stage
-            result = True
+            pass
 
         else:
             identifier = harvest_object.guid
@@ -113,23 +94,18 @@ class FDPHarvester(DCATRDFHarvester):
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
                         harvest_object = self._fetch_concept(harvest_object)
-                        # harvest_object.content = record  # TODO move JSON stuff to record provider for Gisweb harvester
                     except Exception as e:
                         log.error(
                             "Error saving harvest object for identifier [%s] [%r]"
                             %(identifier, e))
-                        return False
 
-                    result = True
                 else:
                     log.error(
                         "Empty record for identifier %s" % identifier, harvest_object
                     )
-                    result = False
 
             except Exception as e:  # Broad exception because of unpredictability of Exceptions
                 log.error(f"Error getting the record with identifier [{identifier}] from record provider")
-                result = False
 
         return harvest_object
 
