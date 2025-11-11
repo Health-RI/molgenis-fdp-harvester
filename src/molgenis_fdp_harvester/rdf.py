@@ -3,6 +3,7 @@ import json
 import logging
 import traceback
 from typing import List, Dict
+from urllib.parse import quote
 
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
@@ -159,19 +160,53 @@ class DCATRDFHarvester(DCATHarvester):
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
+        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name attached to the ontologyTermURI
+        # The table to query is configured in the configuration.
+        uri_lookup_table = self.harvester_config.get('uri_lookup_config', {}).get(concept_type)
+        if uri_lookup_table:
+            for property, value in concept_dict.items():
+                molgenis_table = uri_lookup_table.get(property)
+                if molgenis_table:
+                    try:
+                        if isinstance(value, list):
+                            returned_value_list = list()
+                            for val in value:
+                                returned_value = self.molgenis_client.get(table=molgenis_table,
+                                                                          query_filter=f"ontologyTermURI == '{quote(val)}'")
+                                if returned_value:
+                                    returned_value_list.append(returned_value[0]['name'])
+                            if returned_value_list:
+                                concept_dict[property] = ','.join(returned_value_list)
+                        else:
+                            returned_value = self.molgenis_client.get(table=molgenis_table,
+                                                                      query_filter=f"ontologyTermURI == '{quote(value)}'")
+                            if returned_value:
+                                concept_dict[property] = returned_value[0]['name']
+                        # else:
+                        #     try:
+                        #         returned_value = self.molgenis_client.get(table=molgenis_table,
+                        #                                                   query_filter=f"label == '{quote(value)}'")
+                        #         if returned_value:
+                        #             concept_dict[property] = returned_value[0]['name']
+                        #     except Exception as exc:
+                        #         log.warning(f"Exception when resolving label: table {molgenis_table}; URI {value}; {str(exc)}")
+                    except Exception as exc:
+                        log.warning(f"Exception when resolving ontology URI: table {molgenis_table}; URI {value}; {str(exc)}")
+
+        harvest_object.content = json.dumps(concept_dict)
+
         # Check if this is a dataset without a datasetseries and auto_create is enabled
         if (concept_type == 'dataset'
                 and self.harvester_config.get('auto_create_datasetseries', False)
                 and ('biobank' not in concept_dict or not concept_dict['biobank'])):
-                    # Track this dataset for later datasetseries creation
-                    self._datasets_without_datasetseries.append({
-                        'dataset_name': concept_dict.get('name'),
-                        'dataset_id': concept_dict.get('id'),
-                        'dataset_description': concept_dict.get('description', ''),
-                        'dataset_guid': harvest_object.guid
-                    })
+            # Track this dataset for later datasetseries creation
+            self._datasets_without_datasetseries.append({
+                'dataset_name': concept_dict.get('name'),
+                'dataset_id': concept_dict.get('id'),
+                'dataset_description': concept_dict.get('description', ''),
+                'dataset_guid': harvest_object.guid
+            })
 
-        harvest_object.content = json.dumps(concept_dict)
 
         return harvest_object
 

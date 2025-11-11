@@ -10,3 +10,24 @@ datasetseries = "biobanks"
 [harvester_config]
 # Whether to automatically create dataset series for datasets without one
 auto_create_datasetseries = true
+
+# URI lookup configuration - maps field names to their MOLGENIS lookup tables
+# Used to resolve ontology URIs to their corresponding 'name' values by querying
+# the specified table's 'ontologyTermURI' column
+[harvester_config.uri_lookup_config.dataset]
+geographical_coverage = "Countries"
+imaging_modality = "ImagingModalities"
+type = "DatasetTypes"
+image_access_type = "ImageAccessTypes"
+collection_method = "CollectionMethods"
+body_part_examined = "BodyParts"
+condition = "Conditions"
+topography = "Topographies"
+vendor = "Vendors"
+sex = "Sex"
+interoperability_tier = "InteroperabilityTiers"
+terms_of_use = "TermsOfUse"
+rights = "Rights"
+hdab = "HealthDataAccessBodies"
+coding_systems = "CodingSystems"
+theme = "Themes"

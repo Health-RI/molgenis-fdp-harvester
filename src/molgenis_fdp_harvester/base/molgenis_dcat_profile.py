@@ -40,7 +40,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         """Extract RDF properties into a concept dictionary."""
         for field_name, predicate in field_mappings:
             value = self._object_value(concept_ref, predicate)
-            
+
             if not value:
                 continue
                 
@@ -48,44 +48,46 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
             
-            # Extract query parameters for specific fields
-            if field_name in query_fields:
-                value = self._extract_name_from_query(value)
-                
-            # Convert lists to comma-separated strings
-            if isinstance(value, list):
-                value = ",".join(str(v) for v in value if v)
+            # # Extract query parameters for specific fields
+            # if field_name in query_fields:
+            #     value = self._extract_name_from_query(value)
+            #
+            # # Convert lists to comma-separated strings
+            # if isinstance(value, list):
+            #     value = ",".join(str(v) for v in value if v)
                 
             concept_dict[field_name] = value
             
         return concept_dict
 
-    def _get_dataset_field_mappings(self, catalogue_base_url):
+    def _get_dataset_field_mappings(self):
+        # def _get_dataset_field_mappings(self, catalogue_base_url):
         """Get field mappings for dataset parsing."""
         return (
+            ("id", DCT.identifier),
             ("name", DCT.title),
             ("acronym", DCT.alternative),
             ("description", DCT.description),
             ("biobank", DCAT.inSeries),
             ("provider", DCT.publisher),
-            ("order_of_magnitude", URIRef(f"{catalogue_base_url}/column/order_of_magnitude")),
-            ("imaging_modality", URIRef("https:/www.eucaim.org/hasImageModality")),
+            # ("order_of_magnitude", URIRef(f"{catalogue_base_url}/column/order_of_magnitude")),
+            ("imaging_modality", URIRef("https://cancerimage.eu/ontology/EUCAIM/hasImageModality")),
             ("geographical_coverage", DCT.spatial),
             ("type", DCT.type),
-            ("intended_purpose", URIRef(f"{catalogue_base_url}/column/intended_purpose")),
-            ("image_access_type", URIRef(f"{catalogue_base_url}/column/image_access_type")),
-            ("collection_method", URIRef("http://www.healthdcatap.org/healthCategory")),
-            ("head", URIRef(f"{catalogue_base_url}/column/head")),
-            ("contact", URIRef(f"{catalogue_base_url}/column/contact")),
+            ("intended_purpose", URIRef("https://w3id.org/dpv#hasPurpose")),
+            # ("image_access_type", URIRef(f"{catalogue_base_url}/column/image_access_type")),
+            ("collection_method", URIRef("https://cancerimage.eu/ontology/EUCAIM/collectionMethod")),
+            # ("head", URIRef(f"{catalogue_base_url}/column/head")),
+            # ("contact", URIRef(f"{catalogue_base_url}/column/contact")),
             ("number_of_subjects", URIRef("http://www.healthdcatap.org/numberofUniqueIndividuals")),
             ("number_of_records", URIRef("http://www.healthdcatap.org/numberofRecords")),
             ("number_of_series", URIRef("https:/www.eucaim.org/nbrofSeries")),
             ("body_part_examined", URIRef("https:/www.eucaim.org/hasImageBodyPart")),
             ("condition", URIRef("https:/www.eucaim.org/hasCondition")),
-            ("topography", URIRef(f"{catalogue_base_url}/column/topography")),
+            # ("topography", URIRef(f"{catalogue_base_url}/column/topography")),
             ("vendor", URIRef("https:/www.eucaim.org/hasImageVendor")),
-            ("image_year_range", URIRef(f"{catalogue_base_url}/column/image_year_range")),
-            ("image_size", URIRef(f"{catalogue_base_url}/column/image_size")),
+            # ("image_year_range", URIRef(f"{catalogue_base_url}/column/image_year_range")),
+            # ("image_size", URIRef(f"{catalogue_base_url}/column/image_size")),
             ("sex", URIRef("https:/www.eucaim.org/hasAssociatedSex")),
             ("age_high", URIRef("http://www.healthdcatap.org/maxTypicalAge")),
             ("age_low", URIRef("http://www.healthdcatap.org/minTypicalAge")),
@@ -94,23 +96,23 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("interoperability_tier", ADMS.interoperabilityLevel),
             ("provenance", DCT.provenance),
             ("intented_purpose", URIRef("https://w3id.org/dpv/dpv-skos#hasPurpose")),
-            ("terms_of_use", URIRef(f"{catalogue_base_url}/column/terms_of_use")),
-            ("commercial_use", URIRef(f"{catalogue_base_url}/column/commercial_use")),
-            ("image_access_description", URIRef(f"{catalogue_base_url}/column/image_access_description")),
-            ("image_access_fee", URIRef(f"{catalogue_base_url}/column/image_access_fee")),
-            ("image_access_uri", URIRef(f"{catalogue_base_url}/column/image_access_uri")),
-            ("publication_uri", URIRef(f"{catalogue_base_url}/column/publication_uri")),
+            # ("terms_of_use", URIRef(f"{catalogue_base_url}/column/terms_of_use")),
+            # ("commercial_use", URIRef(f"{catalogue_base_url}/column/commercial_use")),
+            # ("image_access_description", URIRef(f"{catalogue_base_url}/column/image_access_description")),
+            # ("image_access_fee", URIRef(f"{catalogue_base_url}/column/image_access_fee")),
+            # ("image_access_uri", URIRef(f"{catalogue_base_url}/column/image_access_uri")),
+            # ("publication_uri", URIRef(f"{catalogue_base_url}/column/publication_uri")),
             ("applicable_legislation", URIRef("http://data.europa.eu/r5r/applicableLegislation")),
             ("legal_basis", URIRef("https://w3id.org/dpv/dpv-skos#hasLegalBasis")),
             ("retention_period", URIRef("http://www.healthdcatap.org/retentionPeriod")),
             ("rights", DCT.rights),
-            ("hdab", URIRef(f"{catalogue_base_url}/column/health_data_access_body")),
+            # ("hdab", URIRef(f"{catalogue_base_url}/column/health_data_access_body")),
             ("quality_label", URIRef("http://www.w3.org/ns/dqv#hasQualityAnnotation")),
             ("coding_systems", URIRef("http://www.healthdcatap.org/hasCodingSystem")),
-            ("metadata_issued", URIRef(f"{catalogue_base_url}/column/metadata_issued")),
+            # ("metadata_issued", URIRef(f"{catalogue_base_url}/column/metadata_issued")),
             ("last_modified", DCT.modified),
             ("version", DCAT.version),
-            ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
+            # ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
             ("publisherType", URIRef("https://healthdcat-ap.github.io/#healthdcatappublishertype")),
             ("format", DCT.format)
         )
@@ -128,13 +130,14 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         """Parse dataset from RDF reference into dictionary."""
         dataset_dict["uri"] = str(dataset_ref)
         dataset_url = URL(str(dataset_ref))
-        catalogue_base_url = URL.build(
-            scheme=dataset_url.scheme, 
-            host=dataset_url.host, 
-            path=dataset_url.path
-        )
+        # catalogue_base_url = URL.build(
+        #     scheme=dataset_url.scheme,
+        #     host=dataset_url.host,
+        #     path=dataset_url.path
+        # )
         
-        field_mappings = self._get_dataset_field_mappings(catalogue_base_url)
+        # field_mappings = self._get_dataset_field_mappings(catalogue_base_url)
+        field_mappings = self._get_dataset_field_mappings()
         query_fields = self._get_query_fields()
         
         dataset_dict = self._extract_concept_dict(
@@ -169,7 +172,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
         # Basic fields
         key_predicate_tuple = (
-            # ("id", DCT.identifier),
+            ("id", DCT.identifier),
             ("name", DCT.title),
             ("acronym", DCT.alternative),
             ("description", DCT.description),

@@ -195,6 +195,7 @@ class RDFProfile(object):
         # FIXME Change language back to be dynamic
         default_lang = HARVEST_DEFAULT_LABEL_LANGUAGE
         fallback = ""
+        return_list = []
         for o in self.g.objects(subject, predicate):
             if isinstance(o, Literal):
                 if o.language and o.language == default_lang:
@@ -202,9 +203,13 @@ class RDFProfile(object):
                 # Use first object as fallback if no object with the default language is available
                 elif fallback == "":
                     fallback = str(o)
+                    break
             else:
-                return str(o)
-        return fallback
+                return_list.append(str(o))
+
+        if not return_list:
+            return fallback
+        return return_list
 
     def _get_root_catalog_ref(self):
         roots = list(self.g.subjects(DCT.hasPart))

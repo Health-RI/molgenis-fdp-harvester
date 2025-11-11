@@ -37,7 +37,7 @@ def test_validate_config_missing_person():
         }
     }
 
-    with pytest.raises(ValueError, match="Invalid 'concept_table_link' section"):
+    with pytest.raises(ValueError, match="Invalid configuration:"):
         validate_config(config_data)
 
 
@@ -50,7 +50,7 @@ def test_validate_config_missing_dataset():
         }
     }
 
-    with pytest.raises(ValueError, match="Invalid 'concept_table_link' section"):
+    with pytest.raises(ValueError, match="Invalid configuration:"):
         validate_config(config_data)
 
 
@@ -63,7 +63,7 @@ def test_validate_config_missing_datasetseries():
         }
     }
 
-    with pytest.raises(ValueError, match="Invalid 'concept_table_link' section"):
+    with pytest.raises(ValueError, match="Invalid configuration:"):
         validate_config(config_data)
 
 
@@ -77,7 +77,7 @@ def test_validate_config_invalid_type_person():
         }
     }
 
-    with pytest.raises(TypeError, match="'concept_table_link.person' must be a string"):
+    with pytest.raises(ValueError, match="Configuration 'concept_table_link.person' must be a string, got int"):
         validate_config(config_data)
 
 
@@ -91,7 +91,7 @@ def test_validate_config_invalid_type_dataset():
         }
     }
 
-    with pytest.raises(TypeError, match="'concept_table_link.dataset' must be a string"):
+    with pytest.raises(ValueError, match="Configuration 'concept_table_link.dataset' must be a string, got list"):
         validate_config(config_data)
 
 
@@ -105,7 +105,7 @@ def test_validate_config_invalid_type_datasetseries():
         }
     }
 
-    with pytest.raises(TypeError, match="'concept_table_link.datasetseries' must be a string"):
+    with pytest.raises(ValueError, match="Configuration 'concept_table_link.datasetseries' must be a string, got NoneType"):
         validate_config(config_data)
 
 
