@@ -17,44 +17,59 @@ def harvester():
     return DCATHarvester()
 
 
+@pytest.fixture
+def temp_ttl_file():
+    """Create a temporary turtle file for testing"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as f:
+        f.write("@prefix dcat: <http://www.w3.org/ns/dcat#> .")
+        temp_path = f.name
+    yield temp_path
+    os.unlink(temp_path)
+
+
+@pytest.fixture
+def mock_session():
+    """Create a mock requests Session for HTTP tests"""
+    with patch('requests.Session') as mock_session_class:
+        session = MagicMock()
+        mock_session_class.return_value.__enter__.return_value = session
+        yield session
+
+
+@pytest.fixture
+def successful_http_response():
+    """Create a successful HTTP response mock"""
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {'content-type': 'text/turtle'}
+    mock_response.iter_content.return_value = [b"test content"]
+    return mock_response
+
+
 # ============================================================================
 # Local File Tests
 # ============================================================================
 
-def test_get_content_and_type_local_file_success(harvester):
+def test_get_content_and_type_local_file_success(harvester, temp_ttl_file):
     """Test reading content from valid local file"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as f:
-        f.write("@prefix dcat: <http://www.w3.org/ns/dcat#> .")
-        temp_path = f.name
+    with patch('rdflib.util.guess_format', return_value='turtle'):
+        content, content_type = harvester._get_content_and_type(temp_ttl_file)
 
-    try:
-        with patch('rdflib.util.guess_format', return_value='turtle'):
-            content, content_type = harvester._get_content_and_type(temp_path)
-
-        assert content == "@prefix dcat: <http://www.w3.org/ns/dcat#> ."
-        assert content_type == 'turtle'
-    finally:
-        os.unlink(temp_path)
+    assert content == "@prefix dcat: <http://www.w3.org/ns/dcat#> ."
+    assert content_type == 'turtle'
 
 
-def test_get_content_and_type_local_file_with_explicit_type(harvester):
+def test_get_content_and_type_local_file_with_explicit_type(harvester, temp_ttl_file):
     """Test that explicit content_type overrides guessed format"""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.ttl', delete=False) as f:
-        f.write("@prefix dcat: <http://www.w3.org/ns/dcat#> .")
-        temp_path = f.name
+    with patch('rdflib.util.guess_format') as mock_guess:
+        content, content_type = harvester._get_content_and_type(
+            temp_ttl_file,
+            content_type='xml'
+        )
 
-    try:
-        with patch('rdflib.util.guess_format') as mock_guess:
-            content, content_type = harvester._get_content_and_type(
-                temp_path,
-                content_type='xml'
-            )
-
-        # Should not call guess_format when content_type is provided
-        mock_guess.assert_not_called()
-        assert content_type == 'xml'
-    finally:
-        os.unlink(temp_path)
+    # Should not call guess_format when content_type is provided
+    mock_guess.assert_not_called()
+    assert content_type == 'xml'
 
 
 def test_get_content_and_type_local_file_not_found(harvester):
@@ -72,149 +87,112 @@ def test_get_content_and_type_local_file_not_found(harvester):
 # HTTP Success Tests
 # ============================================================================
 
-def test_get_content_and_type_http_success(harvester):
+def test_get_content_and_type_http_success(harvester, mock_session):
     """Test successful HTTP GET request"""
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.headers = {'content-type': 'text/turtle; charset=utf-8'}
     mock_response.iter_content.return_value = [b"@prefix dcat: ", b"<http://www.w3.org/ns/dcat#> ."]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = mock_response
+    mock_session.get.return_value = mock_response
 
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
+    content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
-        assert content == "@prefix dcat: <http://www.w3.org/ns/dcat#> ."
-        assert content_type == 'text/turtle'
-        mock_session.head.assert_called_once()
-        mock_session.get.assert_called_once()
+    assert content == "@prefix dcat: <http://www.w3.org/ns/dcat#> ."
+    assert content_type == 'text/turtle'
+    mock_session.head.assert_called_once()
+    mock_session.get.assert_called_once()
 
 
-def test_get_content_and_type_http_head_405_fallback(harvester):
+def test_get_content_and_type_http_head_405_fallback(harvester, mock_session, successful_http_response):
     """Test HEAD returning 405 triggers direct GET"""
     mock_head_response = Mock()
     mock_head_response.status_code = 405
 
-    mock_get_response = Mock()
-    mock_get_response.status_code = 200
-    mock_get_response.headers = {'content-type': 'text/turtle'}
-    mock_get_response.iter_content.return_value = [b"test content"]
+    mock_session.head.return_value = mock_head_response
+    mock_session.get.return_value = successful_http_response
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_head_response
-        mock_session.get.return_value = mock_get_response
+    content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
-
-        assert content == "test content"
-        # GET should be called once after 405 (with stream=True, did_get=True skips second GET)
-        assert mock_session.get.call_count == 1
+    assert content == "test content"
+    # GET should be called once after 405 (with stream=True, did_get=True skips second GET)
+    assert mock_session.get.call_count == 1
 
 
-def test_get_content_and_type_http_head_400_fallback(harvester):
+def test_get_content_and_type_http_head_400_fallback(harvester, mock_session, successful_http_response):
     """Test HEAD returning 400 triggers direct GET"""
     mock_head_response = Mock()
     mock_head_response.status_code = 400
 
-    mock_get_response = Mock()
-    mock_get_response.status_code = 200
-    mock_get_response.headers = {'content-type': 'text/turtle'}
-    mock_get_response.iter_content.return_value = [b"test content"]
+    mock_session.head.return_value = mock_head_response
+    mock_session.get.return_value = successful_http_response
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_head_response
-        mock_session.get.return_value = mock_get_response
+    content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
-
-        assert content == "test content"
-        # GET should be called once after 400 (with stream=True, did_get=True skips second GET)
-        assert mock_session.get.call_count == 1
+    assert content == "test content"
+    # GET should be called once after 400 (with stream=True, did_get=True skips second GET)
+    assert mock_session.get.call_count == 1
 
 
-def test_get_content_and_type_pagination_with_query(harvester):
+def test_get_content_and_type_pagination_with_query(harvester, mock_session, successful_http_response):
     """Test page parameter adds & when URL has existing query string"""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {'content-type': 'text/turtle'}
-    mock_response.iter_content.return_value = [b"page 2"]
+    successful_http_response.iter_content.return_value = [b"page 2"]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = successful_http_response
+    mock_session.get.return_value = successful_http_response
 
-        harvester._get_content_and_type('http://example.com/catalog.ttl?format=ttl', page=2)
+    harvester._get_content_and_type('http://example.com/catalog.ttl?format=ttl', page=2)
 
-        # Check that the URL was called with &page=2
-        head_call_url = mock_session.head.call_args[0][0]
-        assert '?format=ttl&page=2' in head_call_url
+    # Check that the URL was called with &page=2
+    head_call_url = mock_session.head.call_args[0][0]
+    assert '?format=ttl&page=2' in head_call_url
 
 
-def test_get_content_and_type_pagination_without_query(harvester):
+def test_get_content_and_type_pagination_without_query(harvester, mock_session, successful_http_response):
     """Test page parameter adds ? when URL has no query string"""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {'content-type': 'text/turtle'}
-    mock_response.iter_content.return_value = [b"page 2"]
+    successful_http_response.iter_content.return_value = [b"page 2"]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = successful_http_response
+    mock_session.get.return_value = successful_http_response
 
-        harvester._get_content_and_type('http://example.com/catalog.ttl', page=2)
+    harvester._get_content_and_type('http://example.com/catalog.ttl', page=2)
 
-        # Check that the URL was called with ?page=2
-        head_call_url = mock_session.head.call_args[0][0]
-        assert '?page=2' in head_call_url
+    # Check that the URL was called with ?page=2
+    head_call_url = mock_session.head.call_args[0][0]
+    assert '?page=2' in head_call_url
 
 
-def test_get_content_and_type_content_type_with_charset(harvester):
+def test_get_content_and_type_content_type_with_charset(harvester, mock_session):
     """Test content-type with charset is properly parsed"""
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.headers = {'content-type': 'application/rdf+xml; charset=utf-8'}
     mock_response.iter_content.return_value = [b"<rdf>test</rdf>"]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = mock_response
+    mock_session.get.return_value = mock_response
 
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.rdf')
+    content, content_type = harvester._get_content_and_type('http://example.com/catalog.rdf')
 
-        # Charset should be stripped
-        assert content_type == 'application/rdf+xml'
+    # Charset should be stripped
+    assert content_type == 'application/rdf+xml'
 
 
 # ============================================================================
 # File Size Limit Tests
 # ============================================================================
 
-def test_get_content_and_type_file_too_large_header(harvester):
+def test_get_content_and_type_file_too_large_header(harvester, mock_session):
     """Test rejection when Content-Length header exceeds limit"""
     max_size = 1024 * 1024 * 50  # 50MB
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.headers = {'content-length': str(max_size + 1)}
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
+    mock_session.head.return_value = mock_response
 
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/huge.ttl')
 
         assert content is None
@@ -223,7 +201,7 @@ def test_get_content_and_type_file_too_large_header(harvester):
         assert "too big" in mock_save_error.call_args[0][0].lower()
 
 
-def test_get_content_and_type_file_too_large_streaming(harvester):
+def test_get_content_and_type_file_too_large_streaming(harvester, mock_session):
     """Test rejection when streamed content exceeds limit during download"""
     # Create chunks that will exceed the limit
     chunk_size = 1024 * 512  # 512KB
@@ -238,13 +216,10 @@ def test_get_content_and_type_file_too_large_streaming(harvester):
     mock_get_response.headers = {}
     mock_get_response.iter_content.return_value = [b'x' * chunk_size for _ in range(num_chunks)]
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_head_response
-        mock_session.get.return_value = mock_get_response
+    mock_session.head.return_value = mock_head_response
+    mock_session.get.return_value = mock_get_response
 
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/huge.ttl')
 
         assert content is None
@@ -253,7 +228,7 @@ def test_get_content_and_type_file_too_large_streaming(harvester):
         assert "too big" in mock_save_error.call_args[0][0].lower()
 
 
-def test_get_content_and_type_file_just_under_limit(harvester):
+def test_get_content_and_type_file_just_under_limit(harvester, mock_session):
     """Test successful download of file just under the limit"""
     # Create content just under 50MB
     chunk_size = 1024 * 512  # 512KB
@@ -268,60 +243,54 @@ def test_get_content_and_type_file_just_under_limit(harvester):
     mock_get_response.headers = {'content-type': 'text/turtle'}
     mock_get_response.iter_content.return_value = [b'x' * chunk_size for _ in range(num_chunks)]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_head_response
-        mock_session.get.return_value = mock_get_response
+    mock_session.head.return_value = mock_head_response
+    mock_session.get.return_value = mock_get_response
 
-        content, content_type = harvester._get_content_and_type('http://example.com/large.ttl')
+    content, content_type = harvester._get_content_and_type('http://example.com/large.ttl')
 
-        assert content is not None
-        assert len(content) == chunk_size * num_chunks
+    assert content is not None
+    assert len(content) == chunk_size * num_chunks
 
 
 # ============================================================================
 # HTTP Error Handling Tests
 # ============================================================================
 
-def test_get_content_and_type_http_error_non_404(harvester):
+@pytest.mark.parametrize("status_code,reason,expected_in_error", [
+    (500, 'Internal Server Error', ['500', 'Internal Server Error']),
+    (502, 'Bad Gateway', ['502', 'Bad Gateway']),
+    (503, 'Service Unavailable', ['503', 'Service Unavailable']),
+])
+def test_get_content_and_type_http_error_non_404(harvester, mock_session, status_code, reason, expected_in_error):
     """Test HTTPError handling for non-404 errors"""
     mock_response = Mock()
-    mock_response.status_code = 500
-    mock_response.reason = 'Internal Server Error'
+    mock_response.status_code = status_code
+    mock_response.reason = reason
 
     mock_error = HTTPError(response=mock_response)
+    mock_session.head.side_effect = mock_error
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.side_effect = mock_error
-
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
         assert content is None
         assert content_type is None
         mock_save_error.assert_called_once()
         error_msg = mock_save_error.call_args[0][0]
-        assert '500' in error_msg
-        assert 'Internal Server Error' in error_msg
+        for expected in expected_in_error:
+            assert expected in error_msg
 
 
-def test_get_content_and_type_http_error_404_page_1(harvester):
+def test_get_content_and_type_http_error_404_page_1(harvester, mock_session):
     """Test HTTPError 404 on page 1 is caught and logged"""
     mock_response = Mock()
     mock_response.status_code = 404
     mock_response.reason = 'Not Found'
 
     mock_error = HTTPError(response=mock_response)
+    mock_session.head.side_effect = mock_error
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.side_effect = mock_error
-
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl', page=1)
 
         assert content is None
@@ -329,75 +298,54 @@ def test_get_content_and_type_http_error_404_page_1(harvester):
         mock_save_error.assert_called_once()
 
 
-def test_get_content_and_type_http_error_404_page_2_raises(harvester):
+@pytest.mark.parametrize("page", [2, 3, 10])
+def test_get_content_and_type_http_error_404_page_gt_1_raises(harvester, mock_session, page):
     """Test HTTPError 404 on page > 1 is re-raised (not caught)"""
     mock_response = Mock()
     mock_response.status_code = 404
     mock_response.reason = 'Not Found'
 
     mock_error = HTTPError(response=mock_response)
+    mock_session.head.side_effect = mock_error
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.side_effect = mock_error
-
-        # Should raise the HTTPError instead of catching it
-        with pytest.raises(HTTPError):
-            harvester._get_content_and_type('http://example.com/catalog.ttl', page=2)
+    # Should raise the HTTPError instead of catching it
+    with pytest.raises(HTTPError):
+        harvester._get_content_and_type('http://example.com/catalog.ttl', page=page)
 
 
-def test_get_content_and_type_connection_error(harvester):
-    """Test ConnectionError handling"""
-    mock_error = ConnectionError("Connection refused")
+@pytest.mark.parametrize("error_class,error_msg,expected_substring", [
+    (ConnectionError, "Connection refused", "connection error"),
+    (Timeout, "Connection timed out", "timed out"),
+])
+def test_get_content_and_type_request_exceptions(harvester, mock_session, error_class, error_msg, expected_substring):
+    """Test handling of various request exceptions"""
+    mock_error = error_class(error_msg)
+    mock_session.head.side_effect = mock_error
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.side_effect = mock_error
-
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
         assert content is None
         assert content_type is None
         mock_save_error.assert_called_once()
-        error_msg = mock_save_error.call_args[0][0]
-        assert "connection error" in error_msg.lower()
+        error_msg_logged = mock_save_error.call_args[0][0]
+        assert expected_substring in error_msg_logged.lower()
 
 
-def test_get_content_and_type_timeout(harvester):
-    """Test Timeout handling"""
-    mock_error = Timeout("Connection timed out")
-
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.side_effect = mock_error
-
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
-
-        assert content is None
-        assert content_type is None
-        mock_save_error.assert_called_once()
-        error_msg = mock_save_error.call_args[0][0]
-        assert "timed out" in error_msg.lower()
-
-
-def test_get_content_and_type_raise_for_status_error(harvester):
+@pytest.mark.parametrize("status_code,reason", [
+    (403, 'Forbidden'),
+    (401, 'Unauthorized'),
+])
+def test_get_content_and_type_raise_for_status_error(harvester, mock_session, status_code, reason):
     """Test that raise_for_status errors are caught"""
     mock_response = Mock()
-    mock_response.status_code = 403
-    mock_response.reason = 'Forbidden'
+    mock_response.status_code = status_code
+    mock_response.reason = reason
     mock_response.raise_for_status.side_effect = HTTPError(response=mock_response)
 
-    with patch('requests.Session') as mock_session_class, \
-         patch.object(harvester, '_save_gather_error') as mock_save_error:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
+    mock_session.head.return_value = mock_response
 
+    with patch.object(harvester, '_save_gather_error') as mock_save_error:
         content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
         assert content is None
@@ -478,62 +426,44 @@ def test_get_package_name_raises_exception_empty_string(harvester):
 # Edge Cases
 # ============================================================================
 
-def test_get_content_and_type_mixed_case_http_protocol(harvester):
+def test_get_content_and_type_mixed_case_http_protocol(harvester, mock_session, successful_http_response):
     """Test that mixed case HTTP protocol is recognized"""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {'content-type': 'text/turtle'}
-    mock_response.iter_content.return_value = [b"test"]
+    successful_http_response.iter_content.return_value = [b"test"]
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = successful_http_response
+    mock_session.get.return_value = successful_http_response
 
-        content, content_type = harvester._get_content_and_type('HTTP://example.com/catalog.ttl')
+    content, content_type = harvester._get_content_and_type('HTTP://example.com/catalog.ttl')
 
-        assert content == "test"
-        assert content_type == 'text/turtle'
+    assert content == "test"
+    assert content_type == 'text/turtle'
 
 
-def test_get_content_and_type_no_content_type_header(harvester):
+def test_get_content_and_type_no_content_type_header(harvester, mock_session, successful_http_response):
     """Test handling when response has no content-type header"""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {}  # No content-type
-    mock_response.iter_content.return_value = [b"test content"]
+    successful_http_response.headers = {} # No content-type
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = successful_http_response
+    mock_session.get.return_value = successful_http_response
 
-        content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
+    content, content_type = harvester._get_content_and_type('http://example.com/catalog.ttl')
 
-        assert content == "test content"
-        assert content_type is None
+    assert content == "test content"
+    assert content_type is None
 
 
-def test_get_content_and_type_explicit_content_type_parameter(harvester):
+def test_get_content_and_type_explicit_content_type_parameter(harvester, mock_session, successful_http_response):
     """Test that explicit content_type parameter is preserved"""
-    mock_response = Mock()
-    mock_response.status_code = 200
-    mock_response.headers = {'content-type': 'text/plain'}
-    mock_response.iter_content.return_value = [b"test"]
+    successful_http_response.headers = {'content-type': 'text/plain'}
 
-    with patch('requests.Session') as mock_session_class:
-        mock_session = MagicMock()
-        mock_session_class.return_value.__enter__.return_value = mock_session
-        mock_session.head.return_value = mock_response
-        mock_session.get.return_value = mock_response
+    mock_session.head.return_value = successful_http_response
+    mock_session.get.return_value = successful_http_response
 
-        # Provide explicit content_type
-        content, content_type = harvester._get_content_and_type(
-            'http://example.com/catalog.ttl',
-            content_type='turtle'
-        )
+    # Provide explicit content_type
+    content, content_type = harvester._get_content_and_type(
+        'http://example.com/catalog.ttl',
+        content_type='turtle'
+    )
 
-        # Should return the explicitly provided type, not from headers
-        assert content_type == 'turtle'
+    # Should return the explicitly provided type, not from headers
+    assert content_type == 'turtle'

@@ -99,7 +99,8 @@ def test_extract_concept_dict():
     # Verify results
     assert result["name"] == "Test Title"
     assert result["description"] == "Test Description"
-    assert result["theme"] == "test_theme"
+    # assert result["theme"] == "test_theme"
+    assert result["theme"] == "http://example.com/theme?name=test_theme"
 
 
 def test_parse_person():

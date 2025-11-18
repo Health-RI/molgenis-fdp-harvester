@@ -35,6 +35,36 @@ def harvester(profiles, concept_table_dict, mock_client):
     return FDPHarvester(profiles, concept_table_dict, mock_client)
 
 
+@pytest.fixture
+def mock_record_provider():
+    """Create a mock record provider with configurable get_record_ids"""
+    provider = Mock()
+    provider.get_record_ids = Mock(return_value=[])
+    provider.get_record_by_id = Mock(return_value=None)
+    return provider
+
+
+@pytest.fixture
+def harvest_object_factory():
+    """Factory fixture for creating HarvestObject instances"""
+    def _create(guid='dataset=http://example.org/Dataset1', status='new', concept_type='dataset'):
+        return HarvestObject(guid=guid, status=status, concept_type=concept_type)
+    return _create
+
+
+@pytest.fixture
+def valid_rdf_data():
+    """Valid RDF data in turtle format for testing"""
+    return """
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    @prefix dct: <http://purl.org/dc/terms/> .
+
+    <http://example.org/Dataset1> a dcat:Dataset ;
+        dct:title "Test Dataset" ;
+        dct:description "A test dataset" .
+    """
+
+
 def test_setup_record_provider(harvester):
     """Test that record provider is correctly initialized with harvest URL"""
     harvest_url = "https://example.com"
@@ -234,78 +264,61 @@ def test_get_guids_in_harvest_continues_on_identifier_error(harvester, caplog):
             "Dataset3 should be in dictionary (processing continued after error)"
 
 
-def test_gather_stage_creates_new_harvest_objects(harvester, mock_client):
-    """Test that gather_stage creates 'new' harvest objects for GUIDs in harvest but not in DB"""
+@pytest.mark.parametrize("harvest_ids,db_ids,expected_status,expected_guids", [
+    # New: in harvest but not in DB
+    (
+        ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2'],
+        [],
+        'new',
+        ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2']
+    ),
+    # Change: in both harvest and DB
+    (
+        ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2'],
+        [{'id': 'dataset=http://example.org/Dataset1'}, {'id': 'dataset=http://example.org/Dataset2'}],
+        'change',
+        ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2']
+    ),
+])
+def test_gather_stage_creates_harvest_objects_by_status(
+    harvester, mock_client, mock_record_provider, harvest_ids, db_ids, expected_status, expected_guids
+):
+    """Test that gather_stage creates harvest objects with correct status based on harvest/DB comparison"""
     harvest_url = "https://example.com"
 
     # Mock get_record_ids to return identifiers
     def mock_get_record_ids(concept_type=None):
         if concept_type == 'dataset':
-            return ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2']
+            return harvest_ids
         return []
 
-    # Mock client.get to return empty list (no existing records in DB)
-    mock_client.get.return_value = []
+    # Mock client.get to return DB records
+    mock_client.get.return_value = db_ids
 
-    # Mock setup_record_provider and record_provider.get_record_ids
-    with patch.object(harvester, 'setup_record_provider') as mock_setup:
-        # Create a mock record provider with get_record_ids method
-        mock_record_provider = Mock()
-        mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+    # Configure mock record provider
+    mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+
+    # Mock setup_record_provider and assign mock record provider
+    with patch.object(harvester, 'setup_record_provider'):
         harvester.record_provider = mock_record_provider
 
         # Call gather_stage
         harvest_objects = harvester.gather_stage(harvest_url)
 
-        # Verify that harvest objects were created with 'new' status
-        assert len(harvest_objects) == 2, "Should have 2 harvest objects"
+        # Verify that harvest objects were created with expected status
+        assert len(harvest_objects) == len(expected_guids), \
+            f"Should have {len(expected_guids)} harvest objects"
 
-        new_objects = [obj for obj in harvest_objects if obj.status == 'new']
-        assert len(new_objects) == 2, "All harvest objects should have 'new' status"
+        status_objects = [obj for obj in harvest_objects if obj.status == expected_status]
+        assert len(status_objects) == len(expected_guids), \
+            f"All harvest objects should have '{expected_status}' status"
 
-        guids = [obj.guid for obj in new_objects]
-        assert 'dataset=http://example.org/Dataset1' in guids, "Dataset1 should have a harvest object"
-        assert 'dataset=http://example.org/Dataset2' in guids, "Dataset2 should have a harvest object"
-
-
-def test_gather_stage_creates_change_harvest_objects(harvester, mock_client):
-    """Test that gather_stage creates 'change' harvest objects for GUIDs in both harvest and DB"""
-    harvest_url = "https://example.com"
-
-    # Mock get_record_ids to return identifiers
-    def mock_get_record_ids(concept_type=None):
-        if concept_type == 'dataset':
-            return ['dataset=http://example.org/Dataset1', 'dataset=http://example.org/Dataset2']
-        return []
-
-    # Mock client.get to return existing records in DB
-    mock_client.get.return_value = [
-        {'id': 'dataset=http://example.org/Dataset1'},
-        {'id': 'dataset=http://example.org/Dataset2'}
-    ]
-
-    # Mock setup_record_provider and record_provider.get_record_ids
-    with patch.object(harvester, 'setup_record_provider') as mock_setup:
-        # Create a mock record provider with get_record_ids method
-        mock_record_provider = Mock()
-        mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
-        harvester.record_provider = mock_record_provider
-
-        # Call gather_stage
-        harvest_objects = harvester.gather_stage(harvest_url)
-
-        # Verify that harvest objects were created with 'change' status
-        assert len(harvest_objects) == 2, "Should have 2 harvest objects"
-
-        change_objects = [obj for obj in harvest_objects if obj.status == 'change']
-        assert len(change_objects) == 2, "All harvest objects should have 'change' status"
-
-        guids = [obj.guid for obj in change_objects]
-        assert 'dataset=http://example.org/Dataset1' in guids, "Dataset1 should have a harvest object"
-        assert 'dataset=http://example.org/Dataset2' in guids, "Dataset2 should have a harvest object"
+        guids = [obj.guid for obj in status_objects]
+        for expected_guid in expected_guids:
+            assert expected_guid in guids, f"{expected_guid} should have a harvest object"
 
 
-def test_gather_stage_creates_delete_harvest_objects(harvester, mock_client):
+def test_gather_stage_creates_delete_harvest_objects(harvester, mock_client, mock_record_provider):
     """Test that gather_stage creates 'delete' harvest objects for GUIDs in DB but not in harvest
 
     NOTE: This requires at least one GUID in harvest to prevent accidental deletion of all records
@@ -326,11 +339,11 @@ def test_gather_stage_creates_delete_harvest_objects(harvester, mock_client):
         {'id': 'dataset=http://example.org/Dataset2'}   # In DB but not in harvest -> delete
     ]
 
-    # Mock setup_record_provider and record_provider.get_record_ids
-    with patch.object(harvester, 'setup_record_provider') as mock_setup:
-        # Create a mock record provider with get_record_ids method
-        mock_record_provider = Mock()
-        mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+    # Configure mock record provider
+    mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+
+    # Mock setup_record_provider and assign mock record provider
+    with patch.object(harvester, 'setup_record_provider'):
         harvester.record_provider = mock_record_provider
 
         # Call gather_stage
@@ -348,7 +361,7 @@ def test_gather_stage_creates_delete_harvest_objects(harvester, mock_client):
         assert 'dataset=http://example.org/Dataset2' in delete_guids, "Dataset2 should be marked for deletion"
 
 
-def test_gather_stage_creates_mixed_harvest_objects(harvester, mock_client):
+def test_gather_stage_creates_mixed_harvest_objects(harvester, mock_client, mock_record_provider):
     """Test that gather_stage correctly creates new, change, and delete harvest objects"""
     harvest_url = "https://example.com"
 
@@ -367,11 +380,11 @@ def test_gather_stage_creates_mixed_harvest_objects(harvester, mock_client):
         {'id': 'dataset=http://example.org/Dataset2'}   # In DB only -> delete
     ]
 
-    # Mock setup_record_provider and record_provider.get_record_ids
-    with patch.object(harvester, 'setup_record_provider') as mock_setup:
-        # Create a mock record provider with get_record_ids method
-        mock_record_provider = Mock()
-        mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+    # Configure mock record provider
+    mock_record_provider.get_record_ids = Mock(side_effect=mock_get_record_ids)
+
+    # Mock setup_record_provider and assign mock record provider
+    with patch.object(harvester, 'setup_record_provider'):
         harvester.record_provider = mock_record_provider
 
         # Call gather_stage
@@ -426,14 +439,10 @@ def test_gather_stage_no_guids_in_harvest(harvester, mock_client):
 # If 'record' is not None:
 # - with valid data; does self.parser.parse return a graph, an expected graph
 # - with invalid data; does self.parse.parse raise an exception? Does it skip fetch_concept?; is the error caught?
-def test_fetch_stage_delete_status_skips_get_record(harvester):
+def test_fetch_stage_delete_status_skips_get_record(harvester, harvest_object_factory):
     """Test that fetch_stage with status='delete' does not call get_record_by_id"""
     # Create a harvest object with 'delete' status
-    harvest_object = HarvestObject(
-        guid='dataset=http://example.org/Dataset1',
-        status='delete',
-        concept_type='dataset'
-    )
+    harvest_object = harvest_object_factory(status='delete')
 
     # Setup record provider
     harvester.setup_record_provider("https://example.com")
@@ -451,20 +460,30 @@ def test_fetch_stage_delete_status_skips_get_record(harvester):
     assert result == harvest_object, "Should return the harvest object"
 
 
-def test_fetch_stage_none_record_skips_fetch_concept(harvester, caplog):
-    """Test that fetch_stage with None record skips _fetch_concept"""
+@pytest.mark.parametrize("mock_behavior,expected_log_patterns", [
+    # None record
+    (
+        {'return_value': None},
+        ["Empty record for identifier", "Error getting the record"]
+    ),
+    # Exception raised
+    (
+        {'side_effect': Exception("Connection error")},
+        ["Error getting the record"]
+    ),
+])
+def test_fetch_stage_error_skips_fetch_concept(
+    harvester, harvest_object_factory, caplog, mock_behavior, expected_log_patterns
+):
+    """Test that fetch_stage skips _fetch_concept when get_record_by_id fails"""
     # Create a harvest object with 'new' status
-    harvest_object = HarvestObject(
-        guid='dataset=http://example.org/Dataset1',
-        status='new',
-        concept_type='dataset'
-    )
+    harvest_object = harvest_object_factory(status='new')
 
     # Setup record provider
     harvester.setup_record_provider("https://example.com")
 
-    # Mock get_record_by_id to return None
-    harvester.record_provider.get_record_by_id = Mock(return_value=None)
+    # Mock get_record_by_id with specified behavior
+    harvester.record_provider.get_record_by_id = Mock(**mock_behavior)
 
     # Mock _fetch_concept - it should NOT be called
     with patch.object(harvester, '_fetch_concept') as mock_fetch_concept:
@@ -480,73 +499,21 @@ def test_fetch_stage_none_record_skips_fetch_concept(harvester, caplog):
         # Verify the harvest object is returned
         assert result == harvest_object, "Should return the harvest object"
 
-        # Verify an error was logged
-        # Note: The actual error message depends on implementation - could be either message
-        assert ("Empty record for identifier" in caplog.text or
-                "Error getting the record" in caplog.text), \
-            "Should log an error about record retrieval"
+        # Verify an error was logged (at least one of the expected patterns)
+        assert any(pattern in caplog.text for pattern in expected_log_patterns), \
+            f"Should log one of: {expected_log_patterns}"
 
 
-def test_fetch_stage_exception_in_get_record_skips_fetch_concept(harvester, caplog):
-    """Test that fetch_stage when get_record_by_id raises Exception, _fetch_concept is not called"""
-    # Create a harvest object
-    harvest_object = HarvestObject(
-        guid='dataset=http://example.org/Dataset1',
-        status='new',
-        concept_type='dataset'
-    )
-
-    # Setup record provider
-    harvester.setup_record_provider("https://example.com")
-
-    # Mock get_record_by_id to raise an exception
-    harvester.record_provider.get_record_by_id = Mock(
-        side_effect=Exception("Connection error")
-    )
-
-    # Mock _fetch_concept - it should NOT be called
-    with patch.object(harvester, '_fetch_concept') as mock_fetch_concept:
-        # Call fetch_stage
-        result = harvester.fetch_stage(harvest_object)
-
-        # Verify get_record_by_id was called
-        harvester.record_provider.get_record_by_id.assert_called_once()
-
-        # Verify _fetch_concept was NOT called
-        mock_fetch_concept.assert_not_called()
-
-        # Verify the harvest object is returned
-        assert result == harvest_object, "Should return the harvest object"
-
-        # Verify error was logged
-        assert "Error getting the record" in caplog.text, \
-            "Should log error about getting record"
-
-
-def test_fetch_stage_valid_data_parses_and_fetches_concept(harvester):
+def test_fetch_stage_valid_data_parses_and_fetches_concept(harvester, harvest_object_factory, valid_rdf_data):
     """Test that fetch_stage with valid data calls parser.parse and _fetch_concept"""
     # Create a harvest object
-    harvest_object = HarvestObject(
-        guid='dataset=http://example.org/Dataset1',
-        status='new',
-        concept_type='dataset'
-    )
+    harvest_object = harvest_object_factory(status='new')
 
     # Setup record provider
     harvester.setup_record_provider("https://example.com")
 
-    # Create valid RDF data (simple turtle format)
-    valid_rdf = """
-    @prefix dcat: <http://www.w3.org/ns/dcat#> .
-    @prefix dct: <http://purl.org/dc/terms/> .
-
-    <http://example.org/Dataset1> a dcat:Dataset ;
-        dct:title "Test Dataset" ;
-        dct:description "A test dataset" .
-    """
-
     # Mock get_record_by_id to return valid RDF
-    harvester.record_provider.get_record_by_id = Mock(return_value=valid_rdf)
+    harvester.record_provider.get_record_by_id = Mock(return_value=valid_rdf_data)
 
     # Mock _fetch_concept to return the harvest object with content
     def mock_fetch_concept(obj):
@@ -571,14 +538,10 @@ def test_fetch_stage_valid_data_parses_and_fetches_concept(harvester):
             "Harvest object should have content set"
 
 
-def test_fetch_stage_invalid_data_raises_exception_skips_fetch_concept(harvester, caplog):
+def test_fetch_stage_invalid_data_raises_exception_skips_fetch_concept(harvester, harvest_object_factory, caplog):
     """Test that fetch_stage with invalid data that causes parser.parse to raise exception, skips _fetch_concept"""
     # Create a harvest object
-    harvest_object = HarvestObject(
-        guid='dataset=http://example.org/Dataset1',
-        status='new',
-        concept_type='dataset'
-    )
+    harvest_object = harvest_object_factory(status='new')
 
     # Setup record provider
     harvester.setup_record_provider("https://example.com")
