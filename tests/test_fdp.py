@@ -210,60 +210,6 @@ def test_get_guids_in_harvest_skips_none_identifiers(harvester, caplog):
             "Should log error for None identifier"
 
 
-def test_get_guids_in_harvest_continues_on_identifier_error(harvester, caplog):
-    """Test that _get_guids_in_harvest continues processing after an error with one identifier"""
-    harvest_url = "https://example.com"
-
-    # Setup record provider
-    harvester.setup_record_provider(harvest_url)
-
-    # Create a mock that raises an exception for the second identifier
-    class ErrorOnSecondCall:
-        def __init__(self):
-            self.call_count = 0
-
-        def __call__(self, concept_type=None):
-            if concept_type == 'dataset':
-                ids = [
-                    'dataset=http://example.org/Dataset1',
-                    'dataset=http://example.org/Dataset2',
-                    'dataset=http://example.org/Dataset3'
-                ]
-                for id in ids:
-                    self.call_count += 1
-                    if self.call_count == 2:
-                        # Simulate an error during processing
-                        # We need to yield the ID first so the error happens in the loop
-                        yield id
-                    else:
-                        yield id
-            else:
-                return iter([])
-
-    with patch.object(harvester.record_provider, 'get_record_ids', ErrorOnSecondCall()):
-        # Manually test the error handling in _get_guids_in_harvest
-        # We need to simulate the inner exception handling
-        for concept_type in harvester.concept_types:
-            for identifier in harvester.record_provider.get_record_ids(concept_type=concept_type):
-                try:
-                    if identifier == 'dataset=http://example.org/Dataset2':
-                        raise ValueError("Simulated error for Dataset2")
-                    harvester.guids_in_harvest[concept_type].append(identifier)
-                except Exception:
-                    # This simulates the error handling in _get_guids_in_harvest
-                    continue
-
-        # Verify that processing continued and other IDs were added
-        assert len(harvester.guids_in_harvest['dataset']) == 2, \
-            "Should have 2 dataset IDs (one errored, but processing continued)"
-        assert 'dataset=http://example.org/Dataset1' in harvester.guids_in_harvest['dataset'], \
-            "Dataset1 should be in dictionary"
-        assert 'dataset=http://example.org/Dataset2' not in harvester.guids_in_harvest['dataset'], \
-            "Dataset2 (the one that errored) should not be in dictionary"
-        assert 'dataset=http://example.org/Dataset3' in harvester.guids_in_harvest['dataset'], \
-            "Dataset3 should be in dictionary (processing continued after error)"
-
-
 @pytest.mark.parametrize("harvest_ids,db_ids,expected_status,expected_guids", [
     # New: in harvest but not in DB
     (

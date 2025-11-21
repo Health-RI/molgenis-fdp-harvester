@@ -5,6 +5,8 @@
 
 from rdflib import DCAT, RDF, URIRef, FOAF
 
+from molgenis_fdp_harvester.base.baseparser import VCARD
+
 
 class FdpRecord:
     def __init__(self, url, graph):
@@ -28,4 +30,7 @@ class FdpRecord:
         return (URIRef(self.url), RDF.type, DCAT.DatasetSeries) in self._graph
 
     def is_person(self):
-        return (URIRef(self.url), RDF.type, FOAF.Person) in self._graph
+        return ((URIRef(self.url), RDF.type, FOAF.Person) in self._graph
+                or (URIRef(self.url), RDF.type, FOAF.Organization) in self._graph
+                or (URIRef(self.url), RDF.type, VCARD.Kind) in self._graph
+                )

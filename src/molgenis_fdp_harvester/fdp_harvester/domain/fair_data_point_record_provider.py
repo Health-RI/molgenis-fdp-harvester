@@ -18,7 +18,8 @@ from .graph_to_fdp_record_mapper import GraphToFdpRecordMapper
 from .identifier import Identifier
 
 LDP = Namespace("http://www.w3.org/ns/ldp#")
-VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
+# VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
+VCARD = Namespace("http://www.w3.org/2006/vcard/ns/")
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +49,7 @@ class FairDataPointRecordProvider:
                 identifier = Identifier("")
                 identifier.add("person", str(fdp_record.url))
                 result[identifier.guid] = fdp_record.url
+
         return result.keys()
 
     def get_record_by_id(self, guid: str) -> str:

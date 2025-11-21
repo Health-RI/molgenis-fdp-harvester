@@ -10,6 +10,7 @@ from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider import FairDataPointRecordProvider
 from molgenis_fdp_harvester.fdp_harvester.domain.identifier import Identifier
 from molgenis_fdp_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.utils import HarvesterException
 
 log = logging.getLogger(__name__)
 
@@ -23,91 +24,143 @@ class FDPHarvester(DCATRDFHarvester):
         result = []
 
         self.setup_record_provider(harvest_root_uri)
-
-        self._get_guids_in_harvest()
-        self._get_guids_in_db()
-
-        for concept_type in self.concept_types:
-            guids_in_harvest = set(self.guids_in_harvest[concept_type])
-            guids_in_db = set(self.guids_in_db[concept_type])
-            if guids_in_harvest:
-                new = guids_in_harvest - guids_in_db
-                delete = guids_in_db - guids_in_harvest
-                change = guids_in_db & guids_in_harvest
-
-                for guid in new:
-                    self._harvest_objects.append(HarvestObject(guid=guid, status="new", concept_type=concept_type))
-                for guid in change:
-                    self._harvest_objects.append(HarvestObject(guid=guid, status="change", concept_type=concept_type))
-                for guid in delete:
-                    self._harvest_objects.append(
-                        HarvestObject(guid=guid, status="delete", concept_type=concept_type))
-
-        return self._harvest_objects
-
-    def _get_guids_in_harvest(self):
-        """
-        Get identifiers of records in harvest source. These should be present in CKAN once all imports have
-        finished.
-        :param harvest_job:
-        :return:
-        """
-
+        self._convert_fdp_to_rdf()
         try:
-            for concept_type in self.concept_types:
-                for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
-                    try:
-                        log.info(f"Got identifier {str(identifier)} from RecordProvider")
-                        if identifier is None:
-                            log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
-                            continue
+            # Extract concepts from RDF
+            self._extract_concepts_from_rdf()
 
-                        self.guids_in_harvest[concept_type].append(identifier)
-                    except Exception as e:
-                        log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
-                        continue
+            # Get existing records from database
+            self._get_guids_in_db()
+
+            # Create harvest objects
+            self._create_harvest_objects()
+
+            log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
+            return self._harvest_objects
+
         except Exception as e:
-            # log.error("Exception: %s" % text_traceback())
-            log.error(f"Error gathering the identifiers from the RecordProvider: [{str(e)}]")
+            log.error(f"Error in gather stage: {e}")
+            raise HarvesterException(f"Failed to gather objects: {e}") from e
 
+    #     self._get_guids_in_harvest()
+    #     print(self.guids_in_harvest)
+    #     self._get_guids_in_db()
 
-    def fetch_stage(self, harvest_object: HarvestObject):
-        logger = logging.getLogger(f"{__name__}.fetch_stage")
+    #     for concept_type in self.concept_types:
+    #         guids_in_harvest = set(self.guids_in_harvest[concept_type])
+    #         guids_in_db = set(self.guids_in_db[concept_type])
+    #         if guids_in_harvest:
+    #             new = guids_in_harvest - guids_in_db
+    #             delete = guids_in_db - guids_in_harvest
+    #             change = guids_in_db & guids_in_harvest
 
-        logger.debug(f"Starting fetch_stage for harvest object [{harvest_object.guid}]")
+    #             for guid in new:
+    #                 self._harvest_objects.append(HarvestObject(guid=guid, status="new", concept_type=concept_type))
+    #             for guid in change:
+    #                 self._harvest_objects.append(HarvestObject(guid=guid, status="change", concept_type=concept_type))
+    #             for guid in delete:
+    #                 self._harvest_objects.append(
+    #                     HarvestObject(guid=guid, status="delete", concept_type=concept_type))
 
-        # Check harvest object status
-        status = harvest_object.status
+    #     return self._harvest_objects
 
-        if status == "delete":
-            # No need to fetch anything, just pass to the import stage
-            pass
-
-        else:
-            identifier = harvest_object.guid
-            try:
+    def _convert_fdp_to_rdf(self):
+        for concept_type in self.concept_types:
+            for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
                 record = self.record_provider.get_record_by_id(identifier)
-                harvest_object.guid = Identifier(identifier).get_id_value()
-
                 if record:
                     try:
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
-                        harvest_object = self._fetch_concept(harvest_object)
                     except Exception as e:
                         log.error(
                             "Error saving harvest object for identifier [%s] [%r]"
-                            %(identifier, e))
+                            % (identifier, e))
 
                 else:
                     log.error(
-                        "Empty record for identifier %s" % identifier, harvest_object
+                        "Empty record for identifier %s" % identifier
                     )
+                try:
+                    log.info(f"Got identifier {str(identifier)} from RecordProvider")
+                    if identifier is None:
+                        log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
+                        continue
 
-            except Exception as e:  # Broad exception because of unpredictability of Exceptions
-                log.error(f"Error getting the record with identifier [{identifier}] from record provider")
+                    self.guids_in_harvest[concept_type].append(identifier.get_id_value())
+                except Exception as e:
+                    log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
+                    continue
 
-        return harvest_object
+    # def _get_guids_in_harvest(self):
+    #     """
+    #     Get identifiers of records in harvest source. These should be present in CKAN once all imports have
+    #     finished.
+    #     :param harvest_job:
+    #     :return:
+    #     """
+
+    #     try:
+    #         for concept_type in self.concept_types:
+    #             for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
+    #                 try:
+    #                     log.info(f"Got identifier {str(identifier)} from RecordProvider")
+    #                     if identifier is None:
+    #                         log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
+    #                         continue
+
+    #                     self.guids_in_harvest[concept_type].append(identifier)
+    #                 except Exception as e:
+    #                     log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
+    #                     continue
+    #     except Exception as e:
+    #         # log.error("Exception: %s" % text_traceback())
+    #         log.error(f"Error gathering the identifiers from the RecordProvider: [{str(e)}]")
+
+
+    # def fetch_stage(self, harvest_object: HarvestObject):
+    #     print(harvest_object.guid)
+    #     # harvest_object.guid = Identifier(harvest_object.guid).get_id_value()
+    #     super().fetch_stage(harvest_object)
+    #     logger = logging.getLogger(f"{__name__}.fetch_stage")
+
+    #     logger.debug(f"Starting fetch_stage for harvest object [{harvest_object.guid}]")
+
+    #     # Check harvest object status
+    #     status = harvest_object.status
+
+    #     if status == "delete":
+    #         # No need to fetch anything, just pass to the import stage
+    #         pass
+
+    #     else:
+    #         identifier = harvest_object.guid
+    #         try:
+    #             record = self.record_provider.get_record_by_id(identifier)
+    #             harvest_object.guid = Identifier(identifier).get_id_value()
+
+    #             if record:
+    #                 try:
+    #                     # Save the fetch contents in the HarvestObject
+    #                     self.parser.parse(record, _format="ttl")
+    #                     harvest_object = self._fetch_concept(harvest_object)
+    #                 except Exception as e:
+    #                     log.error(
+    #                         "Error saving harvest object for identifier [%s] [%r]"
+    #                         %(identifier, e))
+
+    #             else:
+    #                 log.error(
+    #                     "Empty record for identifier %s" % identifier, harvest_object
+    #                 )
+
+    #         except Exception as e:  # Broad exception because of unpredictability of Exceptions
+    #             log.error(f"Error getting the record with identifier [{identifier}] from record provider")
+
+    #     # A dataset is retrieved and mapped. It contains a contact point with a Vcard:Kind.
+    #     # We must convert this vcard:Kind to a Person.
+    #     # Then we must create an identifier for this Person and add it to the contact point property.
+    #     return harvest_object
 
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config

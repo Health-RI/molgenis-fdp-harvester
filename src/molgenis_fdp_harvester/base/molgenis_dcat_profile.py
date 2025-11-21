@@ -10,13 +10,13 @@
 
 from typing import Dict, Union
 
-from rdflib import URIRef, FOAF
+from rdflib import URIRef, FOAF, RDF
 from yarl import URL
 
 import logging
 
 from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
-from molgenis_fdp_harvester.base.baseparser import RDFProfile
+from molgenis_fdp_harvester.base.baseparser import RDFProfile, VCARD
 from molgenis_fdp_harvester.base.baseparser import (
     DCT, DCAT, ADMS
 )
@@ -61,7 +61,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return concept_dict
 
     def _get_dataset_field_mappings(self):
-        # def _get_dataset_field_mappings(self, catalogue_base_url):
         """Get field mappings for dataset parsing."""
         return (
             ("id", DCT.identifier),
@@ -114,7 +113,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("version", DCAT.version),
             # ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
             ("publisherType", URIRef("https://healthdcat-ap.github.io/#healthdcatappublishertype")),
-            ("format", DCT.format)
+            ("format", DCT.format),
+            ("contact", DCAT.contactPoint)
         )
 
     def _get_query_fields(self):
@@ -129,24 +129,25 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef) -> Dict:
         """Parse dataset from RDF reference into dictionary."""
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_url = URL(str(dataset_ref))
-        # catalogue_base_url = URL.build(
-        #     scheme=dataset_url.scheme,
-        #     host=dataset_url.host,
-        #     path=dataset_url.path
-        # )
-        
-        # field_mappings = self._get_dataset_field_mappings(catalogue_base_url)
+
         field_mappings = self._get_dataset_field_mappings()
         query_fields = self._get_query_fields()
-        
+
         dataset_dict = self._extract_concept_dict(
             dataset_ref, dataset_dict, field_mappings, query_fields
         )
-        
+        if dataset_dict.get('contact'):
+            contact_uri = URIRef(dataset_dict['contact'])
+            contact_point_class = self._object_value(contact_uri, RDF.type)
+            if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in contact_point_class]):
+                dataset_dict['contact'] = self._object_value(contact_uri, FOAF.name)
+            elif any([val == str(VCARD.Kind) for val in contact_point_class]):
+                dataset_dict['contact'] = self._object_value(contact_uri, VCARD.fn)
+            dataset_dict['contact'] = dataset_dict['contact'].lower().replace(' ','_')
+
         # Post-process specific fields
         self._post_process_dataset_fields(dataset_dict)
-        
+
         return dataset_dict
 
     def _post_process_dataset_fields(self, dataset_dict):
@@ -154,15 +155,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # Handle biobank field
         if "biobank" in dataset_dict:
             dataset_dict["biobank"] = munge_title_to_name(dataset_dict["biobank"])
-        
-        # Handle optional fields with URL queries
-        for field in ["head", "contact"]:
-            if field in dataset_dict:
-                try:
-                    dataset_dict[field] = URL(dataset_dict[field]).query.get('id')
-                except (KeyError, TypeError):
-                    pass  # Field missing or malformed - keep original value
-
 
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
         # dataset_dict["extras"] = []
@@ -201,26 +193,51 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # dataset_dict["extras"] = []
         # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_url = URL(str(dataset_ref))
-        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
-        # Basic fields
-        key_predicate_tuple = (
-            ("id", FOAF.openid),
-            ("name", FOAF.openid),
-            ("email", FOAF.mbox),
-            ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
-            ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
-            ("first_name", FOAF.firstName),
-            ("last_name", FOAF.lastName),
-            ("phone", FOAF.phone),
-            ("address", URIRef(f"{catalogue_base_url}/column/address")),
-            ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
-            ("city", URIRef(f"{catalogue_base_url}/column/city")),
-            ("country", URIRef(f"{catalogue_base_url}/column/country")),
-            ("role", URIRef(f"{catalogue_base_url}/column/role")),
-        )
+        # dataset_url = URL(str(dataset_ref))
+        # catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
+        # We get foaf:Organization, foaf:Person (?) and vcard:Kind.
+        # How do we make it such that the appropriate mapping per class is made?
+        value = self._object_value(dataset_ref, RDF.type)
+        if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in value]):
+            # Basic fields
+            key_predicate_tuple = (
+                ("id", DCT.identifier),
+                # ("id", FOAF.openid),
+                ("name", FOAF.name),
+                # ("name", FOAF.openid),
+                ("email", FOAF.mbox),
+                # ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
+                # ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
+                # ("first_name", FOAF.firstName),
+                ("last_name", FOAF.name),
+                # ("phone", FOAF.phone),
+                # ("address", URIRef(f"{catalogue_base_url}/column/address")),
+                # ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
+                # ("city", URIRef(f"{catalogue_base_url}/column/city")),
+                # ("country", URIRef(f"{catalogue_base_url}/column/country")),
+                # ("role", URIRef(f"{catalogue_base_url}/column/role")),
+            )
+        elif any([val == str(VCARD.Kind) for val in value]):
+            key_predicate_tuple = (
+                # ("id", FOAF.openid),
+                ("name", VCARD.fn),
+                # ("name", FOAF.openid),
+                ("email", VCARD.hasEmail),
+                # ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
+                # ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
+                # ("first_name", FOAF.firstName),
+                ("last_name", VCARD.fn),
+                # ("phone", FOAF.phone),
+                # ("address", URIRef(f"{catalogue_base_url}/column/address")),
+                # ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
+                # ("city", URIRef(f"{catalogue_base_url}/column/city")),
+                # ("country", URIRef(f"{catalogue_base_url}/column/country")),
+                # ("role", URIRef(f"{catalogue_base_url}/column/role")),
+            )
+
         query_property_list = ['country']
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
+        dataset_dict['first_name'] = ""
 
         if dataset_dict["email"].startswith("mailto:"):
             dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")

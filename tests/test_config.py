@@ -68,19 +68,6 @@ def test_validate_config_invalid_type_datasetseries(valid_config_data):
         validate_config(invalid_config_data)
 
 
-def test_concept_table_link_dataclass():
-    """Test that ConceptTableLink dataclass can be instantiated correctly."""
-    concept_table_link = ConceptTableLink(
-        person='persons',
-        dataset='datasets',
-        datasetseries='datasetseries'
-    )
-
-    assert concept_table_link.person == 'persons'
-    assert concept_table_link.dataset == 'datasets'
-    assert concept_table_link.datasetseries == 'datasetseries'
-
-
 def test_concept_table_link_from_dict(valid_config_data):
     """Test that ConceptTableLink can be created from a dictionary."""
     concept_table_link = ConceptTableLink(**valid_config_data['concept_table_link'])
