@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 import traceback
@@ -52,22 +51,26 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             # Load and parse RDF content
             self._load_rdf_content(harvest_root_uri)
-            
-            # Extract concepts from RDF
-            self._extract_concepts_from_rdf()
-            
-            # Get existing records from database
-            self._get_guids_in_db()
 
-            # Create harvest objects
-            self._create_harvest_objects()
-            
-            log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
-            return self._harvest_objects
-            
+            self._gather_stage()
+
         except Exception as e:
             log.error(f"Error in gather stage: {e}")
             raise HarvesterException(f"Failed to gather objects: {e}") from e
+
+        return self._harvest_objects
+
+    def _gather_stage(self):
+       # Extract concepts from RDF
+       self._extract_concepts_from_rdf()
+
+       # Get existing records from database
+       self._get_guids_in_db()
+
+       # Create harvest objects
+       self._create_harvest_objects()
+
+       log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
 
     def _load_rdf_content(self, harvest_root_uri):
         """Load RDF content from the source URI."""
@@ -168,30 +171,11 @@ class DCATRDFHarvester(DCATHarvester):
                 molgenis_table = uri_lookup_table.get(property)
                 if molgenis_table:
                     try:
-                        if isinstance(value, list):
-                            returned_value_list = list()
-                            for val in value:
-                                returned_value = self.molgenis_client.get(table=molgenis_table,
-                                                                          query_filter=f"ontologyTermURI == '{quote(val)}'")
-                                if returned_value:
-                                    returned_value_list.append(returned_value[0]['name'])
-                            if returned_value_list:
-                                concept_dict[property] = ','.join(returned_value_list)
-                        else:
-                            returned_value = self.molgenis_client.get(table=molgenis_table,
-                                                                      query_filter=f"ontologyTermURI == '{quote(value)}'")
-                            if returned_value:
-                                concept_dict[property] = returned_value[0]['name']
-                        # else:
-                        #     try:
-                        #         returned_value = self.molgenis_client.get(table=molgenis_table,
-                        #                                                   query_filter=f"label == '{quote(value)}'")
-                        #         if returned_value:
-                        #             concept_dict[property] = returned_value[0]['name']
-                        #     except Exception as exc:
-                        #         log.warning(f"Exception when resolving label: table {molgenis_table}; URI {value}; {str(exc)}")
+                        new_property_value = self._resolve_uris_and_labels(value, molgenis_table)
+                        if new_property_value:
+                            concept_dict[property] = new_property_value
                     except Exception as exc:
-                        log.warning(f"Exception when resolving ontology URI: table {molgenis_table}; URI {value}; {str(exc)}")
+                        log.warning(f"Exception when resolving ontology URI or label: table {molgenis_table}; URI {value}; {str(exc)}")
 
         harvest_object.content = json.dumps(concept_dict)
 
@@ -207,8 +191,37 @@ class DCATRDFHarvester(DCATHarvester):
                 'dataset_guid': harvest_object.guid
             })
 
+        ## TODO Here can the network part go.
 
         return harvest_object
+
+    def _resolve_uri(self, value, molgenis_table):
+        return self.molgenis_client.get(table=molgenis_table,
+                                        query_filter=f"ontologyTermURI == '{quote(value)}'")
+
+    def _resolve_label(self, value, molgenis_table):
+        return self.molgenis_client.get(table=molgenis_table,
+                                        query_filter=f"label == '{quote(value)}'")
+
+    def _resolve_uris_and_labels(self, value, molgenis_table):
+        new_property_value = None
+        if isinstance(value, list):
+            returned_value_list = list()
+            for val in value:
+                returned_value = self._resolve_uri(val, molgenis_table)
+                if not returned_value:
+                    returned_value = self._resolve_label(val, molgenis_table)
+                if returned_value:
+                    returned_value_list.append(returned_value[0]['name'])
+            if returned_value_list:
+                new_property_value = ','.join(returned_value_list)
+        else:
+            returned_value = self._resolve_uri(value, molgenis_table)
+            if not returned_value:
+                returned_value = self._resolve_label(value, molgenis_table)
+            if returned_value:
+                new_property_value = returned_value[0]['name']
+        return new_property_value
 
     def _create_datasetseries_for_dataset(self, dataset_info):
         """Create a datasetseries (biobank) HarvestObject for a dataset."""

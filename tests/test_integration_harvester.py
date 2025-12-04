@@ -8,7 +8,7 @@ import json
 import os
 
 from molgenis_emx2_pyclient import Client
-from molgenis_fdp_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
 

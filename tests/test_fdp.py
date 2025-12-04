@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from molgenis_fdp_harvester.fdp import FDPHarvester
+from molgenis_fdp_harvester.fdp_harvester.fdp import FDPHarvester
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject
 from molgenis_emx2_pyclient import Client
 

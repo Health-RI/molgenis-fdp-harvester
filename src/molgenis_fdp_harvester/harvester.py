@@ -11,10 +11,9 @@ The user creating this token requires editing permissions on the host schema.
 """
 import logging
 import os
-import time
 from pathlib import Path
 
-from molgenis_fdp_harvester.fdp import FDPHarvester
+from molgenis_fdp_harvester.fdp_harvester.fdp import FDPHarvester
 
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
 try:
@@ -26,7 +25,7 @@ import click
 from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
-from .rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )

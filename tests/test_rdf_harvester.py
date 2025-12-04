@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 import json
 
 from molgenis_emx2_pyclient import Client
-from molgenis_fdp_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 from molgenis_fdp_harvester.utils import HarvesterException
