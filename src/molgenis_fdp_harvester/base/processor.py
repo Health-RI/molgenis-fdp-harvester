@@ -49,7 +49,7 @@ class RDFProcessor(object):
         Creates a parser or serializer instance
         """
 
-        self.g = rdflib.ConjunctiveGraph()
+        self.g = rdflib.Dataset()
 
 
 class RDFParser(RDFProcessor):
@@ -260,8 +260,6 @@ class RDFParser(RDFProcessor):
                 profile.parse_dataset(concept_dict, uri_ref)
             elif concept_type == 'datasetseries':
                 profile.parse_datasetseries(concept_dict, uri_ref)
-
-        concept_dict['concept_type'] = concept_type
 
         return concept_dict
 

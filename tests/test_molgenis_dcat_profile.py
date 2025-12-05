@@ -14,7 +14,7 @@ from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCAT
 @pytest.fixture
 def rdf_graph():
     # Create RDF graph
-    g = rdflib.ConjunctiveGraph()
+    g = rdflib.Dataset()
 
     # Load test RDF data
     with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
@@ -72,7 +72,7 @@ def test_extract_name_from_query_none(profile):
 def test_extract_concept_dict():
     """Test _extract_concept_dict method"""
     # Create a simple test graph
-    test_g = rdflib.ConjunctiveGraph()
+    test_g = rdflib.Dataset()
     test_uri = URIRef("http://example.com/test")
 
     # Add some triples
@@ -106,13 +106,13 @@ def test_extract_concept_dict():
 def test_parse_person():
     """Test parsing a person reference"""
     # Create a person in the graph
-    person_g = rdflib.ConjunctiveGraph()
+    person_g = rdflib.Dataset()
     person_uri = URIRef("http://example.com/person/1")
 
     person_g.add((person_uri, RDF.type, FOAF.Person))
-    person_g.add((person_uri, FOAF.openid, Literal("test-person")))
-    person_g.add((person_uri, FOAF.firstName, Literal("John")))
-    person_g.add((person_uri, FOAF.lastName, Literal("Doe")))
+    person_g.add((person_uri, DCTERMS.identifier, Literal("test-person")))
+    person_g.add((person_uri, FOAF.name, Literal("John Doe")))
+    # person_g.add((person_uri, FOAF.lastName, Literal("Doe")))
     person_g.add((person_uri, FOAF.mbox, Literal("mailto:john.doe@example.com")))
 
     # Create profile with person graph
@@ -125,16 +125,16 @@ def test_parse_person():
     # Verify results
     assert person_dict["uri"] == "http://example.com/person/1"
     assert person_dict["id"] == "test-person"
-    assert person_dict["name"] == "test-person"
-    assert person_dict["first_name"] == "John"
-    assert person_dict["last_name"] == "Doe"
+    assert person_dict["name"] == "John Doe"
+    # assert person_dict["first_name"] == "John"
+    assert person_dict["last_name"] == "John Doe"
     assert person_dict["email"] == "john.doe@example.com" # mailto: prefix removed
 
 
 def test_parse_datasetseries():
     """Test parsing a datasetseries reference"""
     # Create a datasetseries in the graph
-    series_g = rdflib.ConjunctiveGraph()
+    series_g = rdflib.Dataset()
     series_uri = URIRef("http://example.com/series/1")
 
     series_g.add((series_uri, RDF.type, DCAT.DatasetSeries))

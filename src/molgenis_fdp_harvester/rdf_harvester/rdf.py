@@ -130,35 +130,12 @@ class DCATRDFHarvester(DCATHarvester):
             self.guids_in_harvest[concept_type].append(guid)
 
     def fetch_stage(self, harvest_object: HarvestObject):
-        return self._fetch_concept(harvest_object)
-
-    # def _generate_unique_name(self, title, concept_type):
-    #     """Generate a unique name for a concept, handling duplicates."""
-    #     base_name = self._gen_new_name(title) if title else "unnamed"
-
-    #     if base_name not in self._names_taken[concept_type]:
-    #         self._names_taken[concept_type].append(base_name)
-    #         return base_name
-
-    #     # Handle duplicates by appending a suffix
-    #     duplicate_count = len([
-    #         name for name in self._names_taken[concept_type]
-    #         if name.startswith(f"{base_name}-")
-    #     ]) + 1
-
-    #     unique_name = f"{base_name}-{duplicate_count}"
-    #     self._names_taken[concept_type].append(unique_name)
-    #     return unique_name
-
-    def _fetch_concept(self, harvest_object):
-        """Prepare a concept dictionary with required fields."""
         concept_type = harvest_object.concept_type
         concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
 
         # Ensure required fields
         if not concept_dict.get("name"):
             concept_dict['name'] = concept_dict.get("title")
-            # concept_dict["name"] = self._generate_unique_name(title, concept_type)
 
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
@@ -191,7 +168,7 @@ class DCATRDFHarvester(DCATHarvester):
                 'dataset_guid': harvest_object.guid
             })
 
-        ## TODO Here can the network part go.
+        ## Here can the network part go.
 
         return harvest_object
 
@@ -234,7 +211,6 @@ class DCATRDFHarvester(DCATHarvester):
             'id': datasetseries_id,
             'name': datasetseries_name,
             'description': dataset_info.get('dataset_description', f"Auto-generated datasetseries for {datasetseries_name}"),
-            'concept_type': 'datasetseries'
         }
 
         # Create HarvestObject for the datasetseries
@@ -297,8 +273,7 @@ class DCATRDFHarvester(DCATHarvester):
             log.error(f"import_stage: Could not parse content for object {harvest_object.guid}")
             return False
 
-        concept_type = dataset['concept_type']
-        entity_name = self.concept_table_link[concept_type]
+        entity_name = self.concept_table_link[harvest_object.concept_type]
 
         try:
             if harvest_object.status == "new":
@@ -365,9 +340,7 @@ class DCATRDFHarvester(DCATHarvester):
         """
         guid = None
 
-        guid = self._get_dict_value(dataset_dict, "uri") or self._get_dict_value(
-            dataset_dict, "identifier"
-        )
+        guid = self._get_dict_value(dataset_dict, "uri")
         if guid:
             return guid
 

@@ -114,7 +114,6 @@ def test_get_concept(parser, dataset1_data):
     # Verify concept fields
     assert concept['uri'] == "http://example.com/dataset1"
     assert concept['name'] == "Gryffindor research project"
-    assert concept['concept_type'] == 'dataset'
 
 
 def test_parse_invalid_data(parser):

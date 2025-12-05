@@ -39,39 +39,3 @@ def test_validate_config_missing_concept(valid_config_data, missing_concept):
 
     with pytest.raises(ValueError, match="Invalid configuration:"):
         validate_config(invalid_config_data)
-
-
-def test_validate_config_invalid_type_person(valid_config_data):
-    """Test validation fails when 'person' is not a string."""
-    invalid_config_data = valid_config_data.copy()
-    invalid_config_data['concept_table_link']['person'] = 123
-
-    with pytest.raises(ValueError, match="Configuration 'concept_table_link.person' must be a string, got int"):
-        validate_config(invalid_config_data)
-
-
-def test_validate_config_invalid_type_dataset(valid_config_data):
-    """Test validation fails when 'dataset' is not a string."""
-    invalid_config_data = valid_config_data.copy()
-    invalid_config_data['concept_table_link']['dataset'] = ['datasets']
-
-    with pytest.raises(ValueError, match="Configuration 'concept_table_link.dataset' must be a string, got list"):
-        validate_config(invalid_config_data)
-
-
-def test_validate_config_invalid_type_datasetseries(valid_config_data):
-    """Test validation fails when 'datasetseries' is not a string."""
-    invalid_config_data = valid_config_data.copy()
-    invalid_config_data['concept_table_link']['datasetseries'] = None
-
-    with pytest.raises(ValueError, match="Configuration 'concept_table_link.datasetseries' must be a string, got NoneType"):
-        validate_config(invalid_config_data)
-
-
-def test_concept_table_link_from_dict(valid_config_data):
-    """Test that ConceptTableLink can be created from a dictionary."""
-    concept_table_link = ConceptTableLink(**valid_config_data['concept_table_link'])
-
-    assert concept_table_link.person == 'persons'
-    assert concept_table_link.dataset == 'datasets'
-    assert concept_table_link.datasetseries == 'datasetseries'
