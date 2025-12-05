@@ -33,6 +33,17 @@ class FDPHarvester(DCATRDFHarvester):
     def _convert_fdp_to_rdf(self):
         for concept_type in self.concept_types:
             for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
+                log.info(f"Got identifier {str(identifier)} from RecordProvider")
+                if identifier is None:
+                    log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
+                    continue
+
+                try:
+                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
+                except Exception as e:
+                    log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
+                    continue
+
                 record = self.record_provider.get_record_by_id(identifier)
                 if record:
                     try:
@@ -42,21 +53,11 @@ class FDPHarvester(DCATRDFHarvester):
                         log.error(
                             "Error saving harvest object for identifier [%s] [%r]"
                             % (identifier, e))
-
                 else:
                     log.error(
                         "Empty record for identifier %s" % identifier
                     )
-                try:
-                    log.info(f"Got identifier {str(identifier)} from RecordProvider")
-                    if identifier is None:
-                        log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
-                        continue
 
-                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
-                except Exception as e:
-                    log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
-                    continue
 
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config
