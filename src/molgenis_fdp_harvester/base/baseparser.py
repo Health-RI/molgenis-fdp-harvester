@@ -30,6 +30,8 @@ SCHEMA = Namespace("http://schema.org/")
 LOCN = Namespace("http://www.w3.org/ns/locn#")
 GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 SPDX = Namespace("http://spdx.org/rdf/terms#")
+EUCAIM = Namespace("https://cancerimage.eu/ontology/EUCAIM/")
+HEALTHDCATAP = Namespace("http://healthdataportal.eu/ns/health#")
 
 namespaces = {
     "dct": DCT,
