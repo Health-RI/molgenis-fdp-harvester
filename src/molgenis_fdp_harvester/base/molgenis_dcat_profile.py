@@ -7,16 +7,15 @@
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
-
+from datetime import datetime
 from typing import Dict, Union
 
-from rdflib import URIRef, FOAF, RDF
-from yarl import URL
+from rdflib import URIRef, FOAF, RDF, RDFS
 
 import logging
 
 from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
-from molgenis_fdp_harvester.base.baseparser import RDFProfile, VCARD
+from molgenis_fdp_harvester.base.baseparser import RDFProfile, VCARD, EUCAIM, HEALTHDCATAP
 from molgenis_fdp_harvester.base.baseparser import (
     DCT, DCAT, ADMS
 )
@@ -26,17 +25,9 @@ log = logging.getLogger(__name__)
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
-    
-    def _extract_name_from_query(self, value: Union[list, str]) -> Union[list, str, None]:
-        """Extract 'name' parameter from URL query strings."""
-        if isinstance(value, list):
-            return [URL(val).query.get('name') for val in value if val]
-        elif isinstance(value, str):
-            return URL(value).query.get('name')
-        return None
 
     def _extract_concept_dict(self, concept_ref, concept_dict: Dict, 
-                            field_mappings: tuple, query_fields: list) -> Dict:
+                            field_mappings: tuple) -> Dict:
         """Extract RDF properties into a concept dictionary."""
         for field_name, predicate in field_mappings:
             value = self._object_value(concept_ref, predicate)
@@ -48,14 +39,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
             
-            # # Extract query parameters for specific fields
-            # if field_name in query_fields:
-            #     value = self._extract_name_from_query(value)
-            #
-            # # Convert lists to comma-separated strings
-            # if isinstance(value, list):
-            #     value = ",".join(str(v) for v in value if v)
-                
             concept_dict[field_name] = value
             
         return concept_dict
@@ -70,98 +53,106 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("biobank", DCAT.inSeries),
             ("provider", DCT.publisher),
             # ("order_of_magnitude", URIRef(f"{catalogue_base_url}/column/order_of_magnitude")),
-            ("imaging_modality", URIRef("https://cancerimage.eu/ontology/EUCAIM/hasImageModality")),
+            ("imaging_modality", EUCAIM.hasImageModality),
             ("geographical_coverage", DCT.spatial),
             ("type", DCT.type),
             ("intended_purpose", URIRef("https://w3id.org/dpv#hasPurpose")),
-            # ("image_access_type", URIRef(f"{catalogue_base_url}/column/image_access_type")),
-            ("collection_method", URIRef("https://cancerimage.eu/ontology/EUCAIM/collectionMethod")),
+            ("image_access_type", DCT.accessRights),
+            ("collection_method", EUCAIM.collectionMethod),
             # ("head", URIRef(f"{catalogue_base_url}/column/head")),
             # ("contact", URIRef(f"{catalogue_base_url}/column/contact")),
-            ("number_of_subjects", URIRef("http://www.healthdcatap.org/numberofUniqueIndividuals")),
-            ("number_of_records", URIRef("http://www.healthdcatap.org/numberofRecords")),
-            ("number_of_series", URIRef("https:/www.eucaim.org/nbrofSeries")),
-            ("body_part_examined", URIRef("https:/www.eucaim.org/hasImageBodyPart")),
-            ("condition", URIRef("https:/www.eucaim.org/hasCondition")),
+            ("number_of_subjects", HEALTHDCATAP.numberOfUniqueIndividuals),
+            ("number_of_records", HEALTHDCATAP.numberOfRecords),
+            # ("number_of_series", EUCAIM.nbrOfSeries URIRef("https:/www.eucaim.org/nbrofSeries")),
+            ("body_part_examined", EUCAIM.hasImageBodyPart),
+            ("condition", EUCAIM.hasCondition),
             # ("topography", URIRef(f"{catalogue_base_url}/column/topography")),
-            ("vendor", URIRef("https:/www.eucaim.org/hasImageVendor")),
-            # ("image_year_range", URIRef(f"{catalogue_base_url}/column/image_year_range")),
+            ("vendor", EUCAIM.hasImageVendor),
+            ("image_year_range", DCT.temporal),
             # ("image_size", URIRef(f"{catalogue_base_url}/column/image_size")),
-            ("sex", URIRef("https:/www.eucaim.org/hasAssociatedSex")),
-            ("age_high", URIRef("http://www.healthdcatap.org/maxTypicalAge")),
-            ("age_low", URIRef("http://www.healthdcatap.org/minTypicalAge")),
-            ("age_median", URIRef("https:/www.eucaim.org/ageMedian")),
+            ("sex", EUCAIM.hasBirthSex),
+            ("age_high", HEALTHDCATAP.maxTypicalAge),
+            ("age_low", HEALTHDCATAP.minTypicalAge),
             ("theme", DCAT.theme),
             ("interoperability_tier", ADMS.interoperabilityLevel),
             ("provenance", DCT.provenance),
             ("intented_purpose", URIRef("https://w3id.org/dpv/dpv-skos#hasPurpose")),
-            # ("terms_of_use", URIRef(f"{catalogue_base_url}/column/terms_of_use")),
-            # ("commercial_use", URIRef(f"{catalogue_base_url}/column/commercial_use")),
-            # ("image_access_description", URIRef(f"{catalogue_base_url}/column/image_access_description")),
-            # ("image_access_fee", URIRef(f"{catalogue_base_url}/column/image_access_fee")),
-            # ("image_access_uri", URIRef(f"{catalogue_base_url}/column/image_access_uri")),
-            # ("publication_uri", URIRef(f"{catalogue_base_url}/column/publication_uri")),
             ("applicable_legislation", URIRef("http://data.europa.eu/r5r/applicableLegislation")),
             ("legal_basis", URIRef("https://w3id.org/dpv/dpv-skos#hasLegalBasis")),
             ("retention_period", URIRef("http://www.healthdcatap.org/retentionPeriod")),
             ("rights", DCT.rights),
-            # ("hdab", URIRef(f"{catalogue_base_url}/column/health_data_access_body")),
             ("quality_label", URIRef("http://www.w3.org/ns/dqv#hasQualityAnnotation")),
             ("coding_systems", URIRef("http://www.healthdcatap.org/hasCodingSystem")),
-            # ("metadata_issued", URIRef(f"{catalogue_base_url}/column/metadata_issued")),
             ("last_modified", DCT.modified),
             ("version", DCAT.version),
-            # ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
-            ("publisherType", URIRef("https://healthdcat-ap.github.io/#healthdcatappublishertype")),
+            ("publisherType", HEALTHDCATAP.publishertype),
             ("format", DCT.format),
             ("contact", DCAT.contactPoint)
         )
 
-    def _get_query_fields(self):
-        """Get list of fields that need query parameter extraction."""
-        return [
-            'order_of_magnitude', 'imaging_modality', 'geographical_coverage', 
-            'type', 'image_access_type', 'collection_method', 'body_part_examined',
-            'condition', 'topography', 'vendor', 'sex', 'interoperability_tier',
-            'terms_of_use', 'rights', 'hdab', 'coding_systems', 'theme'
-        ]
+    def _extract_name_vcard(self, dataset_dict: Dict, key: str):
+        if dataset_dict.get(key):
+            contact_uri = URIRef(dataset_dict[key])
+            contact_point_class = self._object_value(contact_uri, RDF.type)
+            if any([val == str(VCARD.Kind) for val in contact_point_class]):
+                dataset_dict[key] = self._object_value(contact_uri, VCARD.fn).lower().replace(' ','-')
+        return dataset_dict
+
+    def _extract_name_agent(self, dataset_dict: Dict, key: str):
+        if dataset_dict.get(key):
+            provider_uri = URIRef(dataset_dict[key])
+            provider_class = self._object_value(provider_uri, RDF.type)
+            if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in provider_class]):
+                dataset_dict[key] = self._object_value(provider_uri, FOAF.name)
+        return dataset_dict
+
+    def _convert_image_year_range(self, dataset_dict: Dict):
+        if dataset_dict.get('image_year_range'):
+            original_value = URIRef(dataset_dict['image_year_range'])
+            retrieved_class = self._object_value(original_value, RDF.type)
+            if any([val in [str(DCT.PeriodOfTime)] for val in retrieved_class]):
+                start_date = datetime.fromisoformat(self._object_value(original_value, DCAT.startDate)).date()
+                end_date = datetime.fromisoformat(self._object_value(original_value, DCAT.endDate)).date()
+                dataset_dict['image_year_range'] = f"{start_date} - {end_date}"
+        return dataset_dict
+
+    def _extract_provenancestatement_label(self, dataset_dict: Dict):
+        if dataset_dict.get('provenance'):
+            original_value = URIRef(dataset_dict['provenance'])
+            retrieved_class = self._object_value(original_value, RDF.type)
+            if any([val in [str(DCT.ProvenanceStatement)] for val in retrieved_class]):
+                dataset_dict['provenance'] = str(self._object_value(original_value, RDFS.label))
+        return dataset_dict
+
+    def _extract_datasetseries_id(self, dataset_dict: Dict):
+        if dataset_dict.get('biobank'):
+            original_value = URIRef(dataset_dict['biobank'])
+            retrieved_class = self._object_value(original_value, RDF.type)
+            if any([val in [str(DCAT.DatasetSeries)] for val in retrieved_class]):
+                dataset_dict['biobank'] = str(self._object_value(original_value, DCT.identifier))
+                if dataset_dict['biobank'] == '':
+                    dataset_dict['biobank'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
+        return dataset_dict
 
     def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef) -> Dict:
         """Parse dataset from RDF reference into dictionary."""
         dataset_dict["uri"] = str(dataset_ref)
 
         field_mappings = self._get_dataset_field_mappings()
-        query_fields = self._get_query_fields()
 
         dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, field_mappings, query_fields
+            dataset_ref, dataset_dict, field_mappings
         )
-        if dataset_dict.get('contact'):
-            contact_uri = URIRef(dataset_dict['contact'])
-            contact_point_class = self._object_value(contact_uri, RDF.type)
-            if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in contact_point_class]):
-                dataset_dict['contact'] = self._object_value(contact_uri, FOAF.name)
-            elif any([val == str(VCARD.Kind) for val in contact_point_class]):
-                dataset_dict['contact'] = self._object_value(contact_uri, VCARD.fn)
-            dataset_dict['contact'] = dataset_dict['contact'].lower().replace(' ','_')
-
-        # Post-process specific fields
-        self._post_process_dataset_fields(dataset_dict)
+        dataset_dict = self._extract_name_vcard(dataset_dict, 'contact')
+        dataset_dict = self._extract_name_agent(dataset_dict, 'provider')
+        dataset_dict = self._convert_image_year_range(dataset_dict)
+        dataset_dict = self._extract_provenancestatement_label(dataset_dict)
+        dataset_dict = self._extract_datasetseries_id(dataset_dict)
 
         return dataset_dict
 
-    def _post_process_dataset_fields(self, dataset_dict):
-        """Post-process specific dataset fields."""
-        # Handle biobank field
-        if "biobank" in dataset_dict:
-            dataset_dict["biobank"] = munge_title_to_name(dataset_dict["biobank"])
-
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
-        # dataset_dict["extras"] = []
-        # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_url = URL(str(dataset_ref))
-        catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
         # Basic fields
         key_predicate_tuple = (
             ("id", DCT.identifier),
@@ -172,32 +163,24 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("juridical_person", DCT.publisher),
             ("url", DCAT.landingPage),
             ("contact", DCAT.contactPoint),
-            ("head", URIRef(f"{catalogue_base_url}/column/head")),
-            ("role", URIRef(f"{catalogue_base_url}/column/role")),
-            ("network", URIRef(f"{catalogue_base_url}/column/network")),
-            ("withdrawn", URIRef(f"{catalogue_base_url}/column/withdrawn")),
+            # ("head", URIRef(f"{catalogue_base_url}/column/head")),
+            # ("role", URIRef(f"{catalogue_base_url}/column/role")),
+            # ("network", URIRef(f"{catalogue_base_url}/column/network")),
         )
-        query_property_list = ['geographical_coverage']
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
-        get_id_properties = ['contact', 'head', 'network']
-        for prop in get_id_properties:
-            try:
-                dataset_dict[prop] = URL(dataset_dict[prop]).query.get('id')
-            except KeyError:
-                pass
+        dataset_dict = self._extract_name_vcard(dataset_dict, 'contact')
+        dataset_dict = self._extract_name_agent(dataset_dict, 'juridical_person')
+
+        if not dataset_dict.get('id', False):
+            dataset_dict['id'] = munge_title_to_name(dataset_dict["name"])
 
         return dataset_dict
 
     def parse_person(self, dataset_dict: Dict, dataset_ref: URIRef):
-        # dataset_dict["extras"] = []
-        # dataset_dict["resources"] = []
         dataset_dict["uri"] = str(dataset_ref)
-        # dataset_url = URL(str(dataset_ref))
-        # catalogue_base_url = URL.build(scheme=dataset_url.scheme, host=dataset_url.host, path=dataset_url.path)
-        # We get foaf:Organization, foaf:Person (?) and vcard:Kind.
-        # How do we make it such that the appropriate mapping per class is made?
         value = self._object_value(dataset_ref, RDF.type)
+        key_predicate_tuple = ()
         if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in value]):
             # Basic fields
             key_predicate_tuple = (
@@ -219,6 +202,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             )
         elif any([val == str(VCARD.Kind) for val in value]):
             key_predicate_tuple = (
+                ("id", DCT.identifier),
                 # ("id", FOAF.openid),
                 ("name", VCARD.fn),
                 # ("name", FOAF.openid),
@@ -235,9 +219,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                 # ("role", URIRef(f"{catalogue_base_url}/column/role")),
             )
 
-        query_property_list = ['country']
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple, query_property_list)
-        dataset_dict['first_name'] = ""
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict['first_name'] = " "
 
         if dataset_dict["email"].startswith("mailto:"):
             dataset_dict["email"] = dataset_dict["email"].removeprefix("mailto:")
