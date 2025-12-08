@@ -1,0 +1,10 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.com/dataset4> a dcat:Dataset ;
+    dct:title "Test Dataset" ;
+    dct:publisher <http://example.com/provider2> .
+
+<http://example.com/provider2> a dcat:Dataset ;
+    dct:title "Wrong Type - Not a Person" .

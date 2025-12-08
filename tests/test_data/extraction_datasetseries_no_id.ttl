@@ -1,0 +1,11 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.com/dataset8> a dcat:Dataset ;
+    dct:title "Test Dataset" ;
+    dcat:inSeries <http://example.com/series2> .
+
+<http://example.com/series2> a dcat:DatasetSeries ;
+    dct:identifier "" ;
+    dct:title "Biobank Without ID" .

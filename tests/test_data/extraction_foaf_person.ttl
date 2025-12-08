@@ -1,0 +1,11 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+<http://example.com/dataset3> a dcat:Dataset ;
+    dct:title "Test Dataset" ;
+    dct:publisher <http://example.com/provider1> .
+
+<http://example.com/provider1> a foaf:Person ;
+    foaf:name "Jane Smith Provider" .
