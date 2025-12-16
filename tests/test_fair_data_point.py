@@ -35,6 +35,7 @@ class TestFairDataPoint:
 
     def test_fdp_get_graph_parsing_error(self, mocker):
         fdp_get_data = mocker.MagicMock(name="get_data")
+        expected = Graph()
         mocker.patch("molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point.FairDataPoint._get_data",
                      new=fdp_get_data)
         fdp_get_data.return_value = "I am not a graph"
@@ -43,7 +44,7 @@ class TestFairDataPoint:
         actual = fdp.get_graph("some_path")
         assert fdp_get_data.call_count == 1
         assert pytest.raises(ParserError)
-        assert to_isomorphic(actual) == to_isomorphic(Graph())
+        assert to_isomorphic(actual) == to_isomorphic(expected)
 
     def test_fdp_get_graph_pass_empty(self, mocker):
         fdp_get_data = mocker.MagicMock(name="get_data")

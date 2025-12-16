@@ -82,8 +82,8 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.DatasetSeries):
-            yield dataset
+        for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
+            yield datasetseries
 
     def _persons(self):
         """
@@ -118,8 +118,8 @@ class RDFParser(RDFProcessor):
             'VCARDKind': VCARD.Kind,
         }
 
-        for row in self.g.query(query, initBindings=initBindings):
-            yield row.subject
+        for person in self.g.query(query, initBindings=initBindings):
+            yield person.subject
 
     def _catalogs(self):
         """

@@ -21,7 +21,6 @@ class Identifier:
             self.guid += SEPARATOR
 
         self.guid += id_type + KEY_VALUE_SEPARATOR + id_value
-        # self.guid += id_value
 
     def get_id_type(self) -> str:
         return self.get_part(0)

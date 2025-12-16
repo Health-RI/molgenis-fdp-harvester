@@ -17,6 +17,18 @@ class FdpRecord:
     def children(self):
         return self._children
 
+    def get_type(self, concept_type: str) -> str:
+        return_type = None
+        if self.is_catalog() and concept_type in {'catalog', 'all'}:
+            return_type = 'catalog'
+        elif self.is_dataset() and concept_type in {'dataset', 'all'}:
+            return_type = 'dataset'
+        elif self.is_datasetseries() and concept_type in {'datasetseries', 'all'}:
+            return_type = 'datasetseries'
+        elif self.is_person() and concept_type in {'person', 'all'}:
+            return_type = 'person'
+        return return_type
+
     def add_children(self, child_url):
         self._children.add(child_url)
 

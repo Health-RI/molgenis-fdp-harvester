@@ -8,7 +8,7 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 from datetime import datetime
-from typing import Dict, Union
+from typing import Dict
 
 from rdflib import URIRef, FOAF, RDF, RDFS
 
@@ -52,24 +52,18 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("description", DCT.description),
             ("biobank", DCAT.inSeries),
             ("provider", DCT.publisher),
-            # ("order_of_magnitude", URIRef(f"{catalogue_base_url}/column/order_of_magnitude")),
             ("imaging_modality", EUCAIM.hasImageModality),
             ("geographical_coverage", DCT.spatial),
             ("type", DCT.type),
             ("intended_purpose", URIRef("https://w3id.org/dpv#hasPurpose")),
             ("image_access_type", DCT.accessRights),
             ("collection_method", EUCAIM.collectionMethod),
-            # ("head", URIRef(f"{catalogue_base_url}/column/head")),
-            # ("contact", URIRef(f"{catalogue_base_url}/column/contact")),
             ("number_of_subjects", HEALTHDCATAP.numberOfUniqueIndividuals),
             ("number_of_records", HEALTHDCATAP.numberOfRecords),
-            # ("number_of_series", EUCAIM.nbrOfSeries URIRef("https:/www.eucaim.org/nbrofSeries")),
             ("body_part_examined", EUCAIM.hasImageBodyPart),
             ("condition", EUCAIM.hasCondition),
-            # ("topography", URIRef(f"{catalogue_base_url}/column/topography")),
             ("vendor", EUCAIM.hasImageVendor),
             ("image_year_range", DCT.temporal),
-            # ("image_size", URIRef(f"{catalogue_base_url}/column/image_size")),
             ("sex", EUCAIM.hasBirthSex),
             ("age_high", HEALTHDCATAP.maxTypicalAge),
             ("age_low", HEALTHDCATAP.minTypicalAge),
@@ -163,9 +157,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("juridical_person", DCT.publisher),
             ("url", DCAT.landingPage),
             ("contact", DCAT.contactPoint),
-            # ("head", URIRef(f"{catalogue_base_url}/column/head")),
-            # ("role", URIRef(f"{catalogue_base_url}/column/role")),
-            # ("network", URIRef(f"{catalogue_base_url}/column/network")),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
@@ -185,38 +176,16 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             # Basic fields
             key_predicate_tuple = (
                 ("id", DCT.identifier),
-                # ("id", FOAF.openid),
                 ("name", FOAF.name),
-                # ("name", FOAF.openid),
                 ("email", FOAF.mbox),
-                # ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
-                # ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
-                # ("first_name", FOAF.firstName),
                 ("last_name", FOAF.name),
-                # ("phone", FOAF.phone),
-                # ("address", URIRef(f"{catalogue_base_url}/column/address")),
-                # ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
-                # ("city", URIRef(f"{catalogue_base_url}/column/city")),
-                # ("country", URIRef(f"{catalogue_base_url}/column/country")),
-                # ("role", URIRef(f"{catalogue_base_url}/column/role")),
             )
         elif any([val == str(VCARD.Kind) for val in value]):
             key_predicate_tuple = (
                 ("id", DCT.identifier),
-                # ("id", FOAF.openid),
                 ("name", VCARD.fn),
-                # ("name", FOAF.openid),
                 ("email", VCARD.hasEmail),
-                # ("title_before_name", URIRef(f"{catalogue_base_url}/column/title_before_name")),
-                # ("title_after_name", URIRef(f"{catalogue_base_url}/column/title_after_name")),
-                # ("first_name", FOAF.firstName),
                 ("last_name", VCARD.fn),
-                # ("phone", FOAF.phone),
-                # ("address", URIRef(f"{catalogue_base_url}/column/address")),
-                # ("zip", URIRef(f"{catalogue_base_url}/column/zip")),
-                # ("city", URIRef(f"{catalogue_base_url}/column/city")),
-                # ("country", URIRef(f"{catalogue_base_url}/column/country")),
-                # ("role", URIRef(f"{catalogue_base_url}/column/role")),
             )
 
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)

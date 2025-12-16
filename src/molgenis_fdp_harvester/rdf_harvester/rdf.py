@@ -188,8 +188,9 @@ class DCATRDFHarvester(DCATHarvester):
                 returned_value = self._resolve_uri(val, molgenis_table)
                 if not returned_value:
                     returned_value = self._resolve_label(val, molgenis_table)
-                if returned_value:
-                    returned_value_list.append(returned_value[0]['name'])
+                    if not returned_value:
+                        continue
+                returned_value_list.append(returned_value[0]['name'])
             if returned_value_list:
                 new_property_value = ','.join(returned_value_list)
         else:
@@ -338,8 +339,6 @@ class DCATRDFHarvester(DCATHarvester):
 
          Returns None if no guid could be decided.
         """
-        guid = None
-
         guid = self._get_dict_value(dataset_dict, "uri")
         if guid:
             return guid

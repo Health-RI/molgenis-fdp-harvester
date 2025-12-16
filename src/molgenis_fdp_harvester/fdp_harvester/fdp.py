@@ -33,10 +33,10 @@ class FDPHarvester(DCATRDFHarvester):
     def _convert_fdp_to_rdf(self):
         for concept_type in self.concept_types:
             for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
-                log.info(f"Got identifier {str(identifier)} from RecordProvider")
                 if identifier is None:
                     log.error(f"RecordProvider returned empty identifier {repr(identifier)}, skipping...")
-                    continue
+                    break
+                log.info(f"Got identifier {str(identifier)} from RecordProvider")
 
                 try:
                     self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
