@@ -13,9 +13,11 @@ import xml
 
 import rdflib
 import rdflib.parser
+from rdflib import FOAF
 from rdflib.namespace import Namespace, RDF, DCAT
 
-from molgenis_fdp_harvester.utils import HarvesterException
+from .baseparser import VCARD
+from ..utils import HarvesterException
 
 
 HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
@@ -47,7 +49,7 @@ class RDFProcessor(object):
         Creates a parser or serializer instance
         """
 
-        self.g = rdflib.ConjunctiveGraph()
+        self.g = rdflib.Dataset()
 
 
 class RDFParser(RDFProcessor):
@@ -73,9 +75,55 @@ class RDFParser(RDFProcessor):
         for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
             yield dataset
 
+    def _datasetseries(self):
+        """
+        Generator that returns all DCAT dataset series on the graph
+
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
+        """
+        for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
+            yield datasetseries
+
+    def _persons(self):
+        """
+        Generator that returns all FOAF Persons, Organizations and VCARD Kinds from the graph.
+
+        This includes both:
+        - Named resources (URIRefs) that are explicitly typed
+        - Inline/blank node resources used as property values (e.g., dcat:contactPoint)
+
+        Yields rdflib.term.Node objects (URIRef or BNode) that can be used on graph
+        lookups and queries
+        """
+        query = """
+        SELECT DISTINCT ?subject WHERE {
+            {
+                # Explicitly typed resources (named or blank nodes)
+                ?subject a ?type .
+                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
+            }
+            UNION
+            {
+                # Resources used as object values in any triple
+                ?s ?p ?subject .
+                ?subject a ?type .
+                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
+            }
+        }
+        """
+        initBindings = {
+            'FOAFPerson': FOAF.Person,
+            'FOAFOrganization': FOAF.Agent,
+            'VCARDKind': VCARD.Kind,
+        }
+
+        for person in self.g.query(query, initBindings=initBindings):
+            yield person.subject
+
     def _catalogs(self):
         """
-        Generator that returns all DCAT datasets on the graph
+        Generator that returns all DCAT catalogs on the graph
 
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries, or for get requests
@@ -121,6 +169,7 @@ class RDFParser(RDFProcessor):
 
         try:
             self.g.parse(data=data, format=_format)
+            self.g = self.g.skolemize()
         # Apparently there is no single way of catching exceptions from all
         # rdflib parsers at once, so if you use a new one and the parsing
         # exceptions are not cached, add them here.
@@ -157,7 +206,62 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_dataset(dataset_dict, dataset_ref)
 
+            dataset_dict['concept_type'] = 'dataset'
+
             yield dataset_dict
+
+    def datasetseries(self):
+        """
+        Generator that returns dataset series parsed from the RDF graph
+
+        Each dataset series is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._datasetseries():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_datasetseries(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'datasetseries'
+
+            yield dataset_dict
+
+    def persons(self):
+        """
+        Generator that returns FOAF persons parsed from the RDF graph
+
+        Each person object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._persons():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_person(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'person'
+
+            yield dataset_dict
+
+    def get_concept(self, uri_ref, concept_type):
+        concept_dict = {}
+        for profile_class in self._profiles:
+            profile = profile_class(self.g)
+            if concept_type == 'person':
+                profile.parse_person(concept_dict, uri_ref)
+            elif concept_type == 'dataset':
+                profile.parse_dataset(concept_dict, uri_ref)
+            elif concept_type == 'datasetseries':
+                profile.parse_datasetseries(concept_dict, uri_ref)
+
+        return concept_dict
 
     def dataset_in_catalog(self):
         """

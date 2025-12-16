@@ -14,7 +14,7 @@ import re
 
 from unidecode import unidecode
 
-from molgenis_fdp_harvester.ckan_harvest.baseparser import (
+from molgenis_fdp_harvester.base.baseparser import (
     _munge_to_length,
     munge_tag,
 )
@@ -24,6 +24,17 @@ log = logging.getLogger(__name__)
 
 PACKAGE_NAME_MIN_LENGTH = 2
 PACKAGE_NAME_MAX_LENGTH = 100
+
+
+class HarvestObject(object):
+    def __init__(self, guid, concept_type=None, status=None, content=None) :
+        self.guid = guid
+        self.content = content
+        self.status = status
+        self.concept_type = concept_type
+
+    def __str__(self):
+        return f"guid: {self.guid}; status: {self.status}; concept_type: {self.concept_type}"
 
 
 def munge_title_to_name(name: str) -> str:
@@ -61,10 +72,11 @@ class HarvesterBase(object):
         implements(IHarvester)
     """
 
-    config = None
-    _user_name = None
-    _gather_errors = []
-    _harvest_objects = []
+    def __init__(self):
+        self.config = None
+        self._user_name = None
+        self._gather_errors = []
+        self._harvest_objects = []
 
     def _save_gather_error(self, *args):
         log.warning("Harvester gather error: %s", args)
@@ -131,6 +143,7 @@ class HarvesterBase(object):
         """
 
         ideal_name = ideal_name[:PACKAGE_NAME_MAX_LENGTH]
+        return ideal_name
 
     def _get_user_name(self):
         """
