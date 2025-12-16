@@ -13,7 +13,7 @@ dependencies = [
   "molgenis-emx2-pyclient>=11.57.0",
   "unidecode~=1.3.8",
   "python-dotenv~=1.0.1",
-  "yarl~=1.18.3"
+  "yarl~=1.22.0"
 ]
 name = "molgenis-fdp-harvester"
 dynamic = ["version"]
