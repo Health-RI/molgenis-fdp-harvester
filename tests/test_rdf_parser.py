@@ -24,19 +24,19 @@ def parser(profiles):
 
 @pytest.fixture
 def catalog_data():
-    with open("tests/catalog.ttl", "r") as f:
+    with open("tests/test_data/rdf_catalog.ttl", "r") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset1_data():
-    with open("tests/dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset2_data():
-    with open("tests/dataset2.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset2.ttl", "r") as f:
         return f.read()
 
 def test_parser_initialization(profiles):
@@ -114,7 +114,6 @@ def test_get_concept(parser, dataset1_data):
     # Verify concept fields
     assert concept['uri'] == "http://example.com/dataset1"
     assert concept['name'] == "Gryffindor research project"
-    assert concept['concept_type'] == 'dataset'
 
 
 def test_parse_invalid_data(parser):

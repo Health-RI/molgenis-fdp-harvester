@@ -20,11 +20,29 @@ class ConceptTableLink:
     dataset: str
     datasetseries: str
 
+    def __post_init__(self):
+        """Validate that all fields are strings."""
+        for field_name in ['person', 'dataset', 'datasetseries']:
+            field_value = getattr(self, field_name)
+            if not isinstance(field_value, str):
+                raise TypeError(
+                    f"Configuration 'concept_table_link.{field_name}' must be a string, "
+                    f"got {type(field_value).__name__}"
+                )
+
+
+@dataclass
+class HarvesterConfig:
+    """Schema for harvester_config section."""
+    auto_create_datasetseries: bool = True
+    uri_lookup_config: Dict[str, Dict[str, str]] | None = None
+
 
 @dataclass
 class HarvesterConfigSchema:
     """Schema for the complete harvester configuration."""
     concept_table_link: ConceptTableLink
+    harvester_config: HarvesterConfig | None = None
 
 
 def validate_config(config_data: Dict[str, Any]) -> None:
@@ -37,27 +55,25 @@ def validate_config(config_data: Dict[str, Any]) -> None:
         ValueError: If the configuration is missing required sections or fields
         TypeError: If field types don't match the schema
     """
-    # Check for concept_table_link section
-    if 'concept_table_link' not in config_data:
-        raise ValueError("Configuration must contain a 'concept_table_link' section")
-
-    concept_table_link_dict = config_data['concept_table_link']
-
-    # Try to construct the dataclass - this validates all required fields exist
     try:
-        concept_table_link = ConceptTableLink(**concept_table_link_dict)
-    except TypeError as e:
-        # This catches missing fields or extra unexpected fields
-        raise ValueError(f"Invalid 'concept_table_link' section: {e}") from e
+        # Validate concept_table_link
+        if 'concept_table_link' not in config_data:
+            raise ValueError("Configuration must contain a 'concept_table_link' section")
+        concept_table_link = ConceptTableLink(**config_data['concept_table_link'])
 
-    # Validate that all values are strings
-    for field_name in ['person', 'dataset', 'datasetseries']:
-        field_value = getattr(concept_table_link, field_name)
-        if not isinstance(field_value, str):
-            raise TypeError(
-                f"Configuration 'concept_table_link.{field_name}' must be a string, "
-                f"got {type(field_value).__name__}"
-            )
+        # Validate harvester_config if present
+        harvester_config = None
+        if 'harvester_config' in config_data:
+            harvester_config = HarvesterConfig(**config_data['harvester_config'])
+
+        # Validate complete schema
+        HarvesterConfigSchema(
+            concept_table_link=concept_table_link,
+            harvester_config=harvester_config
+        )
+
+    except TypeError as e:
+        raise ValueError(f"Invalid configuration: {e}") from e
 
 
 def load_config(config_path):

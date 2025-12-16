@@ -14,10 +14,10 @@ from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCAT
 @pytest.fixture
 def rdf_graph():
     # Create RDF graph
-    g = rdflib.ConjunctiveGraph()
+    g = rdflib.Dataset()
 
     # Load test RDF data
-    with open("tests/dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
         dataset1_data = f.read()
 
     g.parse(data=dataset1_data, format="turtle")
@@ -33,6 +33,7 @@ def profile(rdf_graph):
 def dataset_ref():
     return URIRef("http://example.com/dataset1")
 
+
 def test_parse_dataset(profile, dataset_ref):
     """Test parsing a dataset reference into a dict"""
     dataset_dict = {}
@@ -44,41 +45,15 @@ def test_parse_dataset(profile, dataset_ref):
     assert dataset_dict["description"] == "Impact of muggle technical inventions on word's magic presense"
 
 
-def test_extract_name_from_query_single_url(profile):
-    """Test _extract_name_from_query method"""
-    # Test with a single URL string
-    single_url = "http://example.com/resource?name=test_name"
-    result = profile._extract_name_from_query(single_url)
-    assert result == "test_name"
-
-
-def test_extract_name_from_query_url_list(profile):
-    # Test with a list of URL strings
-    url_list = [
-        "http://example.com/resource1?name=test_name1",
-        "http://example.com/resource2?name=test_name2"
-    ]
-    result = profile._extract_name_from_query(url_list)
-    assert result == ["test_name1", "test_name2"]
-
-
-def test_extract_name_from_query_none(profile):
-    # Test with URL without name parameter
-    no_name_url = "http://example.com/resource"
-    result = profile._extract_name_from_query(no_name_url)
-    assert result is None
-
-
 def test_extract_concept_dict():
     """Test _extract_concept_dict method"""
     # Create a simple test graph
-    test_g = rdflib.ConjunctiveGraph()
+    test_g = rdflib.Dataset()
     test_uri = URIRef("http://example.com/test")
 
     # Add some triples
     test_g.add((test_uri, DCTERMS.title, Literal("Test Title")))
     test_g.add((test_uri, DCTERMS.description, Literal("Test Description")))
-    test_g.add((test_uri, DCAT.theme, URIRef("http://example.com/theme?name=test_theme")))
 
     # Create profile with test graph
     test_profile = MolgenisEUCAIMDCATAPProfile(test_g)
@@ -90,28 +65,53 @@ def test_extract_concept_dict():
         ("description", DCTERMS.description),
         ("theme", DCAT.theme)
     ))
-    query_property_list = ["theme"]
 
     result = test_profile._extract_concept_dict(
-        test_uri, concept_dict, key_predicate_tuple, query_property_list
+        test_uri, concept_dict, key_predicate_tuple
     )
 
     # Verify results
     assert result["name"] == "Test Title"
     assert result["description"] == "Test Description"
-    assert result["theme"] == "test_theme"
+
+
+def test_extract_concept_dict_unwraps_single_item_list():
+    """Test that single-item lists are unwrapped to scalar values."""
+    # Create a test graph
+    test_g = rdflib.Dataset()
+    test_uri = URIRef("http://example.com/test")
+
+    # Add a triple (will be returned as single-item list by _object_value)
+    test_g.add((test_uri, DCTERMS.title, Literal("Single Title")))
+
+    # Create profile with test graph
+    test_profile = MolgenisEUCAIMDCATAPProfile(test_g)
+
+    # Test extraction
+    concept_dict = {}
+    key_predicate_tuple = (
+        ("name", DCTERMS.title),
+    )
+
+    result = test_profile._extract_concept_dict(
+        test_uri, concept_dict, key_predicate_tuple
+    )
+
+    # Verify that the result is a string, not a list
+    assert isinstance(result["name"], str)
+    assert result["name"] == "Single Title"
 
 
 def test_parse_person():
     """Test parsing a person reference"""
     # Create a person in the graph
-    person_g = rdflib.ConjunctiveGraph()
+    person_g = rdflib.Dataset()
     person_uri = URIRef("http://example.com/person/1")
 
     person_g.add((person_uri, RDF.type, FOAF.Person))
-    person_g.add((person_uri, FOAF.openid, Literal("test-person")))
-    person_g.add((person_uri, FOAF.firstName, Literal("John")))
-    person_g.add((person_uri, FOAF.lastName, Literal("Doe")))
+    person_g.add((person_uri, DCTERMS.identifier, Literal("test-person")))
+    person_g.add((person_uri, FOAF.name, Literal("John Doe")))
+    # person_g.add((person_uri, FOAF.lastName, Literal("Doe")))
     person_g.add((person_uri, FOAF.mbox, Literal("mailto:john.doe@example.com")))
 
     # Create profile with person graph
@@ -124,16 +124,16 @@ def test_parse_person():
     # Verify results
     assert person_dict["uri"] == "http://example.com/person/1"
     assert person_dict["id"] == "test-person"
-    assert person_dict["name"] == "test-person"
-    assert person_dict["first_name"] == "John"
-    assert person_dict["last_name"] == "Doe"
+    assert person_dict["name"] == "John Doe"
+    # assert person_dict["first_name"] == "John"
+    assert person_dict["last_name"] == "John Doe"
     assert person_dict["email"] == "john.doe@example.com" # mailto: prefix removed
 
 
 def test_parse_datasetseries():
     """Test parsing a datasetseries reference"""
     # Create a datasetseries in the graph
-    series_g = rdflib.ConjunctiveGraph()
+    series_g = rdflib.Dataset()
     series_uri = URIRef("http://example.com/series/1")
 
     series_g.add((series_uri, RDF.type, DCAT.DatasetSeries))

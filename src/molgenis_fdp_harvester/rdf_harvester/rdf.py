@@ -1,8 +1,8 @@
-import hashlib
 import json
 import logging
 import traceback
 from typing import List, Dict
+from urllib.parse import quote
 
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
@@ -16,16 +16,17 @@ log = logging.getLogger(__name__)
 
 class DCATRDFHarvester(DCATHarvester):
     """DCAT RDF Harvester for processing RDF data into Molgenis."""
-    
-    
-    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client):
+
+
+    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
         super().__init__()
         self._profiles = profiles
         self.concept_table_link = concept_table_dict
         self.concept_types = list(self.concept_table_link.keys())
         self.molgenis_client = molgenis_client
         self.parser = RDFParser(self._profiles)
-        
+        self.harvester_config = harvester_config or {}
+
         # Initialize tracking dictionaries
         self._initialize_tracking_dictionaries()
         
@@ -33,7 +34,8 @@ class DCATRDFHarvester(DCATHarvester):
         """Initialize dictionaries for tracking GUIDs and names."""
         self.guids_in_harvest = {concept: [] for concept in self.concept_types}
         self.guids_in_db = {concept: [] for concept in self.concept_types}
-        self._names_taken = {concept: [] for concept in self.concept_types}
+        # self._names_taken = {concept: [] for concept in self.concept_types}
+        self._datasets_without_datasetseries = []  # Track datasets that need auto-generated datasetseries
 
     def info(self):
         return {
@@ -49,22 +51,26 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             # Load and parse RDF content
             self._load_rdf_content(harvest_root_uri)
-            
-            # Extract concepts from RDF
-            self._extract_concepts_from_rdf()
-            
-            # Get existing records from database
-            self._load_existing_records()
-            
-            # Create harvest objects
-            self._create_harvest_objects()
-            
-            log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
-            return self._harvest_objects
-            
+
+            self._gather_stage()
+
         except Exception as e:
             log.error(f"Error in gather stage: {e}")
             raise HarvesterException(f"Failed to gather objects: {e}") from e
+
+        return self._harvest_objects
+
+    def _gather_stage(self):
+       # Extract concepts from RDF
+       self._extract_concepts_from_rdf()
+
+       # Get existing records from database
+       self._get_guids_in_db()
+
+       # Create harvest objects
+       self._create_harvest_objects()
+
+       log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
 
     def _load_rdf_content(self, harvest_root_uri):
         """Load RDF content from the source URI."""
@@ -90,7 +96,7 @@ class DCATRDFHarvester(DCATHarvester):
             log.error(f"Error extracting concepts from RDF: {e}")
             raise HarvesterException(f"Failed to extract concepts: {e}") from e
 
-    def _load_existing_records(self):
+    def _get_guids_in_db(self):
         """Load existing records from the database for comparison."""
         for concept_type in self.concept_types:
             entity_name = self.concept_table_link[concept_type]
@@ -98,7 +104,7 @@ class DCATRDFHarvester(DCATHarvester):
                 existing_ids = self.molgenis_client.get(entity_name)
                 self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
             except Exception as e:
-                log.error(f"Error getting list of uids for {entity_name}: {e}")
+                log.error(f"fetch_stage: Error getting list of uids {str(entity_name)}: {repr(e)} / {str(traceback.format_exc())}")
                 self.guids_in_db[concept_type] = []
 
     def _create_harvest_objects(self):
@@ -124,42 +130,128 @@ class DCATRDFHarvester(DCATHarvester):
             self.guids_in_harvest[concept_type].append(guid)
 
     def fetch_stage(self, harvest_object: HarvestObject):
-        return self._fetch_concept(harvest_object)
-
-    def _generate_unique_name(self, title, concept_type):
-        """Generate a unique name for a concept, handling duplicates."""
-        base_name = self._gen_new_name(title) if title else "unnamed"
-
-        if base_name not in self._names_taken[concept_type]:
-            self._names_taken[concept_type].append(base_name)
-            return base_name
-
-        # Handle duplicates by appending a suffix
-        duplicate_count = len([
-            name for name in self._names_taken[concept_type]
-            if name.startswith(f"{base_name}-")
-        ]) + 1
-
-        unique_name = f"{base_name}-{duplicate_count}"
-        self._names_taken[concept_type].append(unique_name)
-        return unique_name
-
-    def _fetch_concept(self, harvest_object):
-        """Prepare a concept dictionary with required fields."""
         concept_type = harvest_object.concept_type
         concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
 
         # Ensure required fields
         if not concept_dict.get("name"):
-            title = concept_dict.get("title")
-            concept_dict["name"] = self._generate_unique_name(title, concept_type)
+            concept_dict['name'] = concept_dict.get("title")
 
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
+        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name attached to the ontologyTermURI
+        # The table to query is configured in the configuration.
+        uri_lookup_table = self.harvester_config.get('uri_lookup_config', {}).get(concept_type)
+        if uri_lookup_table:
+            for property, value in concept_dict.items():
+                molgenis_table = uri_lookup_table.get(property)
+                if molgenis_table:
+                    try:
+                        new_property_value = self._resolve_uris_and_labels(value, molgenis_table)
+                        if new_property_value:
+                            concept_dict[property] = new_property_value
+                    except Exception as exc:
+                        log.warning(f"Exception when resolving ontology URI or label: table {molgenis_table}; URI {value}; {str(exc)}")
+
         harvest_object.content = json.dumps(concept_dict)
 
+        # Check if this is a dataset without a datasetseries and auto_create is enabled
+        if (concept_type == 'dataset'
+                and self.harvester_config.get('auto_create_datasetseries', False)
+                and ('biobank' not in concept_dict or not concept_dict['biobank'])):
+            # Track this dataset for later datasetseries creation
+            self._datasets_without_datasetseries.append({
+                'dataset_name': concept_dict.get('name'),
+                'dataset_id': concept_dict.get('id'),
+                'dataset_description': concept_dict.get('description', ''),
+                'dataset_guid': harvest_object.guid
+            })
+
+        ## Here can the network part go.
+
         return harvest_object
+
+    def _resolve_uri(self, value, molgenis_table):
+        return self.molgenis_client.get(table=molgenis_table,
+                                        query_filter=f"ontologyTermURI == '{quote(value)}'")
+
+    def _resolve_label(self, value, molgenis_table):
+        return self.molgenis_client.get(table=molgenis_table,
+                                        query_filter=f"label == '{quote(value)}'")
+
+    def _resolve_uris_and_labels(self, value, molgenis_table):
+        new_property_value = None
+        if isinstance(value, list):
+            returned_value_list = list()
+            for val in value:
+                returned_value = self._resolve_uri(val, molgenis_table)
+                if not returned_value:
+                    returned_value = self._resolve_label(val, molgenis_table)
+                    if not returned_value:
+                        continue
+                returned_value_list.append(returned_value[0]['name'])
+            if returned_value_list:
+                new_property_value = ','.join(returned_value_list)
+        else:
+            returned_value = self._resolve_uri(value, molgenis_table)
+            if not returned_value:
+                returned_value = self._resolve_label(value, molgenis_table)
+            if returned_value:
+                new_property_value = returned_value[0]['name']
+        return new_property_value
+
+    def _create_datasetseries_for_dataset(self, dataset_info):
+        """Create a datasetseries (biobank) HarvestObject for a dataset."""
+        # Use the same name as the dataset
+        datasetseries_name = dataset_info['dataset_name']
+        datasetseries_id = dataset_info['dataset_id']
+
+        # Create minimal datasetseries content
+        datasetseries_dict = {
+            'id': datasetseries_id,
+            'name': datasetseries_name,
+            'description': dataset_info.get('dataset_description', f"Auto-generated datasetseries for {datasetseries_name}"),
+        }
+
+        # Create HarvestObject for the datasetseries
+        # Use a synthetic GUID based on the dataset GUID
+        datasetseries_guid = f"{dataset_info['dataset_guid']}_datasetseries"
+
+        datasetseries_object = HarvestObject(
+            guid=datasetseries_guid,
+            status="new",
+            concept_type="datasetseries"
+        )
+        datasetseries_object.content = json.dumps(datasetseries_dict)
+
+        return datasetseries_object, datasetseries_id
+
+    def generate_missing_datasetseries(self):
+        """Generate datasetseries for all datasets that need them and update dataset references."""
+        if not self._datasets_without_datasetseries:
+            return
+
+        log.info(f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them")
+
+        # Create datasetseries objects and update corresponding datasets
+        for dataset_info in self._datasets_without_datasetseries:
+            # Create the datasetseries HarvestObject
+            datasetseries_object, datasetseries_id = self._create_datasetseries_for_dataset(dataset_info)
+
+            # Add to harvest objects list
+            self._harvest_objects.append(datasetseries_object)
+
+            # Update the corresponding dataset to reference this datasetseries
+            for harvest_obj in self._harvest_objects:
+                if harvest_obj.concept_type == 'dataset' and harvest_obj.guid == dataset_info['dataset_guid']:
+                    # Update the dataset's content to include the biobank reference
+                    dataset_dict = json.loads(harvest_obj.content)
+                    dataset_dict['biobank'] = datasetseries_id
+                    harvest_obj.content = json.dumps(dataset_dict)
+                    break
+
+        log.info(f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries")
 
     def import_stage(self, harvest_object: HarvestObject):
         """
@@ -173,36 +265,28 @@ class DCATRDFHarvester(DCATHarvester):
             return True
 
         if harvest_object.content is None:
-            log.error(
-                "import_stage: Empty content for object {0}".format(harvest_object.guid),
-            )
+            log.error(f"import_stage: Empty content for object {harvest_object.guid}")
             return False
 
         try:
             dataset = json.loads(harvest_object.content)
         except ValueError:
-            log.error(
-                "import_stage: Could not parse content for object {0}".format(
-                    harvest_object.guid
-                ),
-            )
+            log.error(f"import_stage: Could not parse content for object {harvest_object.guid}")
             return False
 
-        concept_type = dataset['concept_type']
-        entity_name = self.concept_table_link[concept_type]
+        entity_name = self.concept_table_link[harvest_object.concept_type]
 
         try:
             if harvest_object.status == "new":
-                log.info("Adding dataset %s" % dataset["name"])
+                log.info(f"Adding dataset {dataset['name']}")
             else: # harvest_object.status == "change"
-                log.info("Updating dataset %s" % dataset["name"])
+                log.info(f"Updating dataset {dataset['name']}")
             self.molgenis_client.save_schema(table=entity_name, data=[dataset])
             return True
         except Exception as e:
             log.error(
-                "import_stage: Error importing dataset %s: %r / %s"
-                % (dataset.get("name", ""), e, traceback.format_exc()),
-                )
+                f"import_stage: Error importing dataset {dataset.get('name', '')}: {repr(e)} / {traceback.format_exc()}"
+            )
             return False
 
     def _get_rdf(self, harvest_root_uri):
@@ -255,11 +339,7 @@ class DCATRDFHarvester(DCATHarvester):
 
          Returns None if no guid could be decided.
         """
-        guid = None
-
-        guid = self._get_dict_value(dataset_dict, "uri") or self._get_dict_value(
-            dataset_dict, "identifier"
-        )
+        guid = self._get_dict_value(dataset_dict, "uri")
         if guid:
             return guid
 

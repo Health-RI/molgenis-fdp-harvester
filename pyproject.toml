@@ -85,17 +85,18 @@ python = ["3.10", "3.11", "3.12"]
 source_pkgs = ["molgenis_fdp_harvester", "tests"]
 branch = true
 parallel = true
-omit = ["src/molgenis_fdp_harvester/__about__.py"]
+omit = ["src/molgenis_fdp_harvester/__about__.py", "tests/*"]
 
 [tool.coverage.paths]
 molgenis_fdp_harvester = [
   "src/molgenis_fdp_harvester",
-  "*/molgenis-fdp-harvester/src/molgenis_fdp_harvester",
 ]
 tests = ["tests", "*/molgenis-fdp-harvester/tests"]
 
 [tool.coverage.report]
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+
 
 
 [tool.ruff.lint]

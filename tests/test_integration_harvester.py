@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock
 import json
 import os
 
 from molgenis_emx2_pyclient import Client
-from molgenis_fdp_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
 
@@ -44,7 +44,7 @@ def harvester(profiles, concept_table_dict, mock_client):
 
 @pytest.fixture
 def catalog_url():
-    url = os.path.abspath("tests/rdf_testdata.ttl")
+    url = os.path.abspath("tests/test_data/rdf_testdata.ttl")
     assert os.path.exists(url), f"Test file not found: {url}"
     return url
 
@@ -55,13 +55,13 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Step 1: Gather stage
     harvest_objects = harvester.gather_stage(catalog_url)
+    expected_guids = ["http://example.com/dataset1", "http://example.com/dataset2"]
 
     # Verify gather results
     assert harvest_objects is not None
     assert len(harvest_objects) > 0, "No harvest objects were gathered"
 
     # Verify guids_in_harvest contains the expected datasets
-    expected_guids = ["http://example.com/dataset1", "http://example.com/dataset2"]
     for guid in expected_guids:
         assert guid in harvester.guids_in_harvest['dataset'], \
         f"Expected guid {guid} not found in guids_in_harvest"
@@ -82,14 +82,15 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
     # Verify content was saved to Molgenis
     data = json.loads(obj.content)
     mock_client.save_schema.assert_any_call(
-        table=concept_table_dict[data['concept_type']],
+        table=concept_table_dict['dataset'],
         data=[data]
     )
+
+    expected_save_calls = len(processed_objects)
 
     # Verify all imports were successful
     assert all(import_results), "Not all imports were successful"
 
     # Verify expected number of calls to save_schema
-    expected_save_calls = len(processed_objects)
     assert mock_client.save_schema.call_count == expected_save_calls, \
         "Unexpected number of save_schema calls"

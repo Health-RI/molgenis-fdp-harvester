@@ -16,6 +16,7 @@ import rdflib.parser
 from rdflib import FOAF
 from rdflib.namespace import Namespace, RDF, DCAT
 
+from .baseparser import VCARD
 from ..utils import HarvesterException
 
 
@@ -48,7 +49,7 @@ class RDFProcessor(object):
         Creates a parser or serializer instance
         """
 
-        self.g = rdflib.ConjunctiveGraph()
+        self.g = rdflib.Dataset()
 
 
 class RDFParser(RDFProcessor):
@@ -81,18 +82,44 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.DatasetSeries):
-            yield dataset
+        for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
+            yield datasetseries
 
     def _persons(self):
         """
-        Generator that returns all FOAF Persons on the graph
+        Generator that returns all FOAF Persons, Organizations and VCARD Kinds from the graph.
 
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
+        This includes both:
+        - Named resources (URIRefs) that are explicitly typed
+        - Inline/blank node resources used as property values (e.g., dcat:contactPoint)
+
+        Yields rdflib.term.Node objects (URIRef or BNode) that can be used on graph
+        lookups and queries
         """
-        for dataset in self.g.subjects(RDF.type, FOAF.Person):
-            yield dataset
+        query = """
+        SELECT DISTINCT ?subject WHERE {
+            {
+                # Explicitly typed resources (named or blank nodes)
+                ?subject a ?type .
+                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
+            }
+            UNION
+            {
+                # Resources used as object values in any triple
+                ?s ?p ?subject .
+                ?subject a ?type .
+                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
+            }
+        }
+        """
+        initBindings = {
+            'FOAFPerson': FOAF.Person,
+            'FOAFOrganization': FOAF.Agent,
+            'VCARDKind': VCARD.Kind,
+        }
+
+        for person in self.g.query(query, initBindings=initBindings):
+            yield person.subject
 
     def _catalogs(self):
         """
@@ -142,6 +169,7 @@ class RDFParser(RDFProcessor):
 
         try:
             self.g.parse(data=data, format=_format)
+            self.g = self.g.skolemize()
         # Apparently there is no single way of catching exceptions from all
         # rdflib parsers at once, so if you use a new one and the parsing
         # exceptions are not cached, add them here.
@@ -232,8 +260,6 @@ class RDFParser(RDFProcessor):
                 profile.parse_dataset(concept_dict, uri_ref)
             elif concept_type == 'datasetseries':
                 profile.parse_datasetseries(concept_dict, uri_ref)
-
-        concept_dict['concept_type'] = concept_type
 
         return concept_dict
 
