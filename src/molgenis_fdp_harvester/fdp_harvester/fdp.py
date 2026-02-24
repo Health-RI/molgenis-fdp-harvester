@@ -3,10 +3,10 @@ from typing import Dict, List
 
 from molgenis_emx2_pyclient import Client
 
-from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider import FairDataPointRecordProvider
-from molgenis_fdp_harvester.fdp_harvester.domain.identifier import Identifier
-from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
-from molgenis_fdp_harvester.utils import HarvesterException
+from .domain.fair_data_point_record_provider import FairDataPointRecordProvider
+from .domain.identifier import Identifier
+from ..rdf_harvester.rdf import DCATRDFHarvester
+from ..utils import HarvesterException
 
 log = logging.getLogger(__name__)
 

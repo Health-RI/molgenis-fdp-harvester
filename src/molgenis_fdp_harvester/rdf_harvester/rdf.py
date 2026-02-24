@@ -7,10 +7,10 @@ from urllib.parse import quote
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
 
-from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
-from molgenis_fdp_harvester.base.processor import RDFParser
-from molgenis_fdp_harvester.rdf_harvester.dcatharvester import DCATHarvester
-from molgenis_fdp_harvester.utils import HarvesterException
+from .dcatharvester import DCATHarvester
+from ..base.baseharvester import HarvestObject, munge_title_to_name
+from ..base.processor import RDFParser
+from ..utils import HarvesterException
 
 log = logging.getLogger(__name__)
 

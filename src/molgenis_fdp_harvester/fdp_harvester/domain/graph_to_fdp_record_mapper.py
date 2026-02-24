@@ -3,11 +3,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from rdflib import Namespace
-
 from .fdp_record import FdpRecord
-
-LDP = Namespace("http://www.w3.org/ns/ldp#")
+from ...base.baseparser import LDP
 
 
 class GraphToFdpRecordMapper:

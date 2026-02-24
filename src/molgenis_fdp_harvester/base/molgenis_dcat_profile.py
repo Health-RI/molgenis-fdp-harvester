@@ -14,14 +14,13 @@ from rdflib import URIRef, FOAF, RDF, RDFS
 
 import logging
 
-from molgenis_fdp_harvester.base.baseharvester import munge_title_to_name
-from molgenis_fdp_harvester.base.baseparser import RDFProfile, VCARD, EUCAIM, HEALTHDCATAP
-from molgenis_fdp_harvester.base.baseparser import (
+from .baseharvester import munge_title_to_name
+from .baseparser import RDFProfile, VCARD, EUCAIM, HEALTHDCATAP
+from .baseparser import (
     DCT, DCAT, ADMS
 )
 
 log = logging.getLogger(__name__)
-
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
@@ -128,6 +127,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                     dataset_dict['biobank'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
         return dataset_dict
 
+    def handle_pids(self, dataset_dict: Dict, key: str):
+        return dataset_dict
+
     def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef) -> Dict:
         """Parse dataset from RDF reference into dictionary."""
         dataset_dict["uri"] = str(dataset_ref)
@@ -160,6 +162,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
+        dataset_dict = self.handle_pids(dataset_dict, "id")
         dataset_dict = self._extract_name_vcard(dataset_dict, 'contact')
         dataset_dict = self._extract_name_agent(dataset_dict, 'juridical_person')
 

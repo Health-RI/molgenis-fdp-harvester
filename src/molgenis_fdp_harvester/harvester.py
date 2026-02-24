@@ -13,7 +13,7 @@ import logging
 import os
 from pathlib import Path
 
-from molgenis_fdp_harvester.fdp_harvester.fdp import FDPHarvester
+from .fdp_harvester.fdp import FDPHarvester
 
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
 try:

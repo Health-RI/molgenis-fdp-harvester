@@ -4,7 +4,7 @@ import logging
 import requests
 import rdflib
 
-from molgenis_fdp_harvester.base.baseharvester import HarvesterBase
+from ..base.baseharvester import HarvesterBase
 
 
 log = logging.getLogger(__name__)
