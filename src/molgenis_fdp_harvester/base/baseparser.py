@@ -27,9 +27,11 @@ SCHEMA = Namespace("http://schema.org/")
 LOCN = Namespace("http://www.w3.org/ns/locn#")
 GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 SPDX = Namespace("http://spdx.org/rdf/terms#")
-EUCAIM = Namespace("https://cancerimage.eu/ontology/EUCAIM/")
+EUCAIM = Namespace("https://cancerimage.eu/ontology/EUCAIM#")
 HEALTHDCATAP = Namespace("http://healthdataportal.eu/ns/health#")
 LDP = Namespace("http://www.w3.org/ns/ldp#")
+DPV = Namespace("https://w3id.org/dpv#")
+HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
 
 namespaces = {
     "dct": DCT,
@@ -46,6 +48,8 @@ namespaces = {
     "owl": OWL,
     "spdx": SPDX,
     "ldp": LDP,
+    "dpv": DPV,
+    "hydra": HYDRA
 }
 
 PREFIX_MAILTO = "mailto:"
@@ -153,6 +157,8 @@ class RDFProfile(object):
         # Cache for mappings of licenses URL/title to ID built when needed in
         # _license().
         self._licenceregister_cache = None
+
+        self.config = None
 
     def _datasets(self):
         """

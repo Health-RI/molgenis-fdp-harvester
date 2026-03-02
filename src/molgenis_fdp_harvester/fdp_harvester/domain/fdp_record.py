@@ -27,6 +27,10 @@ class FdpRecord:
             return_type = 'datasetseries'
         elif self.is_person() and concept_type in {'person', 'all'}:
             return_type = 'person'
+        elif self.is_kind() and concept_type in {'kind', 'all'}:
+            return_type = 'kind'
+        elif self.is_publisher() and concept_type in {'publisher', 'all'}:
+            return_type = 'publisher'
         return return_type
 
     def add_children(self, child_url):
@@ -40,6 +44,12 @@ class FdpRecord:
 
     def is_datasetseries(self):
         return (URIRef(self.url), RDF.type, DCAT.DatasetSeries) in self._graph
+
+    def is_kind(self):
+        return (URIRef(self.url), RDF.type, VCARD.Kind) in self._graph
+
+    def is_publisher(self):
+        return (URIRef(self.url), RDF.type, FOAF.Organization) in self._graph
 
     def is_person(self):
         return ((URIRef(self.url), RDF.type, FOAF.Person) in self._graph

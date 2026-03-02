@@ -16,13 +16,16 @@ from typing import Any, Dict
 @dataclass
 class ConceptTableLink:
     """Schema for concept_table_link section."""
-    person: str
+    # person: str
     dataset: str
     datasetseries: str
+    kind: str
+    publisher: str
+    provenancestatement: str
 
     def __post_init__(self):
         """Validate that all fields are strings."""
-        for field_name in ['person', 'dataset', 'datasetseries']:
+        for field_name in ['kind', 'publisher', 'dataset', 'datasetseries', 'provenancestatement']:
             field_value = getattr(self, field_name)
             if not isinstance(field_value, str):
                 raise TypeError(
@@ -36,6 +39,8 @@ class HarvesterConfig:
     """Schema for harvester_config section."""
     auto_create_datasetseries: bool = True
     uri_lookup_config: Dict[str, Dict[str, str]] | None = None
+    pid_service_url: str = None
+    fdp_id_prefix: str = None
 
 
 @dataclass

@@ -72,9 +72,16 @@ def cli(
     config_data = load_config(config)
     concept_table_dict = config_data['concept_table_link']
     harvester_config = config_data.get('harvester_config', {})
+    harvester_config['fdp_id_prefix'] = "idprefix"
 
     # Define processing order for concept types
-    CONCEPT_TYPE_ORDER = {'person': 0, 'datasetseries': 1, 'dataset': 2}
+    CONCEPT_TYPE_ORDER = {
+        'provenancestatement': 0,
+        'kind': 1,
+        'publisher': 2,
+        'datasetseries': 3,
+        'dataset': 4
+    }
 
     with Client(url=host, schema=schema, token=token) as client:
         # Create appropriate harvester
@@ -87,6 +94,8 @@ def cli(
 def create_harvester(input_type, concept_table_dict, client, harvester_config):
     """Create the appropriate harvester based on input type."""
     profiles = [MolgenisEUCAIMDCATAPProfile]
+    for profile in profiles:
+        profile.config = harvester_config
 
     if input_type == 'rdf':
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)

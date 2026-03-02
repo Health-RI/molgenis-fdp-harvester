@@ -83,7 +83,9 @@ class DCATRDFHarvester(DCATHarvester):
         """Extract all concept types from the parsed RDF."""
         try:
             extraction_methods = [
-                ('person', self.parser.persons),
+                ('provenancestatement', self.parser.provenancestatement),
+                ('kind', self.parser.kind),
+                ('publisher', self.parser.publisher),
                 ('datasetseries', self.parser.datasetseries), 
                 ('dataset', self.parser.datasets)
             ]
@@ -159,7 +161,7 @@ class DCATRDFHarvester(DCATHarvester):
         # Check if this is a dataset without a datasetseries and auto_create is enabled
         if (concept_type == 'dataset'
                 and self.harvester_config.get('auto_create_datasetseries', False)
-                and ('biobank' not in concept_dict or not concept_dict['biobank'])):
+                and ('in_series' not in concept_dict or not concept_dict['in_series'])):
             # Track this dataset for later datasetseries creation
             self._datasets_without_datasetseries.append({
                 'dataset_name': concept_dict.get('name'),
@@ -168,7 +170,6 @@ class DCATRDFHarvester(DCATHarvester):
                 'dataset_guid': harvest_object.guid
             })
 
-        ## Here can the network part go.
 
         return harvest_object
 
@@ -210,7 +211,7 @@ class DCATRDFHarvester(DCATHarvester):
         # Create minimal datasetseries content
         datasetseries_dict = {
             'id': datasetseries_id,
-            'name': datasetseries_name,
+            'title': datasetseries_name,
             'description': dataset_info.get('dataset_description', f"Auto-generated datasetseries for {datasetseries_name}"),
         }
 
@@ -247,7 +248,7 @@ class DCATRDFHarvester(DCATHarvester):
                 if harvest_obj.concept_type == 'dataset' and harvest_obj.guid == dataset_info['dataset_guid']:
                     # Update the dataset's content to include the biobank reference
                     dataset_dict = json.loads(harvest_obj.content)
-                    dataset_dict['biobank'] = datasetseries_id
+                    dataset_dict['in_series'] = datasetseries_id
                     harvest_obj.content = json.dumps(dataset_dict)
                     break
 
@@ -281,7 +282,7 @@ class DCATRDFHarvester(DCATHarvester):
                 log.info(f"Adding dataset {dataset['name']}")
             else: # harvest_object.status == "change"
                 log.info(f"Updating dataset {dataset['name']}")
-            self.molgenis_client.save_schema(table=entity_name, data=[dataset])
+            self.molgenis_client.save_table(table=entity_name, data=[dataset])
             return True
         except Exception as e:
             log.error(

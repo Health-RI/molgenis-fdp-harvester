@@ -14,13 +14,12 @@ import xml
 import rdflib
 import rdflib.parser
 from rdflib import FOAF
-from rdflib.namespace import Namespace, RDF, DCAT
+from rdflib.namespace import RDF, DCAT
 
-from .baseparser import VCARD
+from .baseparser import VCARD, HYDRA, DCT
 from ..utils import HarvesterException
 
 
-HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -85,41 +84,35 @@ class RDFParser(RDFProcessor):
         for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
             yield datasetseries
 
-    def _persons(self):
+    def _publisher(self):
         """
-        Generator that returns all FOAF Persons, Organizations and VCARD Kinds from the graph.
+        Generator that returns all DCAT dataset series on the graph
 
-        This includes both:
-        - Named resources (URIRefs) that are explicitly typed
-        - Inline/blank node resources used as property values (e.g., dcat:contactPoint)
-
-        Yields rdflib.term.Node objects (URIRef or BNode) that can be used on graph
-        lookups and queries
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
         """
-        query = """
-        SELECT DISTINCT ?subject WHERE {
-            {
-                # Explicitly typed resources (named or blank nodes)
-                ?subject a ?type .
-                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
-            }
-            UNION
-            {
-                # Resources used as object values in any triple
-                ?s ?p ?subject .
-                ?subject a ?type .
-                FILTER(?type IN (?FOAFPerson, ?FOAFOrganization, ?VCARDKind))
-            }
-        }
-        """
-        initBindings = {
-            'FOAFPerson': FOAF.Person,
-            'FOAFOrganization': FOAF.Agent,
-            'VCARDKind': VCARD.Kind,
-        }
+        for publisher in self.g.subjects(RDF.type, FOAF.Organization):
+            yield publisher
 
-        for person in self.g.query(query, initBindings=initBindings):
-            yield person.subject
+    def _kind(self):
+        """
+        Generator that returns all DCAT dataset series on the graph
+
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
+        """
+        for kind in self.g.subjects(RDF.type, VCARD.Kind):
+            yield kind
+
+    def _provenancestatement(self):
+        """
+        Generator that returns all DCAT dataset series on the graph
+
+        Yields rdflib.term.URIRef objects that can be used on graph lookups
+        and queries
+        """
+        for provenancestatement in self.g.subjects(RDF.type, DCT.ProvenanceStatement):
+            yield provenancestatement
 
     def _catalogs(self):
         """
@@ -230,7 +223,7 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
-    def persons(self):
+    def publisher(self):
         """
         Generator that returns FOAF persons parsed from the RDF graph
 
@@ -240,13 +233,53 @@ class RDFParser(RDFProcessor):
         Returns a dataset dict that can be passed to eg `package_create`
         or `package_update`
         """
-        for dataset_ref in self._persons():
+        for dataset_ref in self._publisher():
             dataset_dict = {}
             for profile_class in self._profiles:
                 profile = profile_class(self.g)
-                profile.parse_person(dataset_dict, dataset_ref)
+                profile.parse_publisher(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'person'
+            dataset_dict['concept_type'] = 'publisher'
+
+            yield dataset_dict
+
+    def kind(self):
+        """
+        Generator that returns FOAF persons parsed from the RDF graph
+
+        Each person object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._kind():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_kind(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'kind'
+
+            yield dataset_dict
+
+    def provenancestatement(self):
+        """
+        Generator that returns FOAF persons parsed from the RDF graph
+
+        Each person object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._provenancestatement():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_kind(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'provenancestatement'
 
             yield dataset_dict
 
@@ -254,12 +287,16 @@ class RDFParser(RDFProcessor):
         concept_dict = {}
         for profile_class in self._profiles:
             profile = profile_class(self.g)
-            if concept_type == 'person':
-                profile.parse_person(concept_dict, uri_ref)
+            if concept_type == 'publisher':
+                profile.parse_publisher(concept_dict, uri_ref)
+            elif concept_type == 'kind':
+                profile.parse_kind(concept_dict, uri_ref)
             elif concept_type == 'dataset':
                 profile.parse_dataset(concept_dict, uri_ref)
             elif concept_type == 'datasetseries':
                 profile.parse_datasetseries(concept_dict, uri_ref)
+            elif concept_type == 'provenancestatement':
+                profile.parse_provenancestatement(concept_dict, uri_ref)
 
         return concept_dict
 
