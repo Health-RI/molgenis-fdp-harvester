@@ -18,7 +18,7 @@ def test_import_stage_success(harvester, mock_client):
     result = harvester.import_stage(harvest_object)
 
     # Verify
-    mock_client.save_schema.assert_called_once_with(
+    mock_client.save_table.assert_called_once_with(
         table="datasets",
         data=[{"name": "Test Dataset"}]
     )
@@ -53,7 +53,7 @@ def test_import_stage_client_error(harvester, mock_client):
         status="new"
     )
     # Setup mock
-    mock_client.save_schema.side_effect = Exception("Database error")
+    mock_client.save_table.side_effect = Exception("Database error")
 
     # Call method
     with patch('molgenis_fdp_harvester.rdf_harvester.rdf.log') as mock_log:
@@ -79,7 +79,7 @@ def test_import_stage_change_status(harvester, mock_client):
         result = harvester.import_stage(harvest_object)
 
         # Verify
-        mock_client.save_schema.assert_called_once_with(
+        mock_client.save_table.assert_called_once_with(
             table="datasets",
             data=[{"name": "Updated Dataset"}]
         )

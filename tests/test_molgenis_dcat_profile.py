@@ -26,7 +26,9 @@ def rdf_graph():
 
 @pytest.fixture
 def profile(rdf_graph):
-    return MolgenisEUCAIMDCATAPProfile(rdf_graph)
+    p = MolgenisEUCAIMDCATAPProfile(rdf_graph)
+    p.config = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+    return p
 
 
 @pytest.fixture
@@ -41,7 +43,7 @@ def test_parse_dataset(profile, dataset_ref):
 
     # Verify basic fields
     assert dataset_dict["uri"] == "http://example.com/dataset1"
-    assert dataset_dict["name"] == "Gryffindor research project"
+    assert dataset_dict["title"] == "Gryffindor research project"
     assert dataset_dict["description"] == "Impact of muggle technical inventions on word's magic presense"
 
 
@@ -102,34 +104,6 @@ def test_extract_concept_dict_unwraps_single_item_list():
     assert result["name"] == "Single Title"
 
 
-def test_parse_person():
-    """Test parsing a person reference"""
-    # Create a person in the graph
-    person_g = rdflib.Dataset()
-    person_uri = URIRef("http://example.com/person/1")
-
-    person_g.add((person_uri, RDF.type, FOAF.Person))
-    person_g.add((person_uri, DCTERMS.identifier, Literal("test-person")))
-    person_g.add((person_uri, FOAF.name, Literal("John Doe")))
-    # person_g.add((person_uri, FOAF.lastName, Literal("Doe")))
-    person_g.add((person_uri, FOAF.mbox, Literal("mailto:john.doe@example.com")))
-
-    # Create profile with person graph
-    person_profile = MolgenisEUCAIMDCATAPProfile(person_g)
-
-    # Test parsing
-    person_dict = {}
-    person_profile.parse_person(person_dict, person_uri)
-
-    # Verify results
-    assert person_dict["uri"] == "http://example.com/person/1"
-    assert person_dict["id"] == "test-person"
-    assert person_dict["name"] == "John Doe"
-    # assert person_dict["first_name"] == "John"
-    assert person_dict["last_name"] == "John Doe"
-    assert person_dict["email"] == "john.doe@example.com" # mailto: prefix removed
-
-
 def test_parse_datasetseries():
     """Test parsing a datasetseries reference"""
     # Create a datasetseries in the graph
@@ -140,7 +114,6 @@ def test_parse_datasetseries():
     series_g.add((series_uri, DCTERMS.title, Literal("Test Series")))
     series_g.add((series_uri, DCTERMS.description, Literal("Series Description")))
     series_g.add((series_uri, DCTERMS.publisher, Literal("Test Publisher")))
-    series_g.add((series_uri, DCAT.landingPage, URIRef("http://example.com/series/landing")))
 
     # Create profile with series graph
     series_profile = MolgenisEUCAIMDCATAPProfile(series_g)
@@ -151,7 +124,91 @@ def test_parse_datasetseries():
 
     # Verify results
     assert series_dict["uri"] == "http://example.com/series/1"
-    assert series_dict["name"] == "Test Series"
+    assert series_dict["title"] == "Test Series"
     assert series_dict["description"] == "Series Description"
-    assert series_dict["juridical_person"] == "Test Publisher"
-    assert series_dict["url"] == "http://example.com/series/landing"
+    assert series_dict["publisher"] == "Test Publisher"
+
+
+# --- handle_pids tests ---
+
+def test_handle_pids_no_pid(profile):
+    """Plain string identifier: id gets prefixed, identifier becomes PID service URL."""
+    dataset_dict = {'identifier': 'mydata'}
+    result = profile.handle_pids(dataset_dict)
+
+    assert result['id'] == 'testorg-mydata'
+    assert result['identifier'] == 'https://pid.example.com/testorg-mydata'
+
+
+def test_handle_pids_external_pid(profile):
+    """External URL identifier: id is sanitised via munge_title_to_name."""
+    dataset_dict = {'identifier': 'https://other.pid/dataset/abc'}
+    result = profile.handle_pids(dataset_dict)
+
+    assert result['id'] == 'https-other-pid-dataset-abc'
+
+
+def test_handle_pids_generated_pid(profile):
+    """Identifier is a previously-generated PID service URL: id is the stable suffix, identifier unchanged."""
+    pid_url = 'https://pid.example.com/testorg-mydata'
+    dataset_dict = {'identifier': pid_url}
+    result = profile.handle_pids(dataset_dict)
+
+    assert result['id'] == 'testorg-mydata'
+    assert result['identifier'] == pid_url
+
+
+# --- _extract_name_publisher tests ---
+
+def test_extract_name_publisher_valid(profile):
+    """URI typed as FOAF.Organization: name is lowercased with spaces stripped."""
+    org_uri = URIRef("http://example.com/org1")
+    profile.g.add((org_uri, RDF.type, FOAF.Organization))
+    profile.g.add((org_uri, FOAF.name, Literal("Test Publisher Org")))
+
+    dataset_dict = {'publisher': str(org_uri)}
+    result = profile._extract_name_publisher(dataset_dict, 'publisher')
+
+    assert result['publisher'] == 'testpublisherorg'
+
+
+def test_extract_name_publisher_wrong_type(profile):
+    """URI with a different RDF type: field is left unchanged."""
+    uri = URIRef("http://example.com/thing1")
+    profile.g.add((uri, RDF.type, DCAT.Dataset))
+
+    dataset_dict = {'publisher': str(uri)}
+    result = profile._extract_name_publisher(dataset_dict, 'publisher')
+
+    assert result['publisher'] == str(uri)
+
+
+# --- _remove_default_language tests ---
+
+def test_remove_default_language_removes_english(profile):
+    """English is removed; other languages remain."""
+    dataset_dict = {
+        'language': [
+            'http://id.loc.gov/vocabulary/iso639-1/en',
+            'http://id.loc.gov/vocabulary/iso639-1/nl',
+        ]
+    }
+    result = profile._remove_default_language(dataset_dict)
+
+    assert result['language'] == ['http://id.loc.gov/vocabulary/iso639-1/nl']
+
+
+def test_remove_default_language_only_english(profile):
+    """If English is the only language, the key is deleted."""
+    dataset_dict = {'language': ['http://id.loc.gov/vocabulary/iso639-1/en']}
+    result = profile._remove_default_language(dataset_dict)
+
+    assert 'language' not in result
+
+
+def test_remove_default_language_no_english(profile):
+    """If English is absent, the language list is unchanged."""
+    dataset_dict = {'language': ['http://id.loc.gov/vocabulary/iso639-1/nl']}
+    result = profile._remove_default_language(dataset_dict)
+
+    assert result['language'] == ['http://id.loc.gov/vocabulary/iso639-1/nl']

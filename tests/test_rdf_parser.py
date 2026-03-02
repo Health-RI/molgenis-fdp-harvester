@@ -12,9 +12,19 @@ from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCAT
 from molgenis_fdp_harvester.utils import HarvesterException
 
 
+TEST_PROFILE_CONFIG = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+
+
+class ConfiguredProfile(MolgenisEUCAIMDCATAPProfile):
+    """Profile subclass with test config pre-set so handle_pids() can run."""
+    def __init__(self, graph):
+        super().__init__(graph)
+        self.config = TEST_PROFILE_CONFIG
+
+
 @pytest.fixture
 def profiles():
-    return [MolgenisEUCAIMDCATAPProfile]
+    return [ConfiguredProfile]
 
 
 @pytest.fixture
@@ -89,16 +99,16 @@ def test_datasets_generator(parser, dataset1_data, dataset2_data):
     # Check dataset dicts have required fields
     for dataset in dataset_dicts:
         assert 'uri' in dataset
-        assert 'name' in dataset
+        assert 'title' in dataset
         assert 'description' in dataset
         assert dataset['concept_type'] == 'dataset'
 
     # Verify specific dataset content
-    gryffindor = next(d for d in dataset_dicts if d['name'] == "Gryffindor research project")
+    gryffindor = next(d for d in dataset_dicts if d['title'] == "Gryffindor research project")
     assert gryffindor['uri'] == "http://example.com/dataset1"
     assert gryffindor['description'] == "Impact of muggle technical inventions on word's magic presense"
 
-    slytherin = next(d for d in dataset_dicts if d['name'] == "Slytherin research project")
+    slytherin = next(d for d in dataset_dicts if d['title'] == "Slytherin research project")
     assert slytherin['uri'] == "http://example.com/dataset2"
     assert slytherin['description'] == "Comarative analysis of magic powers of muggle-born and blood wizards "
 
@@ -113,7 +123,7 @@ def test_get_concept(parser, dataset1_data):
 
     # Verify concept fields
     assert concept['uri'] == "http://example.com/dataset1"
-    assert concept['name'] == "Gryffindor research project"
+    assert concept['title'] == "Gryffindor research project"
 
 
 def test_parse_invalid_data(parser):
@@ -129,3 +139,72 @@ def test_supported_formats(parser):
     formats = parser.supported_formats()
     assert isinstance(formats, list)
     assert 'turtle' in formats
+
+
+def test_publisher_generator(parser):
+    """publisher() yields dicts with concept_type 'publisher' for FOAF.Organization resources."""
+    with open("tests/test_data/extraction_foaf_organization.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    publishers = list(parser.publisher())
+    assert len(publishers) == 1
+    assert publishers[0]['concept_type'] == 'publisher'
+    assert publishers[0]['name'] == 'Test Publisher Org'
+
+
+def test_kind_generator(parser):
+    """kind() yields dicts with concept_type 'kind' for VCARD.Kind resources."""
+    with open("tests/test_data/extraction_vcard_contact.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    kinds = list(parser.kind())
+    assert len(kinds) == 1
+    assert kinds[0]['concept_type'] == 'kind'
+    assert kinds[0]['fn'] == 'John Doe Contact'
+
+
+def test_provenancestatement_generator(parser):
+    """provenancestatement() yields dicts with concept_type 'provenancestatement'."""
+    with open("tests/test_data/extraction_provenancestatement.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    provs = list(parser.provenancestatement())
+    assert len(provs) == 1
+    assert provs[0]['concept_type'] == 'provenancestatement'
+    assert provs[0]['label'] == 'Data collected from hospital records'
+
+
+def test_get_concept_publisher(parser):
+    """get_concept() with type 'publisher' returns a dict with publisher fields."""
+    with open("tests/test_data/extraction_foaf_organization.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    publisher_uri = URIRef("http://example.com/org1")
+    concept = parser.get_concept(publisher_uri, 'publisher')
+
+    assert concept['uri'] == "http://example.com/org1"
+    assert concept['name'] == "Test Publisher Org"
+
+
+def test_get_concept_kind(parser):
+    """get_concept() with type 'kind' returns a dict with kind fields."""
+    with open("tests/test_data/extraction_vcard_contact.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    kind_uri = URIRef("http://example.com/contact1")
+    concept = parser.get_concept(kind_uri, 'kind')
+
+    assert concept['uri'] == "http://example.com/contact1"
+    assert concept['fn'] == "John Doe Contact"
+
+
+def test_get_concept_provenancestatement(parser):
+    """get_concept() with type 'provenancestatement' returns a dict with provenance fields."""
+    with open("tests/test_data/extraction_provenancestatement.ttl", "r") as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    prov_uri = URIRef("http://example.com/prov1")
+    concept = parser.get_concept(prov_uri, 'provenancestatement')
+
+    assert concept['uri'] == "http://example.com/prov1"
+    assert concept['label'] == "Data collected from hospital records"

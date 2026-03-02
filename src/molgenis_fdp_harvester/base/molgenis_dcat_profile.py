@@ -209,11 +209,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # If the source contains dct:identifier, it is mapped to 'identifier'.
         # If 'identifier' is a hyperlink it is assumed to be a proper PID.
         # If 'identifier' is not a hyperlink, the EUCAIM PID service will be used.
-        try:
-            _ = urlparse(dataset_dict['identifier'])
-            pid_bool = True
-        except ValueError:
-            pid_bool = False
+        parsed = urlparse(dataset_dict['identifier'])
+        pid_bool = bool(parsed.scheme and parsed.netloc)
 
         pid_service_url = self.config['pid_service_url']
 
@@ -235,9 +232,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             # 'identifier' will be replaced by the EUCAIM PID service URL + org prefix + original dataset.
             dataset_dict['id'] = f"{self.config['fdp_id_prefix']}-{dataset_dict['identifier']}"
             dataset_dict['identifier'] = f"{pid_service_url}/{dataset_dict['id']}"
-
-        if not dataset_dict.get('pid', False):
-            dataset_dict['pid'] = dataset_dict['id']
 
         return dataset_dict
 

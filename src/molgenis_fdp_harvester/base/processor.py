@@ -277,7 +277,7 @@ class RDFParser(RDFProcessor):
             dataset_dict = {}
             for profile_class in self._profiles:
                 profile = profile_class(self.g)
-                profile.parse_kind(dataset_dict, dataset_ref)
+                profile.parse_provenancestatement(dataset_dict, dataset_ref)
 
             dataset_dict['concept_type'] = 'provenancestatement'
 
