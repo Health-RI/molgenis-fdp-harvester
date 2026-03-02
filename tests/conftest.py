@@ -12,7 +12,9 @@ from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 
 @pytest.fixture
 def mock_client():
-    return Mock(spec=Client, save_table=Mock())
+    client = Mock(spec=Client, save_table=Mock())
+    client.get.return_value = []
+    return client
 
 TEST_HARVESTER_CONFIG = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
 

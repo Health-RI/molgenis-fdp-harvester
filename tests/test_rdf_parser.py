@@ -8,23 +8,7 @@ import rdflib
 from rdflib import URIRef
 
 from molgenis_fdp_harvester.base.processor import RDFParser
-from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 from molgenis_fdp_harvester.utils import HarvesterException
-
-
-TEST_PROFILE_CONFIG = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
-
-
-class ConfiguredProfile(MolgenisEUCAIMDCATAPProfile):
-    """Profile subclass with test config pre-set so handle_pids() can run."""
-    def __init__(self, graph):
-        super().__init__(graph)
-        self.config = TEST_PROFILE_CONFIG
-
-
-@pytest.fixture
-def profiles():
-    return [ConfiguredProfile]
 
 
 @pytest.fixture

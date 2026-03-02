@@ -2,55 +2,10 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pytest
-from unittest.mock import Mock
 import json
 import os
 
-from molgenis_emx2_pyclient import Client
-from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
-from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
-
-TEST_HARVESTER_CONFIG = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
-
-
-class _ConfiguredProfile(MolgenisEUCAIMDCATAPProfile):
-    def __init__(self, graph):
-        super().__init__(graph)
-        self.config = TEST_HARVESTER_CONFIG
-
-
-@pytest.fixture
-def mock_client():
-    client = Mock(spec=Client, save_table=Mock())
-    client.get.return_value = []
-    return client
-
-
-@pytest.fixture
-def profiles():
-    return [_ConfiguredProfile]
-
-
-@pytest.fixture
-def concept_table_dict():
-    return {
-        'dataset': 'datasets',
-        'datasetseries': 'datasetseries',
-        'kind': 'kind',
-        'publisher': 'publisher',
-        'provenancestatement': 'provenancestatement'
-    }
-
-
-@pytest.fixture
-def harvester(profiles, concept_table_dict, mock_client):
-    return DCATRDFHarvester(
-        profiles=profiles,
-        concept_table_dict=concept_table_dict,
-        molgenis_client=mock_client,
-        harvester_config=TEST_HARVESTER_CONFIG
-    )
+import pytest
 
 
 @pytest.fixture

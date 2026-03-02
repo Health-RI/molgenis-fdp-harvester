@@ -8,17 +8,6 @@ import rdflib
 from rdflib import URIRef
 
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
-from tests.conftest import (
-    graph_vcard_contact,
-    graph_vcard_missing,
-    graph_foaf_person,
-    graph_foaf_wrong_type,
-    graph_date_range,
-    graph_date_range_missing,
-    graph_datasetseries_with_id,
-    graph_datasetseries_no_id,
-    graph_dataset_integration,
-)
 
 
 def test_extract_name_vcard_valid_contact(graph_vcard_contact):
