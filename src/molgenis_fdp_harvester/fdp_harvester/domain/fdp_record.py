@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from rdflib import DCAT, RDF, URIRef, FOAF
+from rdflib import DCAT, RDF, URIRef, FOAF, DCTERMS
 
 from ...base.baseparser import VCARD
 
@@ -25,10 +25,10 @@ class FdpRecord:
             return_type = 'dataset'
         elif self.is_datasetseries() and concept_type in {'datasetseries', 'all'}:
             return_type = 'datasetseries'
-        elif self.is_person() and concept_type in {'person', 'all'}:
-            return_type = 'person'
         elif self.is_kind() and concept_type in {'kind', 'all'}:
             return_type = 'kind'
+        elif self.is_provenancestatement() and concept_type in {'provenancestatement', 'all'}:
+            return_type = 'provenancestatement'
         elif self.is_publisher() and concept_type in {'publisher', 'all'}:
             return_type = 'publisher'
         return return_type
@@ -50,6 +50,9 @@ class FdpRecord:
 
     def is_publisher(self):
         return (URIRef(self.url), RDF.type, FOAF.Organization) in self._graph
+
+    def is_provenancestatement(self):
+        return (URIRef(self.url), RDF.type, DCTERMS.ProvenanceStatement) in self._graph
 
     def is_person(self):
         return ((URIRef(self.url), RDF.type, FOAF.Person) in self._graph

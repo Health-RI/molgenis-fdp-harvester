@@ -212,8 +212,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         parsed = urlparse(dataset_dict['identifier'])
         pid_bool = bool(parsed.scheme and parsed.netloc)
 
-        pid_service_url = self.config['pid_service_url']
-
+        pid_service_url = self.config.get('pid_service_url')
         if pid_bool:
             ## The source contains a PID
             # The PID will be provided as dct:identifier, and mapped to 'identifier'
