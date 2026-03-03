@@ -15,6 +15,8 @@ In the Molgenis EMX2 catalogue generate an access token by clicking 'Hi {usernam
 and entering a token name under 'Create a token'. Store this token in an environment file `.env`, by writing
 `MOLGENIS_TOKEN={token}`. This will be loaded when starting the harvester. 
 
+No authentication is needed to read a public FAIR Data Point.
+
 
 ## Usage
 
@@ -26,7 +28,7 @@ Options:
   --host TEXT    MOLGENIS host to harvest to  [required]
   --schema TEXT  Schema on MOLGENIS host to harvest to
   --config PATH  Configuration.  [required]
-  --token TEXT   Authentication token of the user harvesting data.
+  --token TEXT   Authentication token for the Molgenis catalogue of the user harvesting data.
   --help         Show this message and exit.
 ```
 The configuration contains a linking table between the concept types, used internally in the script to separate the
