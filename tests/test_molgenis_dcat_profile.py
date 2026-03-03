@@ -158,6 +158,16 @@ def test_handle_pids_generated_pid(profile):
     assert result['identifier'] == pid_url
 
 
+def test_handle_pids_no_pid_no_prefix(profile):
+    """Plain string identifier with no fdp_id_prefix: id = identifier, identifier = PID service URL/id."""
+    profile.config = {'pid_service_url': 'https://pid.example.com'}  # no fdp_id_prefix
+    dataset_dict = {'identifier': 'mydata'}
+    result = profile.handle_pids(dataset_dict)
+
+    assert result['id'] == 'mydata'
+    assert result['identifier'] == 'https://pid.example.com/mydata'
+
+
 # --- _extract_name_publisher tests ---
 
 def test_extract_name_publisher_valid(profile):

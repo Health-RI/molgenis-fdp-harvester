@@ -44,17 +44,15 @@ def test_validate_config_missing_concept(valid_config_data, missing_concept):
 
 
 def test_validate_config_with_pid_service_url(valid_config_data):
-    """Test validation with pid_service_url and fdp_id_prefix in harvester_config."""
+    """Test validation with pid_service_url in harvester_config."""
     config_data = dict(valid_config_data)
     config_data['harvester_config'] = {
         'pid_service_url': 'https://pid.example.com',
-        'fdp_id_prefix': 'testorg'
     }
     validate_config(config_data)
 
 
 def test_harvester_config_defaults():
-    """Test HarvesterConfig defaults for new PID fields."""
+    """Test HarvesterConfig defaults for PID fields."""
     config = HarvesterConfig()
     assert config.pid_service_url is None
-    assert config.fdp_id_prefix is None

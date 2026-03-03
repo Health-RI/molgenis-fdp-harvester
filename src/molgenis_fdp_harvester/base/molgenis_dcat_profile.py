@@ -228,7 +228,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             # 'identifier' will be a string; it needs to be prefixed with the organization code.
             # The original ID with the prefix will be 'id'
             # 'identifier' will be replaced by the EUCAIM PID service URL + org prefix + original dataset.
-            dataset_dict['id'] = f"{self.config['fdp_id_prefix']}-{dataset_dict['identifier']}"
+            fdp_id_prefix = self.config.get('fdp_id_prefix')
+            if fdp_id_prefix:
+                dataset_dict['id'] = f"{fdp_id_prefix}-{dataset_dict['identifier']}"
+            else:
+                dataset_dict['id'] = dataset_dict['identifier']
             dataset_dict['identifier'] = f"{pid_service_url}/{dataset_dict['id']}"
 
         return dataset_dict

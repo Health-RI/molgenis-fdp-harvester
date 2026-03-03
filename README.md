@@ -24,15 +24,21 @@ No authentication is needed to read a public FAIR Data Point.
 Usage: harvest [OPTIONS]
 
 Options:
-  --fdp TEXT     FAIR Data Point catalog URL to harvest  [required]
-  --host TEXT    MOLGENIS host to harvest to  [required]
-  --schema TEXT  Schema on MOLGENIS host to harvest to
-  --config PATH  Configuration.  [required]
-  --token TEXT   Authentication token for the Molgenis catalogue of the user harvesting data.
-  --help         Show this message and exit.
+  --fdp TEXT            FAIR Data Point catalog URL to harvest  [required]
+  --host TEXT           MOLGENIS host to harvest to  [required]
+  --schema TEXT         Schema on MOLGENIS host to harvest to
+  --config PATH         Configuration.  [required]
+  --token TEXT          Authentication token for the Molgenis catalogue of the user harvesting data.
+  --input_type TEXT     Type of endpoint to harvest from: 'rdf' or 'fdp'.  [required]
+  --fdp-id-prefix TEXT  FDP ID prefix used for PID construction. Optional.
+  --help                Show this message and exit.
 ```
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
+
+When `--fdp-id-prefix` is provided, it is prepended to plain-string identifiers to form the record `id`
+(e.g. `myprefix-mydataset`), and the PID service URL is used to construct the full `identifier`.
+When omitted, the plain-string identifier is used as-is for `id`, and the PID service URL is still applied.
 
 
 ## License
