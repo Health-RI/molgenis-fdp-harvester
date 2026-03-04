@@ -8,7 +8,7 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Union
 from urllib.parse import urlparse
 
 from rdflib import URIRef, FOAF, RDF, RDFS, PROV
@@ -22,10 +22,12 @@ from .baseparser import (
 
 log = logging.getLogger(__name__)
 
-
+# To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
+# as is done on the Molgenis side. Currently this pseudo-hashing function is used.
 def generate_id(arr):
     h = 5381
-    for c in '\0'.join(sorted(arr)):
+    items = [str(x) for x in arr]
+    for c in '\0'.join(sorted(items)):
         h = (h * 33) ^ ord(c)
     return h % (2**32)
 
@@ -54,7 +56,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             self,
             dataset_dict: Dict,
             key: str,
-            expected_types: list,
+            expected_types: Union[list, URIRef],
             extraction_fn
     ) -> Dict:
         """
@@ -70,12 +72,21 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         Returns:
             Modified dataset_dict
         """
-        if dataset_dict.get(key):
-            uri_ref = URIRef(dataset_dict[key])
-            rdf_type = self._object_value(uri_ref, RDF.type)
+        value = dataset_dict.get(key)
+        if not value:
+            return dataset_dict
 
-            if any([str(val) == str(expected_type) for expected_type in expected_types for val in rdf_type]):
-                dataset_dict[key] = extraction_fn(self, uri_ref, dataset_dict)
+        uri_ref = URIRef(value)
+        rdf_type = self._object_value(uri_ref, RDF.type)
+        # Normalize to list
+        if not isinstance(rdf_type, list):
+            rdf_type = [rdf_type]
+        if not isinstance(expected_types, list):
+            expected_types = [expected_types]
+
+        # Simple membership check
+        if any(t in expected_types for t in rdf_type):
+            dataset_dict[key] = extraction_fn(uri_ref, dataset_dict)
 
         return dataset_dict
 
@@ -141,40 +152,22 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         )
 
     def _extract_name_vcard(self, dataset_dict: Dict, key: str):
-        def extraction(self, uri_ref, _):
+        def extraction(uri_ref, _):
             return self._object_value(uri_ref, VCARD.fn).lower().replace(' ', '')
-        return self._extract_and_transform_by_type(dataset_dict, key, [VCARD.Kind], extraction)
-
-    def _extract_name_agent(self, dataset_dict: Dict, key: str):
-        if dataset_dict.get(key):
-            provider_uri = URIRef(dataset_dict[key])
-            provider_class = self._object_value(provider_uri, RDF.type)
-            if any([val in [str(FOAF.Agent), str(FOAF.Person), str(FOAF.Organization)] for val in provider_class]):
-                dataset_dict[key] = self._object_value(provider_uri, FOAF.name)
-        return dataset_dict
+        return self._extract_and_transform_by_type(dataset_dict, key, VCARD.Kind, extraction)
 
     def _extract_name_publisher(self, dataset_dict: Dict, key: str):
-        def extraction(self, uri_ref, _):
+        def extraction(uri_ref, _):
             return self._object_value(uri_ref, FOAF.name).lower().replace(' ', '')
-        return self._extract_and_transform_by_type(dataset_dict, key, [FOAF.Organization], extraction)
-
-    def _convert_image_year_range(self, dataset_dict: Dict):
-        if dataset_dict.get('image_year_range'):
-            original_value = URIRef(dataset_dict['image_year_range'])
-            retrieved_class = self._object_value(original_value, RDF.type)
-            if any([val in [str(DCT.PeriodOfTime)] for val in retrieved_class]):
-                start_date = datetime.fromisoformat(self._object_value(original_value, DCAT.startDate)).date()
-                end_date = datetime.fromisoformat(self._object_value(original_value, DCAT.endDate)).date()
-                dataset_dict['image_year_range'] = f"{start_date} - {end_date}"
-        return dataset_dict
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Organization, extraction)
 
     def _extract_provenancestatement_label(self, dataset_dict: Dict, key: str):
-        def extraction(self, uri_ref, _):
+        def extraction(uri_ref, _):
             label_list = self._object_value(uri_ref, RDFS.label)
             if not isinstance(label_list, list):
                 label_list = [label_list]
             return generate_id(label_list)
-        return self._extract_and_transform_by_type(dataset_dict, key, [DCT.ProvenanceStatement], extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCT.ProvenanceStatement, extraction)
 
     def _extract_datasetseries_id(self, dataset_dict: Dict):
         if dataset_dict.get('in_series'):

@@ -32,51 +32,6 @@ def test_extract_name_vcard_missing_key(graph_vcard_missing):
     assert "contact" not in result
 
 
-def test_extract_name_agent_valid_foaf_person(graph_foaf_person):
-    """Test extracting name from valid FOAF.Person."""
-    profile = MolgenisEUCAIMDCATAPProfile(graph_foaf_person)
-
-    dataset_dict = {"provider": "http://example.com/provider1"}
-    result = profile._extract_name_agent(dataset_dict, "provider")
-
-    # Should extract name from FOAF.name
-    assert result["provider"] == "Jane Smith Provider"
-
-
-def test_extract_name_agent_wrong_type(graph_foaf_wrong_type):
-    """Test that wrong RDF type doesn't modify the field."""
-    profile = MolgenisEUCAIMDCATAPProfile(graph_foaf_wrong_type)
-
-    dataset_dict = {"provider": "http://example.com/provider2"}
-    original_value = dataset_dict["provider"]
-    result = profile._extract_name_agent(dataset_dict, "provider")
-
-    # Should remain unchanged (URI string)
-    assert result["provider"] == original_value
-
-
-def test_convert_image_year_range_valid_period(graph_date_range):
-    """Test converting valid DCT.PeriodOfTime to formatted date range."""
-    profile = MolgenisEUCAIMDCATAPProfile(graph_date_range)
-
-    dataset_dict = {"image_year_range": "http://example.com/period1"}
-    result = profile._convert_image_year_range(dataset_dict)
-
-    # Should format as "YYYY-MM-DD - YYYY-MM-DD"
-    assert result["image_year_range"] == "2020-01-01 - 2023-12-31"
-
-
-def test_convert_image_year_range_missing_key(graph_date_range_missing):
-    """Test that missing key doesn't cause errors."""
-    profile = MolgenisEUCAIMDCATAPProfile(graph_date_range_missing)
-
-    dataset_dict = {}  # No image_year_range key
-    result = profile._convert_image_year_range(dataset_dict)
-
-    # Should return unchanged dict without errors
-    assert "image_year_range" not in result
-
-
 def test_extract_datasetseries_id_with_identifier(graph_datasetseries_with_id):
     """Test extracting DatasetSeries ID when identifier is present."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_datasetseries_with_id)

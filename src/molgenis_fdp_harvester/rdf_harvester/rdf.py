@@ -164,7 +164,7 @@ class DCATRDFHarvester(DCATHarvester):
                 and ('in_series' not in concept_dict or not concept_dict['in_series'])):
             # Track this dataset for later datasetseries creation
             self._datasets_without_datasetseries.append({
-                'dataset_name': concept_dict.get('name'),
+                'dataset_name': concept_dict.get('title'),
                 'dataset_id': concept_dict.get('id'),
                 'dataset_description': concept_dict.get('description', ''),
                 'dataset_guid': harvest_object.guid
