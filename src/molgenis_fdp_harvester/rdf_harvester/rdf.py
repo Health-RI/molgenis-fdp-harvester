@@ -162,6 +162,7 @@ class DCATRDFHarvester(DCATHarvester):
         if (concept_type == 'dataset'
                 and self.harvester_config.get('auto_create_datasetseries', False)
                 and ('in_series' not in concept_dict or not concept_dict['in_series'])):
+            print(concept_dict)
             # Track this dataset for later datasetseries creation
             self._datasets_without_datasetseries.append({
                 'dataset_name': concept_dict.get('title'),
@@ -277,16 +278,18 @@ class DCATRDFHarvester(DCATHarvester):
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
 
+        dataset_name = dataset.get('title')
+
         try:
             if harvest_object.status == "new":
-                log.info(f"Adding dataset {dataset['name']}")
+                log.info(f"Adding dataset {dataset_name}")
             else: # harvest_object.status == "change"
-                log.info(f"Updating dataset {dataset['name']}")
+                log.info(f"Updating dataset {dataset_name}")
             self.molgenis_client.save_table(table=entity_name, data=[dataset])
             return True
         except Exception as e:
             log.error(
-                f"import_stage: Error importing dataset {dataset.get('name', '')}: {repr(e)} / {traceback.format_exc()}"
+                f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
             )
             return False
 

@@ -83,6 +83,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             rdf_type = [rdf_type]
         if not isinstance(expected_types, list):
             expected_types = [expected_types]
+        expected_types = [str(exp_type) for exp_type in expected_types]
 
         # Simple membership check
         if any(t in expected_types for t in rdf_type):

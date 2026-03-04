@@ -67,7 +67,6 @@ def test_fetch_concept_dataset_without_biobank_auto_create_enabled(harvester, em
     # Setup test data
     mock_concept = {
         "uri": "http://example.com/dataset1",
-        "name": "test-dataset",
         "id": "test-id",
         "title": "Test Dataset",
         "description": "Test description"
@@ -79,7 +78,7 @@ def test_fetch_concept_dataset_without_biobank_auto_create_enabled(harvester, em
 
         # Verify dataset was tracked
         assert len(harvester._datasets_without_datasetseries) == 1
-        assert tracked['dataset_name'] == 'test-dataset'
+        assert tracked['dataset_name'] == 'Test Dataset'
         assert tracked['dataset_id'] == 'test-id'
         assert tracked['dataset_description'] == 'Test description'
         assert tracked['dataset_guid'] == 'http://example.com/dataset1'

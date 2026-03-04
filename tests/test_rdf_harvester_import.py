@@ -92,7 +92,7 @@ def test_import_stage_logs_adding_for_new(harvester, mock_client):
     """Test import_stage logs 'Adding dataset' for new status"""
     harvest_object = HarvestObject(
         guid="http://example.com/dataset1",
-        content=json.dumps({"name": "New Dataset"}),
+        content=json.dumps({"title": "New Dataset"}),
         concept_type="dataset",
         status="new"
     )
