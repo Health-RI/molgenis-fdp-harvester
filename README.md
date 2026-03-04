@@ -87,11 +87,5 @@ You start at a central point, and through LDP (Linked Data Platform) structures 
 To harvest the endpoint, first all linked classes are collected.
 For the traversal of the endpoint, the `FairDataPointRecordProvider` class is used. This will handle the exploration
 of the linked LDP structures and return the record, e.g., Dataset, IDs, through the `FairDataPointRecordProvider.get_record_ids()`
-method. In `FDPHarvester.gather_stage()` these record IDs are converted into `HarvestObject`s.
-
-In `FDPHarvester.fetch_stage()` the RDF data related to the ID in the `HarvestObject` is retrieved and converted to a graph.
-Similar to the `DCATRDFHarvester` the `fetch_stage()` method then extracts the classes from this graph.
-This content is then added to the `HarvestObject`.
-After sorting the `HarvestObject`s are then submitted to the Molgenis catalogue using the `import_stage()` method
-which is inherited from the `DCATRDFHarvester` class.
-
+method. In `FDPHarvester.gather_stage()` the metadata from the FDP is flattened to RDF, after which the `gather_stage()` 
+and the stages after that from `DCATRDFHarvester` are used. 
