@@ -120,3 +120,30 @@ def test_parse_provenancestatement():
 
     assert result["uri"] == "http://example.com/prov1"
     assert result["label"] == "Data collected from hospital records"
+
+
+def test_extract_purpose_object_reference():
+    """hasPurpose pointing to a DPV.Purpose object: result goes to hasPurpose_obj as generated ID."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_purpose_object.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"hasPurpose": "http://example.com/purpose1"}
+    result = profile._extract_purpose(dataset_dict, "hasPurpose")
+
+    assert "hasPurpose" not in result
+    assert "hasPurpose_IRI" not in result
+    assert result["hasPurpose_obj"] == 1029398916
+
+
+def test_extract_purpose_external_uri():
+    """hasPurpose pointing to an external URI (not a DPV.Purpose in the graph): result goes to hasPurpose_IRI."""
+    g = rdflib.Dataset()
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"hasPurpose": "https://external.example.com/purpose/research"}
+    result = profile._extract_purpose(dataset_dict, "hasPurpose")
+
+    assert "hasPurpose" not in result
+    assert "hasPurpose_obj" not in result
+    assert result["hasPurpose_IRI"] == "https://external.example.com/purpose/research"

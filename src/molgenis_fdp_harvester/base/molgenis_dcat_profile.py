@@ -22,14 +22,23 @@ from .baseparser import (
 
 log = logging.getLogger(__name__)
 
-# To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
-# as is done on the Molgenis side. Currently this pseudo-hashing function is used.
 def generate_id(arr):
+    """
+    To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
+    as is done on the Molgenis side. Currently this pseudo-hashing function is used.
+    """
     h = 5381
     items = [str(x) for x in arr]
     for c in '\0'.join(sorted(items)):
         h = (h * 33) ^ ord(c)
     return h % (2**32)
+
+def check_url(input_string: str):
+    """
+    Check if the string is a URL.
+    """
+    parsed = urlparse(input_string)
+    return bool(parsed.scheme and parsed.netloc)
 
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
@@ -100,7 +109,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("theme", DCAT.theme),
             ("provenance", DCT.provenance),
             ("keyword", DCAT.keyword),
-            # ("hasPurpose", DPV.hasPurpose), #!!! These properties are commented out because they are a part of a future set of features.
+            ("hasPurpose", DPV.hasPurpose),
             ("accessRights", DCT.accessRights),
             ("healthCategory", HEALTHDCATAP.healthCategory),
             ("healthTheme", HEALTHDCATAP.healthTheme),
@@ -170,6 +179,21 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             return generate_id(label_list)
         return self._extract_and_transform_by_type(dataset_dict, key, DCT.ProvenanceStatement, extraction)
 
+    def _extract_purpose(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            label_list = self._object_value(uri_ref, DCT.description)
+            if not isinstance(label_list, list):
+                label_list = [label_list]
+            return generate_id(label_list)
+        dataset_dict = self._extract_and_transform_by_type(dataset_dict, key, DPV.Purpose, extraction)
+        if dataset_dict.get(key):
+            if not check_url(str(dataset_dict[key])):
+                dataset_dict[f'{key}_obj'] = dataset_dict[key]
+            else:
+                dataset_dict[f'{key}_IRI'] = dataset_dict[key]
+            del dataset_dict[key]
+        return dataset_dict
+
     def _extract_datasetseries_id(self, dataset_dict: Dict):
         if dataset_dict.get('in_series'):
             original_value = URIRef(dataset_dict['in_series'])
@@ -202,8 +226,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # If the source contains dct:identifier, it is mapped to 'identifier'.
         # If 'identifier' is a hyperlink it is assumed to be a proper PID.
         # If 'identifier' is not a hyperlink, the EUCAIM PID service will be used.
-        parsed = urlparse(dataset_dict['identifier'])
-        pid_bool = bool(parsed.scheme and parsed.netloc)
+        pid_bool = check_url(dataset_dict['identifier'])
 
         pid_service_url = self.config.get('pid_service_url')
         if pid_bool:
@@ -248,6 +271,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
         dataset_dict = self._extract_provenancestatement_label(dataset_dict, 'provenance')
         dataset_dict = self._extract_datasetseries_id(dataset_dict)
+        dataset_dict = self._extract_purpose(dataset_dict, 'hasPurpose')
 
         return dataset_dict
 
@@ -307,6 +331,15 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("label", RDFS.label),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        return dataset_dict
+
+    def parse_purpose(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("description", DCT.description),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        print(dataset_dict)
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):

@@ -22,10 +22,11 @@ class ConceptTableLink:
     kind: str
     publisher: str
     provenancestatement: str
+    purpose: str
 
     def __post_init__(self):
         """Validate that all fields are strings."""
-        for field_name in ['kind', 'publisher', 'dataset', 'datasetseries', 'provenancestatement']:
+        for field_name in ['kind', 'publisher', 'dataset', 'datasetseries', 'provenancestatement', 'purpose']:
             field_value = getattr(self, field_name)
             if not isinstance(field_value, str):
                 raise TypeError(

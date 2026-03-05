@@ -85,6 +85,7 @@ def cli(
     # Define processing order for concept types
     CONCEPT_TYPE_ORDER = {
         'provenancestatement': 0,
+        'purpose': 0,
         'kind': 1,
         'publisher': 2,
         'datasetseries': 3,

@@ -16,7 +16,7 @@ import rdflib.parser
 from rdflib import FOAF
 from rdflib.namespace import RDF, DCAT
 
-from .baseparser import VCARD, HYDRA, DCT
+from .baseparser import VCARD, HYDRA, DCT, DPV
 from ..utils import HarvesterException
 
 
@@ -85,32 +85,18 @@ class RDFParser(RDFProcessor):
             yield datasetseries
 
     def _publisher(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
-
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
         for publisher in self.g.subjects(RDF.type, FOAF.Organization):
             yield publisher
 
     def _kind(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
-
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
         for kind in self.g.subjects(RDF.type, VCARD.Kind):
             yield kind
 
-    def _provenancestatement(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
+    def _purpose(self):
+        for purpose in self.g.subjects(RDF.type, DPV.Purpose):
+            yield purpose
 
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
+    def _provenancestatement(self):
         for provenancestatement in self.g.subjects(RDF.type, DCT.ProvenanceStatement):
             yield provenancestatement
 
@@ -224,15 +210,6 @@ class RDFParser(RDFProcessor):
             yield dataset_dict
 
     def publisher(self):
-        """
-        Generator that returns FOAF persons parsed from the RDF graph
-
-        Each person object is passed to all the loaded profiles before being
-        yielded, so it can be further modified by each one of them.
-
-        Returns a dataset dict that can be passed to eg `package_create`
-        or `package_update`
-        """
         for dataset_ref in self._publisher():
             dataset_dict = {}
             for profile_class in self._profiles:
@@ -244,15 +221,6 @@ class RDFParser(RDFProcessor):
             yield dataset_dict
 
     def kind(self):
-        """
-        Generator that returns FOAF persons parsed from the RDF graph
-
-        Each person object is passed to all the loaded profiles before being
-        yielded, so it can be further modified by each one of them.
-
-        Returns a dataset dict that can be passed to eg `package_create`
-        or `package_update`
-        """
         for dataset_ref in self._kind():
             dataset_dict = {}
             for profile_class in self._profiles:
@@ -264,15 +232,6 @@ class RDFParser(RDFProcessor):
             yield dataset_dict
 
     def provenancestatement(self):
-        """
-        Generator that returns FOAF persons parsed from the RDF graph
-
-        Each person object is passed to all the loaded profiles before being
-        yielded, so it can be further modified by each one of them.
-
-        Returns a dataset dict that can be passed to eg `package_create`
-        or `package_update`
-        """
         for dataset_ref in self._provenancestatement():
             dataset_dict = {}
             for profile_class in self._profiles:
@@ -280,6 +239,17 @@ class RDFParser(RDFProcessor):
                 profile.parse_provenancestatement(dataset_dict, dataset_ref)
 
             dataset_dict['concept_type'] = 'provenancestatement'
+
+            yield dataset_dict
+
+    def purpose(self):
+        for dataset_ref in self._purpose():
+            dataset_dict = {}
+            for profile_class in self._profiles:
+                profile = profile_class(self.g)
+                profile.parse_purpose(dataset_dict, dataset_ref)
+
+            dataset_dict['concept_type'] = 'purpose'
 
             yield dataset_dict
 
@@ -297,6 +267,8 @@ class RDFParser(RDFProcessor):
                 profile.parse_datasetseries(concept_dict, uri_ref)
             elif concept_type == 'provenancestatement':
                 profile.parse_provenancestatement(concept_dict, uri_ref)
+            elif concept_type == 'purpose':
+                profile.parse_purpose(concept_dict, uri_ref)
 
         return concept_dict
 

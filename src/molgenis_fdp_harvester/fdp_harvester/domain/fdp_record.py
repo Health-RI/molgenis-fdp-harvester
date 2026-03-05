@@ -5,7 +5,7 @@
 
 from rdflib import DCAT, RDF, URIRef, FOAF, DCTERMS
 
-from ...base.baseparser import VCARD
+from ...base.baseparser import VCARD, DPV
 
 
 class FdpRecord:
@@ -31,6 +31,8 @@ class FdpRecord:
             return_type = 'provenancestatement'
         elif self.is_publisher() and concept_type in {'publisher', 'all'}:
             return_type = 'publisher'
+        elif self.is_purpose() and concept_type in {'purpose', 'all'}:
+            return_type = 'purpose'
         return return_type
 
     def add_children(self, child_url):
@@ -53,6 +55,9 @@ class FdpRecord:
 
     def is_provenancestatement(self):
         return (URIRef(self.url), RDF.type, DCTERMS.ProvenanceStatement) in self._graph
+
+    def is_purpose(self):
+        return (URIRef(self.url), RDF.type, DPV.Purpose) in self._graph
 
     def is_person(self):
         return ((URIRef(self.url), RDF.type, FOAF.Person) in self._graph
