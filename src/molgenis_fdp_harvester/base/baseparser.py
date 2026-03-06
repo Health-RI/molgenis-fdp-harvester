@@ -9,15 +9,13 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 
-import json
 from urllib.parse import quote
 import re
 import logging
 
-from rdflib import term, URIRef, BNode, Literal
-from rdflib.namespace import Namespace, RDF, SKOS, RDFS, DCAT, FOAF, TIME, OWL
+from rdflib import URIRef, Literal
+from rdflib.namespace import Namespace, RDF, SKOS, DCAT, FOAF, TIME, OWL
 from rdflib.namespace import DCTERMS as DCT
-from geomet import wkt
 from unidecode import unidecode
 
 log = logging.getLogger(__name__)
@@ -25,13 +23,15 @@ log = logging.getLogger(__name__)
 DCATAP = Namespace("http://data.europa.eu/r5r/")
 ADMS = Namespace("http://www.w3.org/ns/adms#")
 VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
-# VCARD = Namespace("http://www.w3.org/2006/vcard/ns/")
 SCHEMA = Namespace("http://schema.org/")
 LOCN = Namespace("http://www.w3.org/ns/locn#")
 GSP = Namespace("http://www.opengis.net/ont/geosparql#")
 SPDX = Namespace("http://spdx.org/rdf/terms#")
-EUCAIM = Namespace("https://cancerimage.eu/ontology/EUCAIM/")
+EUCAIM = Namespace("https://cancerimage.eu/ontology/EUCAIM#")
 HEALTHDCATAP = Namespace("http://healthdataportal.eu/ns/health#")
+LDP = Namespace("http://www.w3.org/ns/ldp#")
+DPV = Namespace("https://w3id.org/dpv#")
+HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
 
 namespaces = {
     "dct": DCT,
@@ -47,6 +47,9 @@ namespaces = {
     "gsp": GSP,
     "owl": OWL,
     "spdx": SPDX,
+    "ldp": LDP,
+    "dpv": DPV,
+    "hydra": HYDRA
 }
 
 PREFIX_MAILTO = "mailto:"
@@ -154,6 +157,11 @@ class RDFProfile(object):
         # Cache for mappings of licenses URL/title to ID built when needed in
         # _license().
         self._licenceregister_cache = None
+
+        # self.config = {
+        #     'pid_service_url': 'http://pid.eucaim.cancerimage.eu',
+        #     'fdp_id_prefix': 'testidprefix'
+        # }
 
     def _datasets(self):
         """

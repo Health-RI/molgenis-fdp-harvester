@@ -2,44 +2,10 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pytest
-from unittest.mock import Mock
 import json
 import os
 
-from molgenis_emx2_pyclient import Client
-from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
-from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
-
-
-@pytest.fixture
-def mock_client():
-    client = Mock(spec=Client)
-    client.get.return_value = []
-    return client
-
-
-@pytest.fixture
-def profiles():
-    return [MolgenisEUCAIMDCATAPProfile]
-
-
-@pytest.fixture
-def concept_table_dict():
-    return {
-        'dataset': 'datasets',
-        'datasetseries': 'datasetseries',
-        'person': 'persons'
-    }
-
-
-@pytest.fixture
-def harvester(profiles, concept_table_dict, mock_client):
-    return DCATRDFHarvester(
-        profiles=profiles,
-        concept_table_dict=concept_table_dict,
-        molgenis_client=mock_client
-    )
+import pytest
 
 
 @pytest.fixture
@@ -81,7 +47,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Verify content was saved to Molgenis
     data = json.loads(obj.content)
-    mock_client.save_schema.assert_any_call(
+    mock_client.save_table.assert_any_call(
         table=concept_table_dict['dataset'],
         data=[data]
     )
@@ -91,6 +57,6 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
     # Verify all imports were successful
     assert all(import_results), "Not all imports were successful"
 
-    # Verify expected number of calls to save_schema
-    assert mock_client.save_schema.call_count == expected_save_calls, \
-        "Unexpected number of save_schema calls"
+    # Verify expected number of calls to save_table
+    assert mock_client.save_table.call_count == expected_save_calls, \
+        "Unexpected number of save_table calls"

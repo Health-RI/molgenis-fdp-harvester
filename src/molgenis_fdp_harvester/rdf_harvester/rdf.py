@@ -7,10 +7,10 @@ from urllib.parse import quote
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
 
-from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
-from molgenis_fdp_harvester.base.processor import RDFParser
-from molgenis_fdp_harvester.rdf_harvester.dcatharvester import DCATHarvester
-from molgenis_fdp_harvester.utils import HarvesterException
+from .dcatharvester import DCATHarvester
+from ..base.baseharvester import HarvestObject, munge_title_to_name
+from ..base.processor import RDFParser
+from ..utils import HarvesterException
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +83,9 @@ class DCATRDFHarvester(DCATHarvester):
         """Extract all concept types from the parsed RDF."""
         try:
             extraction_methods = [
-                ('person', self.parser.persons),
+                ('provenancestatement', self.parser.provenancestatement),
+                ('kind', self.parser.kind),
+                ('publisher', self.parser.publisher),
                 ('datasetseries', self.parser.datasetseries), 
                 ('dataset', self.parser.datasets)
             ]
@@ -159,16 +161,16 @@ class DCATRDFHarvester(DCATHarvester):
         # Check if this is a dataset without a datasetseries and auto_create is enabled
         if (concept_type == 'dataset'
                 and self.harvester_config.get('auto_create_datasetseries', False)
-                and ('biobank' not in concept_dict or not concept_dict['biobank'])):
+                and ('in_series' not in concept_dict or not concept_dict['in_series'])):
+            print(concept_dict)
             # Track this dataset for later datasetseries creation
             self._datasets_without_datasetseries.append({
-                'dataset_name': concept_dict.get('name'),
+                'dataset_name': concept_dict.get('title'),
                 'dataset_id': concept_dict.get('id'),
                 'dataset_description': concept_dict.get('description', ''),
                 'dataset_guid': harvest_object.guid
             })
 
-        ## Here can the network part go.
 
         return harvest_object
 
@@ -210,7 +212,7 @@ class DCATRDFHarvester(DCATHarvester):
         # Create minimal datasetseries content
         datasetseries_dict = {
             'id': datasetseries_id,
-            'name': datasetseries_name,
+            'title': datasetseries_name,
             'description': dataset_info.get('dataset_description', f"Auto-generated datasetseries for {datasetseries_name}"),
         }
 
@@ -247,7 +249,7 @@ class DCATRDFHarvester(DCATHarvester):
                 if harvest_obj.concept_type == 'dataset' and harvest_obj.guid == dataset_info['dataset_guid']:
                     # Update the dataset's content to include the biobank reference
                     dataset_dict = json.loads(harvest_obj.content)
-                    dataset_dict['biobank'] = datasetseries_id
+                    dataset_dict['in_series'] = datasetseries_id
                     harvest_obj.content = json.dumps(dataset_dict)
                     break
 
@@ -276,16 +278,18 @@ class DCATRDFHarvester(DCATHarvester):
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
 
+        dataset_name = dataset.get('title')
+
         try:
             if harvest_object.status == "new":
-                log.info(f"Adding dataset {dataset['name']}")
+                log.info(f"Adding dataset {dataset_name}")
             else: # harvest_object.status == "change"
-                log.info(f"Updating dataset {dataset['name']}")
-            self.molgenis_client.save_schema(table=entity_name, data=[dataset])
+                log.info(f"Updating dataset {dataset_name}")
+            self.molgenis_client.save_table(table=entity_name, data=[dataset])
             return True
         except Exception as e:
             log.error(
-                f"import_stage: Error importing dataset {dataset.get('name', '')}: {repr(e)} / {traceback.format_exc()}"
+                f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
             )
             return False
 

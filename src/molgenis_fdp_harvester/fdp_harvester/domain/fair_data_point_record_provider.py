@@ -8,16 +8,13 @@ import logging
 from typing import Dict, Iterable, Union
 from collections import deque
 
-from rdflib import DCTERMS, Graph, Namespace, URIRef
+from rdflib import DCTERMS, Graph, URIRef
 from rdflib.term import Node
 
 from .fair_data_point import FairDataPoint
 from .graph_to_fdp_record_mapper import GraphToFdpRecordMapper
 from .identifier import Identifier
 
-LDP = Namespace("http://www.w3.org/ns/ldp#")
-# VCARD = Namespace("http://www.w3.org/2006/vcard/ns#")
-VCARD = Namespace("http://www.w3.org/2006/vcard/ns/")
 
 log = logging.getLogger(__name__)
 

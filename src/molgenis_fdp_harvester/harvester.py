@@ -13,7 +13,7 @@ import logging
 import os
 from pathlib import Path
 
-from molgenis_fdp_harvester.fdp_harvester.fdp import FDPHarvester
+from .fdp_harvester.fdp import FDPHarvester
 
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
 try:
@@ -52,13 +52,20 @@ logging.basicConfig(level="INFO")
     required=False, default=lambda: os.environ.get("MOLGENIS_TOKEN")
 )
 @click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
+@click.option(
+    "--fdp-id-prefix",
+    help="FDP ID prefix used for PID construction. Optional.",
+    required=False,
+    default=None
+)
 def cli(
     fdp: str,
     host: str,
     schema: str,
     config: click.Path,
     token: str,
-    input_type: str
+    input_type: str,
+    fdp_id_prefix: str
 ):
     """Run the harvester with the specified configuration."""
     # Check that token is provided
@@ -72,9 +79,17 @@ def cli(
     config_data = load_config(config)
     concept_table_dict = config_data['concept_table_link']
     harvester_config = config_data.get('harvester_config', {})
+    if fdp_id_prefix is not None:
+        harvester_config['fdp_id_prefix'] = fdp_id_prefix
 
     # Define processing order for concept types
-    CONCEPT_TYPE_ORDER = {'person': 0, 'datasetseries': 1, 'dataset': 2}
+    CONCEPT_TYPE_ORDER = {
+        'provenancestatement': 0,
+        'kind': 1,
+        'publisher': 2,
+        'datasetseries': 3,
+        'dataset': 4
+    }
 
     with Client(url=host, schema=schema, token=token) as client:
         # Create appropriate harvester
@@ -87,6 +102,8 @@ def cli(
 def create_harvester(input_type, concept_table_dict, client, harvester_config):
     """Create the appropriate harvester based on input type."""
     profiles = [MolgenisEUCAIMDCATAPProfile]
+    for profile in profiles:
+        profile.config = harvester_config
 
     if input_type == 'rdf':
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)

@@ -67,7 +67,6 @@ def test_fetch_concept_dataset_without_biobank_auto_create_enabled(harvester, em
     # Setup test data
     mock_concept = {
         "uri": "http://example.com/dataset1",
-        "name": "test-dataset",
         "id": "test-id",
         "title": "Test Dataset",
         "description": "Test description"
@@ -79,7 +78,7 @@ def test_fetch_concept_dataset_without_biobank_auto_create_enabled(harvester, em
 
         # Verify dataset was tracked
         assert len(harvester._datasets_without_datasetseries) == 1
-        assert tracked['dataset_name'] == 'test-dataset'
+        assert tracked['dataset_name'] == 'Test Dataset'
         assert tracked['dataset_id'] == 'test-id'
         assert tracked['dataset_description'] == 'Test description'
         assert tracked['dataset_guid'] == 'http://example.com/dataset1'
@@ -95,7 +94,7 @@ def test_fetch_concept_dataset_with_biobank_no_tracking(harvester, empty_harvest
         "uri": "http://example.com/dataset1",
         "name": "test-dataset",
         "id": "test-id",
-        "biobank": "existing-biobank-id"
+        "in_series": "existing-series-id"
     }
 
     with patch.object(harvester.parser, 'get_concept', return_value=mock_concept):
@@ -131,16 +130,16 @@ def test_fetch_concept_non_dataset_not_tracked(harvester):
     # Enable auto_create_datasetseries
     harvester.harvester_config = {'auto_create_datasetseries': True}
 
-    # Setup test data for person
+    # Setup test data for kind
     harvest_object = HarvestObject(
-        guid="http://example.com/person1",
+        guid="http://example.com/kind1",
         content=None,
-        concept_type="person"
+        concept_type="kind"
     )
 
     mock_concept = {
-        "uri": "http://example.com/person1",
-        "name": "test-person",
+        "uri": "http://example.com/kind1",
+        "name": "test-kind",
         "id": "test-id"
     }
 
@@ -171,7 +170,7 @@ def test_create_datasetseries_for_dataset(harvester):
 
     # Verify content
     assert content['id'] == 'test-id'
-    assert content['name'] == 'test-dataset'
+    assert content['title'] == 'test-dataset'
     assert content['description'] == 'Test description'
 
     # Verify returned id
@@ -228,12 +227,12 @@ def test_generate_missing_datasetseries_creates_objects(harvester):
 
     # Verify first datasetseries
     assert datasetseries_objects[0].guid == 'http://example.com/dataset1_datasetseries'
-    assert content1['name'] == 'dataset1'
+    assert content1['title'] == 'dataset1'
     assert content1['id'] == 'id1'
 
     # Verify second datasetseries
     assert datasetseries_objects[1].guid == 'http://example.com/dataset2_datasetseries'
-    assert content2['name'] == 'dataset2'
+    assert content2['title'] == 'dataset2'
     assert content2['id'] == 'id2'
 
 
@@ -258,10 +257,10 @@ def test_generate_missing_datasetseries_updates_datasets(harvester):
     # Call method
     harvester.generate_missing_datasetseries()
 
-    # Verify dataset was updated with biobank reference
+    # Verify dataset was updated with in_series reference
     dataset_content = json.loads(dataset.content)
-    assert 'biobank' in dataset_content
-    assert dataset_content['biobank'] == 'test-id'
+    assert 'in_series' in dataset_content
+    assert dataset_content['in_series'] == 'test-id'
 
 
 def test_generate_missing_datasetseries_logs_correctly(harvester):

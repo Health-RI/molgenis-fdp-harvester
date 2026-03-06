@@ -15,6 +15,8 @@ In the Molgenis EMX2 catalogue generate an access token by clicking 'Hi {usernam
 and entering a token name under 'Create a token'. Store this token in an environment file `.env`, by writing
 `MOLGENIS_TOKEN={token}`. This will be loaded when starting the harvester. 
 
+No authentication is needed to read a public FAIR Data Point.
+
 
 ## Usage
 
@@ -22,15 +24,21 @@ and entering a token name under 'Create a token'. Store this token in an environ
 Usage: harvest [OPTIONS]
 
 Options:
-  --fdp TEXT     FAIR Data Point catalog URL to harvest  [required]
-  --host TEXT    MOLGENIS host to harvest to  [required]
-  --schema TEXT  Schema on MOLGENIS host to harvest to
-  --config PATH  Configuration.  [required]
-  --token TEXT   Authentication token of the user harvesting data.
-  --help         Show this message and exit.
+  --fdp TEXT            FAIR Data Point catalog URL to harvest  [required]
+  --host TEXT           MOLGENIS host to harvest to  [required]
+  --schema TEXT         Schema on MOLGENIS host to harvest to
+  --config PATH         Configuration.  [required]
+  --token TEXT          Authentication token for the Molgenis catalogue of the user harvesting data.
+  --input_type TEXT     Type of endpoint to harvest from: 'rdf' or 'fdp'.  [required]
+  --fdp-id-prefix TEXT  FDP ID prefix used for PID construction. Optional.
+  --help                Show this message and exit.
 ```
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
+
+When `--fdp-id-prefix` is provided, it is prepended to plain-string identifiers to form the record `id`
+(e.g. `myprefix-mydataset`), and the PID service URL is used to construct the full `identifier`.
+When omitted, the plain-string identifier is used as-is for `id`, and the PID service URL is still applied.
 
 
 ## License
@@ -79,11 +87,5 @@ You start at a central point, and through LDP (Linked Data Platform) structures 
 To harvest the endpoint, first all linked classes are collected.
 For the traversal of the endpoint, the `FairDataPointRecordProvider` class is used. This will handle the exploration
 of the linked LDP structures and return the record, e.g., Dataset, IDs, through the `FairDataPointRecordProvider.get_record_ids()`
-method. In `FDPHarvester.gather_stage()` these record IDs are converted into `HarvestObject`s.
-
-In `FDPHarvester.fetch_stage()` the RDF data related to the ID in the `HarvestObject` is retrieved and converted to a graph.
-Similar to the `DCATRDFHarvester` the `fetch_stage()` method then extracts the classes from this graph.
-This content is then added to the `HarvestObject`.
-After sorting the `HarvestObject`s are then submitted to the Molgenis catalogue using the `import_stage()` method
-which is inherited from the `DCATRDFHarvester` class.
-
+method. In `FDPHarvester.gather_stage()` the metadata from the FDP is flattened to RDF, after which the `gather_stage()` 
+and the stages after that from `DCATRDFHarvester` are used. 

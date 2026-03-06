@@ -18,9 +18,11 @@ def temp_config_file():
     """Create a temporary config file"""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
         f.write("""[concept_table_link]
-person = "persons"
 dataset = "collections"
 datasetseries = "biobanks"
+kind = "kind"
+publisher = "publisher"
+provenancestatement = "provenancestatement"
 
 [harvester_config]
 auto_create_datasetseries = true
@@ -50,7 +52,9 @@ def concept_table_dict():
     return {
         'dataset': 'collections',
         'datasetseries': 'biobanks',
-        'person': 'persons'
+        'kind': 'kind',
+        'publisher': 'publisher',
+        'provenancestatement': 'provenancestatement'
     }
 
 
