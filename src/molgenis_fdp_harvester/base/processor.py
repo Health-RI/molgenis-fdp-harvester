@@ -85,32 +85,14 @@ class RDFParser(RDFProcessor):
             yield datasetseries
 
     def _publisher(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
-
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
         for publisher in self.g.subjects(RDF.type, FOAF.Organization):
             yield publisher
 
     def _kind(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
-
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
         for kind in self.g.subjects(RDF.type, VCARD.Kind):
             yield kind
 
     def _provenancestatement(self):
-        """
-        Generator that returns all DCAT dataset series on the graph
-
-        Yields rdflib.term.URIRef objects that can be used on graph lookups
-        and queries
-        """
         for provenancestatement in self.g.subjects(RDF.type, DCT.ProvenanceStatement):
             yield provenancestatement
 
