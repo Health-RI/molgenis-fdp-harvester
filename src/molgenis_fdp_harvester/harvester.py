@@ -9,8 +9,8 @@ or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
 The user creating this token requires editing permissions on the host schema.
 """
+import csv
 import logging
-import os
 from pathlib import Path
 
 from .fdp_harvester.fdp import FDPHarvester
@@ -36,30 +36,63 @@ from .config import load_config
 load_dotenv()
 logging.basicConfig(level="INFO")
 
+
+def read_fdp_list(csv_path: Path, has_header: bool) -> list[tuple[str, str | None]]:
+    """Read FDP entries from a CSV file.
+
+    Expects columns: fdp_url, fdp_id_prefix (prefix column is optional/can be blank).
+    Rows that are entirely blank are skipped.
+    """
+    entries = []
+    with open(csv_path, newline='') as f:
+        reader = csv.reader(f)
+        if has_header:
+            next(reader, None)  # consume header row
+        for row in reader:
+            if not row or not row[0].strip():
+                continue  # skip blank rows
+            fdp_url = row[0].strip()
+            fdp_id_prefix = row[1].strip() if len(row) > 1 and row[1].strip() else None
+            entries.append((fdp_url, fdp_id_prefix))
+    return entries
+
+
 @click.command()
-@click.option("--fdp", help="FAIR Data Point catalog URL to harvest", required=True)
-@click.option("--host", help="MOLGENIS host to harvest to", required=True)
-@click.option("--schema", help="Schema on MOLGENIS host to harvest to",
+@click.option("--fdp", envvar="FDP_URL", help="FAIR Data Point catalog URL to harvest", required=False, default=None)
+@click.option(
+    "--fdp-list",
+    envvar="FDP_LIST_PATH",
+    help="Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)",
+    required=False,
+    default=None,
+    type=click.Path(exists=True, path_type=Path, readable=True)
+)
+@click.option("--host", envvar="MOLGENIS_HOST", help="MOLGENIS host to harvest to", required=False, default=None)
+@click.option("--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to",
               required=False, default="Eucaim")
 @click.option(
     "--config",
+    envvar="HARVEST_CONFIG",
     help="Configuration.",
-    required=True,
+    required=False,
+    default=None,
     type=click.Path(exists=True, path_type=Path, readable=True)
 )
 @click.option(
-    "--token", help="Authentication token of the user harvesting data.",
-    required=False, default=lambda: os.environ.get("MOLGENIS_TOKEN")
+    "--token", envvar="MOLGENIS_TOKEN", help="Authentication token of the user harvesting data.",
+    required=False, default=None
 )
-@click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
+@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(['rdf', 'fdp']), required=False, default=None)
 @click.option(
     "--fdp-id-prefix",
-    help="FDP ID prefix used for PID construction. Optional.",
+    envvar="FDP_ID_PREFIX",
+    help="FDP ID prefix used for PID construction. Only used with --fdp.",
     required=False,
     default=None
 )
 def cli(
     fdp: str,
+    fdp_list: Path,
     host: str,
     schema: str,
     config: click.Path,
@@ -68,19 +101,44 @@ def cli(
     fdp_id_prefix: str
 ):
     """Run the harvester with the specified configuration."""
-    # Check that token is provided
+    # Check required options (not enforced at Click level to allow env var fallback)
     if not token:
         raise click.ClickException(
             "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
             "variable or provide the --token option."
         )
+    if not host:
+        raise click.ClickException(
+            "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host."
+        )
+    if not config:
+        raise click.ClickException(
+            "Configuration file is required. Set HARVEST_CONFIG or provide --config."
+        )
+    if not input_type:
+        raise click.ClickException(
+            "Input type is required. Set INPUT_TYPE or provide --input_type."
+        )
+
+    # Validate mutual exclusivity of --fdp and --fdp-list
+    if fdp and fdp_list:
+        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
+    if not fdp and not fdp_list:
+        raise click.UsageError("One of --fdp or --fdp-list is required.")
 
     # Load configuration
     config_data = load_config(config)
     concept_table_dict = config_data['concept_table_link']
     harvester_config = config_data.get('harvester_config', {})
-    if fdp_id_prefix is not None:
-        harvester_config['fdp_id_prefix'] = fdp_id_prefix
+
+    # Build uniform list of (fdp_url, fdp_id_prefix) entries
+    if fdp:
+        fdp_entries = [(fdp, fdp_id_prefix)]
+    else:
+        has_header = harvester_config.get('fdp_list_has_header', True)
+        fdp_entries = read_fdp_list(fdp_list, has_header)
+        if not fdp_entries:
+            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
     CONCEPT_TYPE_ORDER = {
@@ -92,11 +150,13 @@ def cli(
     }
 
     with Client(url=host, schema=schema, token=token) as client:
-        # Create appropriate harvester
-        harvester = create_harvester(input_type, concept_table_dict, client, harvester_config)
+        for entry_fdp_url, entry_fdp_id_prefix in fdp_entries:
+            entry_config = dict(harvester_config)
+            if entry_fdp_id_prefix is not None:
+                entry_config['fdp_id_prefix'] = entry_fdp_id_prefix
 
-        # Execute harvesting process
-        execute_harvest(harvester, fdp, CONCEPT_TYPE_ORDER)
+            harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
+            execute_harvest(harvester, entry_fdp_url, CONCEPT_TYPE_ORDER)
 
 
 def create_harvester(input_type, concept_table_dict, client, harvester_config):

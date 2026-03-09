@@ -40,6 +40,7 @@ class HarvesterConfig:
     auto_create_datasetseries: bool = True
     uri_lookup_config: Dict[str, Dict[str, str]] | None = None
     pid_service_url: str = None
+    fdp_list_has_header: bool = True
 
 
 @dataclass

@@ -6,6 +6,7 @@ name: Run tests for Python
 on:
   push:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 
 jobs:
@@ -16,7 +17,7 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
