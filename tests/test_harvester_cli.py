@@ -3,13 +3,15 @@
 # Test that the dotenv is picked up correctly
 # Test that the correct harvester is created in create_harvester, and that ValueError is raised if the 'else' branch is triggered.
 
+import io
 import os
 import pytest
 import tempfile
-from unittest.mock import Mock, patch, MagicMock
+from pathlib import Path
+from unittest.mock import Mock, patch, MagicMock, call
 from click.testing import CliRunner
 
-from molgenis_fdp_harvester.harvester import cli, create_harvester
+from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_list
 from molgenis_emx2_pyclient import Client
 
 
@@ -220,3 +222,229 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
 
     assert "Unknown input_type" in str(exc_info.value), \
         f"Expected error message about unknown input_type, got: {exc_info.value}"
+
+
+# ---------------------------------------------------------------------------
+# Multi-FDP CSV tests
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def temp_config_file_no_header():
+    """Config file with fdp_list_has_header = false"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        f.write("""[concept_table_link]
+dataset = "collections"
+datasetseries = "biobanks"
+kind = "kind"
+publisher = "publisher"
+provenancestatement = "provenancestatement"
+
+[harvester_config]
+auto_create_datasetseries = true
+fdp_list_has_header = false
+""")
+        config_path = f.name
+
+    yield config_path
+
+    os.unlink(config_path)
+
+
+@pytest.fixture
+def temp_fdp_list_with_header():
+    """CSV file with header row and two FDP entries"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write("fdp_url,fdp_id_prefix\n")
+        f.write("http://fdp1.example.com,prefix1\n")
+        f.write("http://fdp2.example.com,prefix2\n")
+        csv_path = f.name
+
+    yield csv_path
+
+    os.unlink(csv_path)
+
+
+@pytest.fixture
+def temp_fdp_list_without_header():
+    """CSV file without header row and two FDP entries"""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write("http://fdp1.example.com,prefix1\n")
+        f.write("http://fdp2.example.com,prefix2\n")
+        csv_path = f.name
+
+    yield csv_path
+
+    os.unlink(csv_path)
+
+
+def test_fdp_and_fdp_list_mutually_exclusive(temp_config_file, temp_fdp_list_with_header, monkeypatch):
+    """Providing both --fdp and --fdp-list should fail with exit code 2"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, [
+        '--fdp', 'http://example.com',
+        '--fdp-list', temp_fdp_list_with_header,
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file,
+        '--input_type', 'rdf',
+    ])
+
+    assert result.exit_code == 2
+    assert "mutually exclusive" in result.output
+
+
+def test_neither_fdp_nor_fdp_list_raises_error(temp_config_file, monkeypatch):
+    """Providing neither --fdp nor --fdp-list should fail with exit code 2"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, [
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file,
+        '--input_type', 'rdf',
+    ])
+
+    assert result.exit_code == 2
+    assert "--fdp" in result.output or "required" in result.output.lower()
+
+
+def test_fdp_list_with_header(temp_config_file, temp_fdp_list_with_header, mock_harvester_patches, monkeypatch):
+    """CSV with header row: execute_harvest called once per data row"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, [
+        '--fdp-list', temp_fdp_list_with_header,
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file,
+        '--input_type', 'fdp',
+    ])
+
+    assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+    assert mock_harvester_patches['execute_harvest'].call_count == 2
+
+    calls = mock_harvester_patches['execute_harvest'].call_args_list
+    urls = [c[0][1] for c in calls]
+    assert 'http://fdp1.example.com' in urls
+    assert 'http://fdp2.example.com' in urls
+
+
+def test_fdp_list_without_header(temp_config_file_no_header, temp_fdp_list_without_header, mock_harvester_patches, monkeypatch):
+    """CSV without header row: first row treated as data, execute_harvest called twice"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, [
+        '--fdp-list', temp_fdp_list_without_header,
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file_no_header,
+        '--input_type', 'fdp',
+    ])
+
+    assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+    assert mock_harvester_patches['execute_harvest'].call_count == 2
+
+
+def test_fdp_list_per_row_prefix(temp_config_file, temp_fdp_list_with_header, mock_harvester_patches, monkeypatch):
+    """Each CSV row's fdp_id_prefix is passed to create_harvester as entry_config"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, [
+        '--fdp-list', temp_fdp_list_with_header,
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file,
+        '--input_type', 'fdp',
+    ])
+
+    assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+    assert mock_harvester_patches['create_harvester'].call_count == 2
+
+    calls = mock_harvester_patches['create_harvester'].call_args_list
+    prefixes = [c[0][3].get('fdp_id_prefix') for c in calls]
+    assert 'prefix1' in prefixes
+    assert 'prefix2' in prefixes
+
+
+def test_fdp_list_row_without_prefix(temp_config_file, mock_harvester_patches, monkeypatch):
+    """A CSV row with no prefix column should not set fdp_id_prefix in config"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write("fdp_url,fdp_id_prefix\n")
+        f.write("http://fdp1.example.com,\n")  # blank prefix
+        csv_path = f.name
+
+    try:
+        result = runner.invoke(cli, [
+            '--fdp-list', csv_path,
+            '--host', 'http://localhost:8080',
+            '--config', temp_config_file,
+            '--input_type', 'fdp',
+        ])
+
+        assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+        call_args = mock_harvester_patches['create_harvester'].call_args
+        entry_config = call_args[0][3]
+        assert 'fdp_id_prefix' not in entry_config
+    finally:
+        os.unlink(csv_path)
+
+
+def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monkeypatch):
+    """--fdp still works and execute_harvest is called exactly once"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    result = runner.invoke(cli, base_cli_args)
+
+    assert result.exit_code == 0, f"Unexpected failure: {result.output}"
+    assert mock_harvester_patches['execute_harvest'].call_count == 1
+    call_url = mock_harvester_patches['execute_harvest'].call_args[0][1]
+    assert call_url == 'http://example.com/fdp'
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for read_fdp_list helper
+# ---------------------------------------------------------------------------
+
+def test_read_fdp_list_with_header(tmp_path):
+    """read_fdp_list correctly skips header and returns data rows"""
+    csv_file = tmp_path / "fdps.csv"
+    csv_file.write_text("fdp_url,fdp_id_prefix\nhttp://a.com,pA\nhttp://b.com,pB\n")
+
+    result = read_fdp_list(csv_file, has_header=True)
+
+    assert result == [('http://a.com', 'pA'), ('http://b.com', 'pB')]
+
+
+def test_read_fdp_list_without_header(tmp_path):
+    """read_fdp_list treats first row as data when has_header=False"""
+    csv_file = tmp_path / "fdps.csv"
+    csv_file.write_text("http://a.com,pA\nhttp://b.com,pB\n")
+
+    result = read_fdp_list(csv_file, has_header=False)
+
+    assert result == [('http://a.com', 'pA'), ('http://b.com', 'pB')]
+
+
+def test_read_fdp_list_missing_prefix_column(tmp_path):
+    """read_fdp_list returns None for prefix when column is absent or blank"""
+    csv_file = tmp_path / "fdps.csv"
+    csv_file.write_text("fdp_url,fdp_id_prefix\nhttp://a.com,\nhttp://b.com\n")
+
+    result = read_fdp_list(csv_file, has_header=True)
+
+    assert result == [('http://a.com', None), ('http://b.com', None)]
+
+
+def test_read_fdp_list_skips_blank_rows(tmp_path):
+    """read_fdp_list skips entirely blank rows"""
+    csv_file = tmp_path / "fdps.csv"
+    csv_file.write_text("fdp_url,fdp_id_prefix\nhttp://a.com,pA\n\nhttp://b.com,pB\n")
+
+    result = read_fdp_list(csv_file, has_header=True)
+
+    assert result == [('http://a.com', 'pA'), ('http://b.com', 'pB')]
