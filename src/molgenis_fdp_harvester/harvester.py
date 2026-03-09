@@ -137,6 +137,8 @@ def cli(
     else:
         has_header = harvester_config.get('fdp_list_has_header', True)
         fdp_entries = read_fdp_list(fdp_list, has_header)
+        if not fdp_entries:
+            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
     CONCEPT_TYPE_ORDER = {

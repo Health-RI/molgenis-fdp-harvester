@@ -199,6 +199,34 @@ def test_cli_with_only_required_parameters(base_cli_args, mock_harvester_patches
         "Token should be picked up from environment"
 
 
+def test_cli_all_env_vars(temp_config_file, mock_harvester_patches, monkeypatch):
+    """CLI works when all arguments are supplied via environment variables, with no CLI flags."""
+    runner = CliRunner()
+
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'env_token')
+    monkeypatch.setenv('MOLGENIS_HOST', 'http://env-host:8080')
+    monkeypatch.setenv('MOLGENIS_SCHEMA', 'EnvSchema')
+    monkeypatch.setenv('HARVEST_CONFIG', temp_config_file)
+    monkeypatch.setenv('INPUT_TYPE', 'rdf')
+    monkeypatch.setenv('FDP_URL', 'http://env-fdp.example.com')
+
+    result = runner.invoke(cli, [])
+
+    assert result.exit_code == 0, f"CLI failed with exit code {result.exit_code}:\nOutput: {result.output}"
+
+    mock_harvester_patches['client_class'].assert_called_once()
+    client_kwargs = mock_harvester_patches['client_class'].call_args.kwargs
+    assert client_kwargs['url'] == 'http://env-host:8080'
+    assert client_kwargs['schema'] == 'EnvSchema'
+    assert client_kwargs['token'] == 'env_token'
+
+    mock_harvester_patches['create_harvester'].assert_called_once()
+    assert mock_harvester_patches['create_harvester'].call_args[0][0] == 'rdf'
+
+    mock_harvester_patches['execute_harvest'].assert_called_once()
+    assert mock_harvester_patches['execute_harvest'].call_args[0][1] == 'http://env-fdp.example.com'
+
+
 @pytest.mark.parametrize("input_type,expected_class", [
     ('rdf', 'DCATRDFHarvester'),
     ('fdp', 'FDPHarvester'),
@@ -448,3 +476,26 @@ def test_read_fdp_list_skips_blank_rows(tmp_path):
     result = read_fdp_list(csv_file, has_header=True)
 
     assert result == [('http://a.com', 'pA'), ('http://b.com', 'pB')]
+
+
+def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
+    """An --fdp-list file with no valid entries should fail with an error"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+        f.write("fdp_url,fdp_id_prefix\n")  # header only, no data rows
+        csv_path = f.name
+
+    try:
+        result = runner.invoke(cli, [
+            '--fdp-list', csv_path,
+            '--host', 'http://localhost:8080',
+            '--config', temp_config_file,
+            '--input_type', 'fdp',
+        ])
+
+        assert result.exit_code != 0
+        assert "no valid entries" in result.output.lower() or "no valid entries" in str(result.exception).lower()
+    finally:
+        os.unlink(csv_path)
