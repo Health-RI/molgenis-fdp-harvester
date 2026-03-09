@@ -11,7 +11,6 @@ The user creating this token requires editing permissions on the host schema.
 """
 import csv
 import logging
-import os
 from pathlib import Path
 
 from .fdp_harvester.fdp import FDPHarvester
@@ -59,30 +58,34 @@ def read_fdp_list(csv_path: Path, has_header: bool) -> list[tuple[str, str | Non
 
 
 @click.command()
-@click.option("--fdp", help="FAIR Data Point catalog URL to harvest", required=False, default=None)
+@click.option("--fdp", envvar="FDP_URL", help="FAIR Data Point catalog URL to harvest", required=False, default=None)
 @click.option(
     "--fdp-list",
+    envvar="FDP_LIST_PATH",
     help="Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)",
     required=False,
     default=None,
     type=click.Path(exists=True, path_type=Path, readable=True)
 )
-@click.option("--host", help="MOLGENIS host to harvest to", required=True)
-@click.option("--schema", help="Schema on MOLGENIS host to harvest to",
+@click.option("--host", envvar="MOLGENIS_HOST", help="MOLGENIS host to harvest to", required=False, default=None)
+@click.option("--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to",
               required=False, default="Eucaim")
 @click.option(
     "--config",
+    envvar="HARVEST_CONFIG",
     help="Configuration.",
-    required=True,
+    required=False,
+    default=None,
     type=click.Path(exists=True, path_type=Path, readable=True)
 )
 @click.option(
-    "--token", help="Authentication token of the user harvesting data.",
-    required=False, default=lambda: os.environ.get("MOLGENIS_TOKEN")
+    "--token", envvar="MOLGENIS_TOKEN", help="Authentication token of the user harvesting data.",
+    required=False, default=None
 )
-@click.option("--input_type", type=click.Choice(['rdf', 'fdp']), required=True)
+@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(['rdf', 'fdp']), required=False, default=None)
 @click.option(
     "--fdp-id-prefix",
+    envvar="FDP_ID_PREFIX",
     help="FDP ID prefix used for PID construction. Only used with --fdp.",
     required=False,
     default=None
@@ -98,11 +101,23 @@ def cli(
     fdp_id_prefix: str
 ):
     """Run the harvester with the specified configuration."""
-    # Check that token is provided
+    # Check required options (not enforced at Click level to allow env var fallback)
     if not token:
         raise click.ClickException(
             "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
             "variable or provide the --token option."
+        )
+    if not host:
+        raise click.ClickException(
+            "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host."
+        )
+    if not config:
+        raise click.ClickException(
+            "Configuration file is required. Set HARVEST_CONFIG or provide --config."
+        )
+    if not input_type:
+        raise click.ClickException(
+            "Input type is required. Set INPUT_TYPE or provide --input_type."
         )
 
     # Validate mutual exclusivity of --fdp and --fdp-list
