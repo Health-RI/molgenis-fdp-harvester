@@ -7,7 +7,19 @@
 ```console
 git clone https://github.com/Health-RI/molgenis-fdp-harvester.git
 cd molgenis-fdp-harvester
+uv sync
+```
+
+If you prefer plain pip, this still works:
+
+```console
 pip install .
+```
+
+Run tests with:
+
+```console
+uv run pytest
 ```
 
 Authentication for submitting catalogue entries to the receiving catalogue is done through access tokens.
