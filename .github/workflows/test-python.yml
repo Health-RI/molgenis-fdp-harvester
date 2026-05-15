@@ -28,11 +28,11 @@ jobs:
         version: "latest"
     - name: Sync dependencies
       run: |
-        uv sync
+        uv sync --no-build --frozen
     - name: Test with pytest
       run: |
         mkdir -p junit
-        uv run  pytest --cov=src/molgenis_fdp_harvester --cov-report=xml --doctest-modules --junitxml=junit/test-results.xml tests
+        uv run --no-sync --no-build pytest --cov=src/molgenis_fdp_harvester --cov-report=xml --doctest-modules --junitxml=junit/test-results.xml tests
     - name: SonarCloud Scan
       uses: SonarSource/sonarqube-scan-action@v6.0.0
       if: matrix.python-version == '3.10'
