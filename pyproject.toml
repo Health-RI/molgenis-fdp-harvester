@@ -9,11 +9,11 @@ dependencies = [
   "python-dateutil~=2.9.0.post0",
   "pandas~=2.3.3",
   "geomet~=1.1.0",
-  "requests~=2.32.3",
+  "requests>=2.32.3,<2.35.0",
   "molgenis-emx2-pyclient>=11.57.0",
   "unidecode~=1.4.0",
   "python-dotenv~=1.2.1",
-  "yarl~=1.22.0"
+  "yarl~=1.23.0"
 ]
 name = "molgenis-fdp-harvester"
 dynamic = ["version"]
