@@ -9,7 +9,7 @@ COPY src/ src/
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir . && \
-    useradd --no-create-home --shell /bin/false harvester
+    adduser -D -H -s /bin/false harvester
 
 USER harvester
 
