@@ -1,0 +1,25 @@
+version: '3'
+services:
+    fdp:
+        image: fairdata/fairdatapoint:1.18.1
+        volumes:
+            - ./application.yml:/fdp/application.yml:ro
+
+    fdp-client:
+        image: healthri/fdp-client:1.0.16
+        ports:
+            - 8081:80
+        environment:
+            - FDP_HOST=fdp
+
+    mongo:
+        image: mongo:4.0.12
+        volumes:
+            - ./mongo/data:/data/db
+
+    graphdb:
+        image: ontotext/graphdb:10.8.2
+        ports:
+            - 7200:7200
+        volumes:
+            - ./data/graphdb/data:/opt/graphdb/home
