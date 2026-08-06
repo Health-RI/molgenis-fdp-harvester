@@ -1,0 +1,187 @@
+@prefix schema: <http://schema.org/> .
+@prefix spdx: <http://spdx.org/rdf/terms#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix adms_status: <http://purl.org/adms/status/> .
+@prefix odrl2: <http://www.w3.org/ns/odrl/2/> .
+@prefix disco: <http://rdf-vocabulary.ddialliance.org/discovery#> .
+@prefix skosthes: <http://purl.org/iso25964/skos-thes#> .
+@prefix dqv: <http://www.w3.org/ns/dqv#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix eucaim: <https://cancerimage.eu/ontology/EUCAIM#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix healthdcatap: <http://healthdataportal.eu/ns/health#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix doap: <http://usefulinc.com/ns/doap#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix euvoc: <http://publications.europa.eu/ontology/euvoc#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix hri: <http://data.health-ri.nl/core/p2#> .
+@prefix linkml: <https://w3id.org/linkml/> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix dcatap: <http://data.europa.eu/r5r/> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix xls2rdf: <https://xls2rdf.sparna.fr/vocabulary#> .
+@prefix dcatv3: <https://www.w3.org/ns/dcat/3#> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix dpv: <https://w3id.org/dpv#> .
+@prefix dqv-pd: <https://w3id.org/dpv/dpv-pd#> .
+@prefix eu: <http://publications.europa.eu/resource/authority/access-right/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix dash: <http://datashapes.org/dash#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+@prefix status: <http://publications.europa.eu/resource/authority/distribution-status/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+
+eucaim:aux-DataServiceShape a owl:Ontology;
+  rdfs:label "Excel template for DataService class"@en;
+  rdfs:comment "Excel template for DataService class"@en;
+  dct:description "This is an excel template for DataService class in Health RI Core plateau 2."@en;
+  owl:versionInfo "0.1" .
+
+eucaim:DataServiceShape a sh:NodeShape;
+  rdfs:label "DataService"@en;
+  sh:targetClass dcat:DataService;
+  sh:property <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:accessRights>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcatap:applicableLegislation>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:conformsTo>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:contactPoint>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:description>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endpointDescription>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endPointURL>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:format>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:keyword>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:landingPage>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:license>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:publisher>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:servesDataset>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:theme>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:title> .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:accessRights> sh:path
+    dct:accessRights;
+  sh:name "access rights"@en;
+  sh:description "Information about who access the resource or an indication of its security status."@en;
+  sh:maxCount 1;
+  sh:nodeKind sh:IRI;
+  sh:in _:08fecef7f77645f0875807f38a47e89e2;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:EnumSelectEditor .
+
+_:08fecef7f77645f0875807f38a47e89e2 rdf:first eu:PUBLIC;
+  rdf:rest _:08fecef7f77645f0875807f38a47e89e3 .
+
+_:08fecef7f77645f0875807f38a47e89e3 rdf:first eu:RESTRICTED;
+  rdf:rest _:08fecef7f77645f0875807f38a47e89e4 .
+
+_:08fecef7f77645f0875807f38a47e89e4 rdf:first eu:NON_PUBLIC;
+  rdf:rest rdf:nil .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcatap:applicableLegislation>
+  sh:path dcatap:applicableLegislation;
+  sh:name "applicable legislation"@en;
+  sh:description "The legislation that is applicable to this resource."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:conformsTo> sh:path dct:conformsTo;
+  sh:name "application profile"@en;
+  sh:description "An established standard to which the described resource conforms."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:contactPoint> sh:path
+    dcat:contactPoint;
+  sh:name "contact point"@en;
+  sh:description "Relevant contact information for the cataloged resource."@en;
+  sh:node eucaim:KindShape;
+  dash:viewer dash:DetailsViewer;
+  dash:editor dash:BlankNodeEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:description> sh:path
+    dct:description;
+  sh:name "description"@en;
+  sh:description "An account of the resource."@en;
+  sh:nodeKind sh:Literal;
+  sh:uniqueLang true;
+  dash:viewer dash:LiteralViewer;
+  dash:editor dash:TextAreaEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endpointDescription>
+  sh:path dcat:endpointDescription;
+  sh:name "end point description"@en;
+  sh:description "A description of the services available via the end-points, including their operations, parameters etc."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endPointURL> sh:path
+    dcat:endPointURL;
+  sh:name "end point URL"@en;
+  sh:description "The root location or primary endpoint of the service (a Web-resolvable IRI)."@en;
+  sh:minCount 1;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:format> sh:path dct:format;
+  sh:name "format"@en;
+  sh:description "The file format, physical medium, or dimensions of the resource."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:keyword> sh:path dcat:keyword;
+  sh:name "keyword"@en;
+  sh:description "A keyword or tag describing the resource."@en;
+  sh:nodeKind sh:Literal;
+  dash:viewer dash:LiteralViewer;
+  dash:editor dash:TextFieldEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:landingPage> sh:path
+    dcat:landingPage;
+  sh:name "landing Page"@en;
+  sh:description "A Web page that can be navigated to in a Web browser to gain access to the catalog, a dataset, its distributions and/or additional information."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:license> sh:path dct:license;
+  sh:name "licence"@en;
+  sh:description "A legal document giving official permission to do something with the resource."@en;
+  sh:maxCount 1;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:publisher> sh:path dct:publisher;
+  sh:name "publisher"@en;
+  sh:description "An entity responsible for making the resource available."@en;
+  sh:minCount 1;
+  sh:maxCount 1;
+  sh:node eucaim:PublisherShape;
+  dash:viewer dash:DetailsViewer;
+  dash:editor dash:BlankNodeEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:servesDataset> sh:path
+    dcat:servesDataset;
+  sh:name "serves dataset"@en;
+  sh:description "A collection of data that this data service can distribute."@en;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:theme> sh:path dcat:theme;
+  sh:name "theme"@en;
+  sh:description "A main category of the resource. A resource can have multiple themes."@en;
+  sh:nodeKind sh:IRI;
+  dash:viewer dash:URIViewer;
+  dash:editor dash:URIEditor .
+
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:title> sh:path dct:title;
+  sh:name "title"@en;
+  sh:description "A name given to the resource."@en;
+  sh:minCount 1;
+  sh:nodeKind sh:Literal;
+  sh:uniqueLang true;
+  dash:viewer dash:LiteralViewer;
+  dash:editor dash:TextFieldEditor .
