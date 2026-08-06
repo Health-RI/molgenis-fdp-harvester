@@ -121,6 +121,32 @@ Its full text may be found at:
 
 <http://www.fsf.org/licensing/licenses/agpl-3.0.html>
 
+## Development setup
+
+In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
+The default URLs are:
+- FDP 1: `http://localhost:8081`
+- FDP 2: `http://localhost:8082`
+- Molgenis: `http://localhost:8080`
+
+Run the following commands from that folder:
+```
+docker compose up -d fdp-client-1
+docker compose up -d fdp-client-2
+docker compose up -d schema-tool-1
+docker compose up -d schema-tool-2
+docker compose up -d molgenis ssr-catalogue
+```
+After starting these services the FDPs will be configured. To configure the Molgenis catalogue:
+- Log in to the Molgenis catalogue with `admin/admin`, the default credentials.
+- Create a database, after creating click `Upload files`.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xslx` to configure the metadata model.
+
+To retrieve a Molgenis token:
+- Log in to the Molgenis catalogue. 
+- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
+
+
 ## Process documentation
 
 The entry point of the application is the CLI command `harvest`, which executes `cli` in `./molgenis_fdp_harvester/harvester.py`.
