@@ -118,6 +118,20 @@ services:
             interval: 5s
             timeout: 60s
             retries: 5
+
+    molgenis-init:
+        image: alpine:3.20
+        depends_on:
+            - molgenis
+        environment:
+            - GRAPHQL_URL=http://molgenis:8080/api/graphql
+            - GRAPHQL_USERNAME=admin
+            - GRAPHQL_PASSWORD=admin
+        volumes:
+            - ./molgenis/initialize.sh:/workspace/initialize.sh:ro
+        entrypoint: [ "/bin/sh", "-c" ]
+        command: sh /workspace/initialize.sh
+
     ssr-catalogue:
         image: molgenis/ssr-catalogue
         ports:
@@ -133,10 +147,10 @@ services:
             - schema-tool-2
         environment:
             - MOLGENIS_TOKEN=${MOLGENIS_TOKEN:-}
-            - MOLGENIS_HOST=${MOLGENIS_HOST:-https://your-molgenis-host}
+            - MOLGENIS_HOST=http://molgenis:8080
             - INPUT_TYPE=fdp
-            - FDP_LIST_PATH=/app/fdps.csv
             - HARVEST_CONFIG=/app/config.toml
+            - FDP_LIST_PATH=/app/fdps.csv
         volumes:
             - ../config.toml:/app/config.toml:ro
             - ./harvester/fdps.csv:/app/fdps.csv:ro

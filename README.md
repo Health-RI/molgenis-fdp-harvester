@@ -121,6 +121,62 @@ Its full text may be found at:
 
 <http://www.fsf.org/licensing/licenses/agpl-3.0.html>
 
+## Development setup
+
+In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
+The default URLs are:
+- Molgenis: `http://localhost:8080`
+- FDP 1: `http://localhost:8081`
+- FDP 2: `http://localhost:8082`
+
+Run the following commands from that folder:
+```
+docker compose up molgenis-init
+docker compose up harvester
+```
+After starting these services the FDPs will be configured. To configure the Molgenis catalogue:
+- Log in to the Molgenis catalogue with `admin admin`, the default credentials.
+- Create a database, after creating click `Upload files`.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xslx` to configure the metadata model.
+
+To retrieve a Molgenis token:
+- Log in to the Molgenis catalogue. 
+- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
+
+To test the harvester, create a file `.env`:
+```
+MOLGENIS_TOKEN=-your molgenis token-
+```
+
+Running the harvester can be done by running:
+```
+docker compose up harvester
+```
+
+## Docker Compose startup
+
+The local development Compose file lives in [dev/docker-compose.yml](dev/docker-compose.yml). From the repository root, you must either change into the [dev](dev) directory first or pass the Compose file explicitly with `-f dev/docker-compose.yml`.
+
+Before starting the harvester, initialize the local Molgenis setup:
+
+```console
+cd dev
+./molgenis/initialize.bash
+```
+
+Then start the harvester with your generated Molgenis token:
+
+```console
+cd dev
+MOLGENIS_TOKEN=[TOKEN] docker compose up harvester
+```
+
+If you stay at the repository root, use:
+
+```console
+MOLGENIS_TOKEN=[TOKEN] docker compose -f dev/docker-compose.yml up harvester
+```
+
 ## Process documentation
 
 The entry point of the application is the CLI command `harvest`, which executes `cli` in `./molgenis_fdp_harvester/harvester.py`.
