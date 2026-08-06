@@ -146,6 +146,17 @@ To retrieve a Molgenis token:
 - Log in to the Molgenis catalogue. 
 - In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
 
+To test the harvester, create a file `.env`:
+```
+MOLGENIS_TOKEN=-your molgenis token-
+MOLGENIS_HOST=http://localhost:8080
+```
+Modify `config.toml` accordingly to your developments.
+
+Running the harvester can be done by running:
+```
+docker compose up -d harvester
+```
 
 ## Process documentation
 
