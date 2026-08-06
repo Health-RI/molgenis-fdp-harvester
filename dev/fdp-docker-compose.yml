@@ -1,25 +1,118 @@
 version: '3'
 services:
-    fdp:
+    # Fair Data Point #1
+    fdp-1:
         image: fairdata/fairdatapoint:1.18.1
+        depends_on:
+            - mongo-1
+            - graphdb-1
         volumes:
             - ./application.yml:/fdp/application.yml:ro
-
-    fdp-client:
+    fdp-client-1:
         image: healthri/fdp-client:1.0.16
+
         ports:
             - 8081:80
         environment:
-            - FDP_HOST=fdp
+            - FDP_HOST=fdp-1
 
-    mongo:
+    mongo-1:
         image: mongo:4.0.12
         volumes:
-            - ./mongo/data:/data/db
+            - mongo-data-1:/data/db
 
-    graphdb:
+    graphdb-1:
         image: ontotext/graphdb:10.8.2
         ports:
-            - 7200:7200
+            - 7201:7200
         volumes:
-            - ./data/graphdb/data:/opt/graphdb/home
+            - graphdb-data-1:/opt/graphdb/home
+    graphdb-import-1:
+        image: ontotext/graphdb:10.8.2
+        depends_on:
+            - graphdb-1
+        volumes:
+            - graphdb-data-1:/opt/graphdb/home
+            - ./graphdb/import:/var/graphdb/import:ro
+        entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
+        command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
+    # Fair Data Point #2
+    fdp-2:
+        image: fairdata/fairdatapoint:1.18.1
+        depends_on:
+            - mongo-2
+            - graphdb-2
+        volumes:
+            - ./application.yml:/fdp/application.yml:ro
+    fdp-client-2:
+        image: healthri/fdp-client:1.0.16
+
+        ports:
+            - 8082:80
+        environment:
+            - FDP_HOST=fdp-2
+    mongo-2:
+        image: mongo:4.0.12
+        volumes:
+            - mongo-data-2:/data/db
+    graphdb-2:
+        image: ontotext/graphdb:10.8.2
+        ports:
+            - 7202:7200
+        volumes:
+            - graphdb-data-2:/opt/graphdb/home
+    graphdb-import-2:
+        image: ontotext/graphdb:10.8.2
+        depends_on:
+            - graphdb-2
+        volumes:
+            - graphdb-data-2:/opt/graphdb/home
+            - ./graphdb/import:/var/graphdb/import:ro
+        entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
+        command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
+    # Molgenis setup
+    postgres:
+        image: postgres:15-alpine
+        environment:
+            - POSTGRES_USER=postgres
+            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=postgres
+        ports:
+            - "5432:5432"
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            # - ./.docker/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+        command: -c 'shared_buffers=256MB' -c 'max_locks_per_transaction=1024'
+        healthcheck:
+        test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+        interval: 5s
+        timeout: 60s
+        retries: 5
+
+    emx2:
+        image: registry.gitlab.com/radiology/infrastructure/studies/eucaim/molgenis-emx2-eucaim/molgenis-emx2-eucaim:11.36.0-1.1.0
+        environment:
+            - MOLGENIS_POSTGRES_URI=jdbc:postgresql://postgres/molgenis
+            - MOLGENIS_POSTGRES_USER=molgenis
+            - MOLGENIS_POSTGRES_PASS=molgenis
+
+        ports:
+            - "8080:8080"
+        depends_on:
+        postgres:
+            condition: service_healthy
+
+    ssr-catalogue:
+        image: molgenis/ssr-catalogue
+        ports:
+            - "3000:3000"
+    # Harvester
+    # harvester:
+volumes:
+    mongo-data-1:
+    mongo-data-2:
+    graphdb-data-1:
+    graphdb-data-2:
+    pgdata:
