@@ -8,6 +8,7 @@ services:
             - graphdb-import-1
         volumes:
             - ./fdp/application-1.yml:/fdp/application.yml:ro
+
     fdp-client-1:
         image: healthri/fdp-client:1.0.16
         depends_on:
@@ -16,16 +17,19 @@ services:
             - 8081:80
         environment:
             - FDP_HOST=fdp-1
+
     mongo-1:
         image: mongo:4.0.12
         volumes:
             - mongo-data-1:/data/db
+
     graphdb-1:
         image: ontotext/graphdb:10.8.2
         ports:
             - 7201:7200
         volumes:
             - graphdb-data-1:/opt/graphdb/home
+
     graphdb-import-1:
         image: ontotext/graphdb:10.8.2
         depends_on:
@@ -35,6 +39,7 @@ services:
             - ./graphdb/import:/var/graphdb/import:ro
         entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
         command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
     schema-tool-1:
         image: healthri/fdp-schema-update-tool:1.0.4
         depends_on:
@@ -44,7 +49,7 @@ services:
             - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
         command: [ "-h", "http://fdp-1", "-u", "albert.einstein@example.com", "-p", "password" ]
 
-    # # Fair Data Point #2
+    # Fair Data Point #2
     fdp-2:
         image: fairdata/fairdatapoint:1.18.1
         depends_on:
@@ -53,23 +58,28 @@ services:
             - graphdb-import-2
         volumes:
             - ./fdp/application-2.yml:/fdp/application.yml:ro
+
     fdp-client-2:
         image: healthri/fdp-client:1.0.16
-
+        depends_on:
+            - fdp-2
         ports:
             - 8082:80
         environment:
             - FDP_HOST=fdp-2
+
     mongo-2:
         image: mongo:4.0.12
         volumes:
             - mongo-data-2:/data/db
+
     graphdb-2:
         image: ontotext/graphdb:10.8.2
         ports:
             - 7202:7200
         volumes:
             - graphdb-data-2:/opt/graphdb/home
+
     graphdb-import-2:
         image: ontotext/graphdb:10.8.2
         depends_on:
@@ -79,6 +89,7 @@ services:
             - ./graphdb/import:/var/graphdb/import:ro
         entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
         command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
     schema-tool-2:
         image: healthri/fdp-schema-update-tool:1.0.4
         depends_on:
@@ -118,11 +129,13 @@ services:
             interval: 5s
             timeout: 60s
             retries: 5
+
     ssr-catalogue:
         image: molgenis/ssr-catalogue
         ports:
             - "3000:3000"
-    # # Harvester
+
+    # Harvester
     harvester:
         image: molgenis-fdp-harvester
         depends_on:
@@ -140,6 +153,7 @@ services:
         volumes:
             - ../config.toml:/app/config.toml:ro
             - ./harvester/fdps.csv:/app/fdps.csv:ro
+
 volumes:
     mongo-data-1:
     mongo-data-2:
