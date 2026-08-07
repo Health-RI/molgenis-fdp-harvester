@@ -49,7 +49,8 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         data = yaml.safe_load(f) or {}
 
     entries = []
-    fdp_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    raw_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    fdp_entries = raw_entries if isinstance(raw_entries, list) else []
     for entry in fdp_entries:
         if not isinstance(entry, dict):
             continue
