@@ -37,8 +37,7 @@ Options:
 
 Either `--fdp` (single URL) or `--fdp-list` (CSV file) must be provided; they are mutually exclusive.
 
-The `--fdp-list` CSV file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). Whether the
-file has a header row is controlled by `fdp_list_has_header` in the TOML configuration (default: `true`).
+The `--fdp-list` YML file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). 
 
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.

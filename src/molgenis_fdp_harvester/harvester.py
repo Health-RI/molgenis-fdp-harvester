@@ -9,9 +9,10 @@ or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
 The user creating this token requires editing permissions on the host schema.
 """
-import csv
 import logging
 from pathlib import Path
+
+import yaml
 
 from .fdp_harvester.fdp import FDPHarvester
 
@@ -37,23 +38,30 @@ load_dotenv()
 logging.basicConfig(level="INFO")
 
 
-def read_fdp_list(csv_path: Path, has_header: bool) -> list[tuple[str, str | None]]:
-    """Read FDP entries from a CSV file.
+def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
+    """Read FDP entries from a YAML file.
 
-    Expects columns: fdp_url, fdp_id_prefix (prefix column is optional/can be blank).
-    Rows that are entirely blank are skipped.
+    Expects a top-level list under ``fdps`` where each item contains
+    ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
+    are normalized to ``None``.
     """
+    with open(yaml_path, encoding='utf-8') as f:
+        data = yaml.safe_load(f) or {}
+
     entries = []
-    with open(csv_path, newline='') as f:
-        reader = csv.reader(f)
-        if has_header:
-            next(reader, None)  # consume header row
-        for row in reader:
-            if not row or not row[0].strip():
-                continue  # skip blank rows
-            fdp_url = row[0].strip()
-            fdp_id_prefix = row[1].strip() if len(row) > 1 and row[1].strip() else None
-            entries.append((fdp_url, fdp_id_prefix))
+    fdp_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    for entry in fdp_entries:
+        if not isinstance(entry, dict):
+            continue
+        fdp_url = str(entry.get('fdp_url', '')).strip()
+        if not fdp_url:
+            continue
+        fdp_id_prefix = entry.get('fdp_id_prefix')
+        if fdp_id_prefix is None:
+            prefix_value = None
+        else:
+            prefix_value = str(fdp_id_prefix).strip() or None
+        entries.append((fdp_url, prefix_value))
     return entries
 
 
@@ -135,8 +143,7 @@ def cli(
     if fdp:
         fdp_entries = [(fdp, fdp_id_prefix)]
     else:
-        has_header = harvester_config.get('fdp_list_has_header', True)
-        fdp_entries = read_fdp_list(fdp_list, has_header)
+        fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
             raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
