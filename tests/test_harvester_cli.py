@@ -480,14 +480,16 @@ def test_read_fdp_list_skips_blank_rows(tmp_path):
 
 def test_read_fdp_list_strips_whitespace(tmp_path):
     """read_fdp_list strips whitespace from values and returns None for blank prefix"""
-    csv_file = tmp_path / "fdps.csv"
-    csv_file.write_text(
-        "fdp_url,fdp_id_prefix\n"
-        "  http://a.com  ,  pA  \n"
-        "http://b.com,   \n"
+    yaml_file = tmp_path / "fdps.yml"
+    yaml_file.write_text(
+        "fdp_entries:\n"
+        "  - fdp_url: '  http://a.com  '\n"
+        "    fdp_id_prefix: '  pA  '\n"
+        "  - fdp_url: 'http://b.com'\n"
+        "    fdp_id_prefix: ''\n"
     )
 
-    result = read_fdp_list(csv_file, has_header=True)
+    result = read_fdp_list(yaml_file, has_header=True)
 
     assert result == [('http://a.com', 'pA'), ('http://b.com', None)]
 
