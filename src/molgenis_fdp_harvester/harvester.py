@@ -38,7 +38,7 @@ load_dotenv()
 logging.basicConfig(level="INFO")
 
 
-def read_fdp_list(yaml_path: Path, has_header: bool) -> list[tuple[str, str | None]]:
+def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     """Read FDP entries from a YAML file.
 
     Expects a top-level list under ``fdp_entries`` where each item contains
@@ -143,8 +143,7 @@ def cli(
     if fdp:
         fdp_entries = [(fdp, fdp_id_prefix)]
     else:
-        has_header = harvester_config.get('fdp_list_has_header', True)
-        fdp_entries = read_fdp_list(fdp_list, has_header)
+        fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
             raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
