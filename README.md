@@ -161,21 +161,29 @@ Before starting the harvester, initialize the local Molgenis setup:
 
 ```console
 cd dev
-./molgenis/initialize.bash
+docker compose up molgenis-init
 ```
 
-Then start the harvester with your generated Molgenis token:
+This will produce output like:
+```
+molgenis-init-1  | Login succeeded.
+molgenis-init-1  |       "message" : "Transaction failed: schema \"Eucaim\" already exists. "
+molgenis-init-1  | Schema 'Eucaim' already exists; continuing.
+molgenis-init-1  | Token created successfully.
+molgenis-init-1  | 
+molgenis-init-1  | MOLGENIS_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6NDk0MTc1OTIwMSwiaWF0IjoxNzg2MDg1NjAxLCJqdGkiOiJ0ZXN0In0.I1fOqfBHCmCxm6JZp0fvhHCY4flqKHiff7FF_4li5dA
+molgenis-init-1  | 
+molgenis-init-1  | NOTE: Please upload the Molgenis metadata model in the browser
+molgenis-init-1  | 
+molgenis-init-1  | Initialization completed successfully.
+molgenis-init-1 exited with code 0
+```
+Note that you still have to manually upload the Molgenis metadata model in the browser. After this, spin up the harvester with the Molgenis token: 
 
 ```console
-cd dev
 MOLGENIS_TOKEN=[TOKEN] docker compose up harvester
 ```
 
-If you stay at the repository root, use:
-
-```console
-MOLGENIS_TOKEN=[TOKEN] docker compose -f dev/docker-compose.yml up harvester
-```
 
 ## Process documentation
 
