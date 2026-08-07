@@ -171,6 +171,9 @@ MOLGENIS_TOKEN=-your molgenis token-
 
 Running the harvester can be done by running:
 ```
+docker compose up -d fdp-client-1
+docker compose up -d fdp-client-2
+docker compose up -d molgenis
 docker compose up harvester
 ```
 
