@@ -478,6 +478,20 @@ def test_read_fdp_list_skips_blank_rows(tmp_path):
     assert result == [('http://a.com', 'pA'), ('http://b.com', 'pB')]
 
 
+def test_read_fdp_list_strips_whitespace(tmp_path):
+    """read_fdp_list strips whitespace from values and returns None for blank prefix"""
+    csv_file = tmp_path / "fdps.csv"
+    csv_file.write_text(
+        "fdp_url,fdp_id_prefix\n"
+        "  http://a.com  ,  pA  \n"
+        "http://b.com,   \n"
+    )
+
+    result = read_fdp_list(csv_file, has_header=True)
+
+    assert result == [('http://a.com', 'pA'), ('http://b.com', None)]
+
+
 def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
     """An --fdp-list file with no valid entries should fail with an error"""
     runner = CliRunner()
