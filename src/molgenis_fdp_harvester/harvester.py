@@ -41,7 +41,7 @@ logging.basicConfig(level="INFO")
 def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     """Read FDP entries from a YAML file.
 
-    Expects a top-level list under ``fdp_entries`` where each item contains
+    Expects a top-level list under ``fdps`` where each item contains
     ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
     are normalized to ``None``.
     """
@@ -49,7 +49,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         data = yaml.safe_load(f) or {}
 
     entries = []
-    fdp_entries = data.get('fdp_entries', []) if isinstance(data, dict) else []
+    fdp_entries = data.get('fdps', []) if isinstance(data, dict) else []
     for entry in fdp_entries:
         if not isinstance(entry, dict):
             continue

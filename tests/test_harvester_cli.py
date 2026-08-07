@@ -262,7 +262,7 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
 def temp_fdp_list_with_header():
     """YAML file with two FDP entries"""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
-        f.write("fdp_entries:\n")
+        f.write("fdps:\n")
         f.write("  - fdp_url: http://fdp1.example.com\n")
         f.write("    fdp_id_prefix: prefix1\n")
         f.write("  - fdp_url: http://fdp2.example.com\n")
@@ -354,7 +354,7 @@ def test_fdp_list_row_without_prefix(temp_config_file, mock_harvester_patches, m
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
-        f.write("fdp_entries:\n")
+        f.write("fdps:\n")
         f.write("  - fdp_url: http://fdp1.example.com\n")
         f.write("    fdp_id_prefix: ''\n")
         yaml_path = f.name
@@ -396,7 +396,7 @@ def test_read_fdp_list(tmp_path):
     """read_fdp_list parses YAML entries and trims whitespace"""
     yaml_file = tmp_path / "fdps.yml"
     yaml_file.write_text(
-        "fdp_entries:\n"
+        "fdps:\n"
         "  - fdp_url: http://a.com\n"
         "    fdp_id_prefix: pA\n"
         "  - fdp_url: http://b.com\n"
@@ -412,7 +412,7 @@ def test_read_fdp_list_missing_prefix_column(tmp_path):
     """read_fdp_list returns None for prefix when the YAML value is absent or blank"""
     yaml_file = tmp_path / "fdps.yml"
     yaml_file.write_text(
-        "fdp_entries:\n"
+        "fdps:\n"
         "  - fdp_url: http://a.com\n"
         "    fdp_id_prefix: ''\n"
         "  - fdp_url: http://b.com\n"
@@ -427,7 +427,7 @@ def test_read_fdp_list_skips_blank_rows(tmp_path):
     """read_fdp_list skips entries without a URL"""
     yaml_file = tmp_path / "fdps.yml"
     yaml_file.write_text(
-        "fdp_entries:\n"
+        "fdps:\n"
         "  - fdp_url: http://a.com\n"
         "    fdp_id_prefix: pA\n"
         "  - fdp_url: ''\n"
@@ -444,7 +444,7 @@ def test_read_fdp_list_strips_whitespace(tmp_path):
     """read_fdp_list strips whitespace from values and returns None for blank prefix"""
     yaml_file = tmp_path / "fdps.yml"
     yaml_file.write_text(
-        "fdp_entries:\n"
+        "fdps:\n"
         "  - fdp_url: '  http://a.com  '\n"
         "    fdp_id_prefix: '  pA  '\n"
         "  - fdp_url: 'http://b.com'\n"
