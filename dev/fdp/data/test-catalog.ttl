@@ -1,0 +1,18 @@
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix dcat: <http://www.w3.org/ns/dcat#>.
+@prefix fdp: <http://fdp-1.test/>.
+@prefix r: <http://data.europa.eu/r5r/>.
+
+fdp:new
+    a dcat:Catalog, dcat:Resource;
+    r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
+    dct:description "aethb";
+    dct:isPartOf <http://fdp-1.test>;
+    dct:publisher
+            [
+                a foaf:Organization;
+                foaf:homepage <http://www.myfiction%CE%B1lbank.com>;
+                foaf:name "aethb"
+            ];
+    dct:title "zdefr".
