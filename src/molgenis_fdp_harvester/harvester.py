@@ -70,7 +70,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
 @click.option(
     "--fdp-list",
     envvar="FDP_LIST_PATH",
-    help="Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)",
+    help="Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)",
     required=False,
     default=None,
     type=click.Path(exists=True, path_type=Path, readable=True)
