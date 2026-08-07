@@ -259,7 +259,7 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def temp_fdp_list_with_header():
+def temp_fdp_list():
     """YAML file with two FDP entries"""
     with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
         f.write("fdps:\n")
@@ -274,14 +274,14 @@ def temp_fdp_list_with_header():
     os.unlink(yaml_path)
 
 
-def test_fdp_and_fdp_list_mutually_exclusive(temp_config_file, temp_fdp_list_with_header, monkeypatch):
+def test_fdp_and_fdp_list_mutually_exclusive(temp_config_file, temp_fdp_list, monkeypatch):
     """Providing both --fdp and --fdp-list should fail with exit code 2"""
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
     result = runner.invoke(cli, [
         '--fdp', 'http://example.com',
-        '--fdp-list', temp_fdp_list_with_header,
+        '--fdp-list', temp_fdp_list,
         '--host', 'http://localhost:8080',
         '--config', temp_config_file,
         '--input_type', 'rdf',
@@ -306,13 +306,13 @@ def test_neither_fdp_nor_fdp_list_raises_error(temp_config_file, monkeypatch):
     assert "--fdp" in result.output or "required" in result.output.lower()
 
 
-def test_fdp_list_with_header(temp_config_file, temp_fdp_list_with_header, mock_harvester_patches, monkeypatch):
+def test_fdp_list_with_header(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
     """CSV with header row: execute_harvest called once per data row"""
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
     result = runner.invoke(cli, [
-        '--fdp-list', temp_fdp_list_with_header,
+        '--fdp-list', temp_fdp_list,
         '--host', 'http://localhost:8080',
         '--config', temp_config_file,
         '--input_type', 'fdp',
@@ -327,13 +327,13 @@ def test_fdp_list_with_header(temp_config_file, temp_fdp_list_with_header, mock_
     assert 'http://fdp2.example.com' in urls
 
 
-def test_fdp_list_per_row_prefix(temp_config_file, temp_fdp_list_with_header, mock_harvester_patches, monkeypatch):
+def test_fdp_list_per_row_prefix(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
     """Each CSV row's fdp_id_prefix is passed to create_harvester as entry_config"""
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
     result = runner.invoke(cli, [
-        '--fdp-list', temp_fdp_list_with_header,
+        '--fdp-list', temp_fdp_list,
         '--host', 'http://localhost:8080',
         '--config', temp_config_file,
         '--input_type', 'fdp',
