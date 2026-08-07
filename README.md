@@ -121,6 +121,60 @@ Its full text may be found at:
 
 <http://www.fsf.org/licensing/licenses/agpl-3.0.html>
 
+## Development setup
+
+In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
+The default URLs are:
+- Molgenis: `http://localhost:8080`
+- FDP 1: `http://localhost:8081`
+- FDP 2: `http://localhost:8082`
+ 
+
+Before starting the harvester, initialize the local Molgenis setup:
+
+```console
+cd dev
+docker compose up molgenis-init
+```
+
+This will produce output like:
+```
+molgenis-init-1  | Login succeeded.
+molgenis-init-1  |       "message" : "Transaction failed: schema \"Eucaim\" already exists. "
+molgenis-init-1  | Schema 'Eucaim' already exists; continuing.
+molgenis-init-1  | Token created successfully.
+molgenis-init-1  | 
+molgenis-init-1  | MOLGENIS_TOKEN=...
+molgenis-init-1  | 
+molgenis-init-1  | NOTE: Please upload the Molgenis metadata model in the browser
+molgenis-init-1  | 
+molgenis-init-1  | Initialization completed successfully.
+molgenis-init-1 exited with code 0
+```
+Note that you still have to manually upload the Molgenis metadata model in the browser. You will need the token to spin up the harvester. 
+
+
+To configure the Molgenis catalogue:
+- Log in to the Molgenis catalogue with the default credentials (username: `admin`, password: `admin`).
+- Click on (or create) a database (preferred name 'Eucaim'), and click `Upload files`.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xlsx` to configure the metadata model.
+
+You may also manually create a Molgenis token:
+To retrieve a Molgenis token:
+- Log in to the Molgenis catalogue. 
+- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
+
+To test the harvester, create a file `.env`:
+```
+MOLGENIS_TOKEN=-your molgenis token-
+```
+
+Running the harvester can be done by running:
+```
+docker compose up harvester
+```
+
+
 ## Process documentation
 
 The entry point of the application is the CLI command `harvest`, which executes `cli` in `./molgenis_fdp_harvester/harvester.py`.
