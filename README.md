@@ -128,34 +128,7 @@ The default URLs are:
 - Molgenis: `http://localhost:8080`
 - FDP 1: `http://localhost:8081`
 - FDP 2: `http://localhost:8082`
-
-Run the following commands from that folder:
-```
-docker compose up molgenis-init
-docker compose up harvester
-```
-After starting these services the FDPs will be configured. To configure the Molgenis catalogue:
-- Log in to the Molgenis catalogue with `admin admin`, the default credentials.
-- Create a database, after creating click `Upload files`.
-- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xslx` to configure the metadata model.
-
-To retrieve a Molgenis token:
-- Log in to the Molgenis catalogue. 
-- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
-
-To test the harvester, create a file `.env`:
-```
-MOLGENIS_TOKEN=-your molgenis token-
-```
-
-Running the harvester can be done by running:
-```
-docker compose up harvester
-```
-
-## Docker Compose startup
-
-The local development Compose file lives in [dev/docker-compose.yml](dev/docker-compose.yml). From the repository root, you must either change into the [dev](dev) directory first or pass the Compose file explicitly with `-f dev/docker-compose.yml`.
+ 
 
 Before starting the harvester, initialize the local Molgenis setup:
 
@@ -178,10 +151,27 @@ molgenis-init-1  |
 molgenis-init-1  | Initialization completed successfully.
 molgenis-init-1 exited with code 0
 ```
-Note that you still have to manually upload the Molgenis metadata model in the browser. After this, spin up the harvester with the Molgenis token: 
+Note that you still have to manually upload the Molgenis metadata model in the browser. You will need the token to spin up the harvester. 
 
-```console
-MOLGENIS_TOKEN=[TOKEN] docker compose up harvester
+
+To configure the Molgenis catalogue:
+- Log in to the Molgenis catalogue with the default credentials (username: `admin`, password: `admin`).
+- Click on (or create) a database (preferred name 'Eucaim'), and click `Upload files`.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xslx` to configure the metadata model.
+
+You may also manually create a Molgenis token:
+To retrieve a Molgenis token:
+- Log in to the Molgenis catalogue. 
+- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
+
+To test the harvester, create a file `.env`:
+```
+MOLGENIS_TOKEN=-your molgenis token-
+```
+
+Running the harvester can be done by running:
+```
+docker compose up harvester
 ```
 
 
