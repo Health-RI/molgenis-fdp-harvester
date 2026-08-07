@@ -1,6 +1,6 @@
 instance:
     clientUrl: http://localhost:8082
-    persistentUrl: http://localhost:8082
+    persistentUrl: http://fdp-2.test
 
 spring:
     data:

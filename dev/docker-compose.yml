@@ -1,6 +1,6 @@
 services:
     # Fair Data Point #1
-    fdp-1:
+    fdp-1.test:
         image: fairdata/fairdatapoint:1.18.1
         depends_on:
             - mongo-1
@@ -12,11 +12,11 @@ services:
     fdp-client-1:
         image: healthri/fdp-client:1.0.16
         depends_on:
-            - fdp-1
+            - fdp-1.test
         ports:
             - 8081:80
         environment:
-            - FDP_HOST=fdp-1
+            - FDP_HOST=fdp-1.test
 
     mongo-1:
         image: mongo:4.0.12
@@ -43,20 +43,20 @@ services:
     schema-tool-1:
         image: healthri/fdp-schema-update-tool:1.0.4
         depends_on:
-            - fdp-1
+            - fdp-1.test
         volumes:
             - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
             - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
         environment:
-            - FDP_HOST=http://fdp-1
+            - FDP_HOST=http://fdp-1.test
             - FDP_USER=albert.einstein@example.com
             - FDP_PWD=password
             - PROPERTIES_LOCATION=/opt/app/Properties.yaml
             - SHACL_LOCATION=/opt/app/SHACLs
-        command: [ "-h", "http://fdp-1", "-u", "albert.einstein@example.com", "-p", "password" ]
+        command: [ "-h", "http://fdp-1.test", "-u", "albert.einstein@example.com", "-p", "password" ]
 
     # Fair Data Point #2
-    fdp-2:
+    fdp-2.test:
         image: fairdata/fairdatapoint:1.18.1
         depends_on:
             - mongo-2
@@ -68,11 +68,11 @@ services:
     fdp-client-2:
         image: healthri/fdp-client:1.0.16
         depends_on:
-            - fdp-2
+            - fdp-2.test
         ports:
             - 8082:80
         environment:
-            - FDP_HOST=fdp-2
+            - FDP_HOST=fdp-2.test
 
     mongo-2:
         image: mongo:4.0.12
@@ -99,17 +99,17 @@ services:
     schema-tool-2:
         image: healthri/fdp-schema-update-tool:1.0.4
         depends_on:
-            - fdp-2
+            - fdp-2.test
         volumes:
             - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
             - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
         environment:
-            - FDP_HOST=http://fdp-1
+            - FDP_HOST=http://fdp-2.test
             - FDP_USER=albert.einstein@example.com
             - FDP_PWD=password
             - PROPERTIES_LOCATION=/opt/app/Properties.yaml
             - SHACL_LOCATION=/opt/app/SHACLs
-        command: [ "-h", "http://fdp-2", "-u", "albert.einstein@example.com", "-p", "password" ]
+        command: [ "-h", "http://fdp-2.test", "-u", "albert.einstein@example.com", "-p", "password" ]
 
     # Molgenis setup
     molgenis:
@@ -161,12 +161,12 @@ services:
 
     # Harvester
     harvester:
-        image: molgenis-fdp-harvester
+        image: molgenis-fdp-harvester:0.1.0
         depends_on:
             - molgenis
-            - fdp-1
+            - fdp-1.test
             - schema-tool-1
-            - fdp-2
+            - fdp-2.test
             - schema-tool-2
         environment:
             - MOLGENIS_TOKEN=${MOLGENIS_TOKEN:-}
