@@ -161,7 +161,7 @@ services:
 
     # Harvester
     harvester:
-        image: molgenis-fdp-harvester:0.1.0
+        image: molgenis-fdp-harvester
         depends_on:
             - molgenis
             - fdp-1.test
