@@ -144,7 +144,7 @@ molgenis-init-1  |       "message" : "Transaction failed: schema \"Eucaim\" alre
 molgenis-init-1  | Schema 'Eucaim' already exists; continuing.
 molgenis-init-1  | Token created successfully.
 molgenis-init-1  | 
-molgenis-init-1  | MOLGENIS_TOKEN=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6NDk0MTc1OTIwMSwiaWF0IjoxNzg2MDg1NjAxLCJqdGkiOiJ0ZXN0In0.I1fOqfBHCmCxm6JZp0fvhHCY4flqKHiff7FF_4li5dA
+molgenis-init-1  | MOLGENIS_TOKEN=...
 molgenis-init-1  | 
 molgenis-init-1  | NOTE: Please upload the Molgenis metadata model in the browser
 molgenis-init-1  | 
@@ -157,7 +157,7 @@ Note that you still have to manually upload the Molgenis metadata model in the b
 To configure the Molgenis catalogue:
 - Log in to the Molgenis catalogue with the default credentials (username: `admin`, password: `admin`).
 - Click on (or create) a database (preferred name 'Eucaim'), and click `Upload files`.
-- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xslx` to configure the metadata model.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xlsx` to configure the metadata model.
 
 You may also manually create a Molgenis token:
 To retrieve a Molgenis token:
