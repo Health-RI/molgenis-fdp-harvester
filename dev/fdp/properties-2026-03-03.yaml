@@ -2,7 +2,7 @@
 schemas:
   #The FDP shape files are constructed using the files in the PiecesShape folder.
   Catalog:
-    - "eucaim-catalog.ttl"
+    - "eucaim-catalogue.ttl"
     - "eucaim-agent.ttl"
     - "eucaim-periodoftime.ttl"
     - "eucaim-organization.ttl"

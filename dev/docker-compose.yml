@@ -47,6 +47,12 @@ services:
         volumes:
             - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
             - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+        environment:
+            - FDP_HOST=http://fdp-1
+            - FDP_USER=albert.einstein@example.com
+            - FDP_PWD=password
+            - PROPERTIES_LOCATION=/opt/app/Properties.yaml
+            - SHACL_LOCATION=/opt/app/SHACLs
         command: [ "-h", "http://fdp-1", "-u", "albert.einstein@example.com", "-p", "password" ]
 
     # Fair Data Point #2
@@ -97,6 +103,12 @@ services:
         volumes:
             - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
             - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+        environment:
+            - FDP_HOST=http://fdp-1
+            - FDP_USER=albert.einstein@example.com
+            - FDP_PWD=password
+            - PROPERTIES_LOCATION=/opt/app/Properties.yaml
+            - SHACL_LOCATION=/opt/app/SHACLs
         command: [ "-h", "http://fdp-2", "-u", "albert.einstein@example.com", "-p", "password" ]
 
     # Molgenis setup
