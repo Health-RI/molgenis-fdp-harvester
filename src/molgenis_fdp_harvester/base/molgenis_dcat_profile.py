@@ -256,17 +256,17 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["uri"] = str(dataset_ref)
         # Basic fields
         key_predicate_tuple = (
-            ("id", DCT.identifier),
             ("title", DCT.title),
             ("description", DCT.description),
             ("temporal", DCT.temporal),
             ("applicableLegislation", DCATAP.applicableLegislation),
+            ("contactPoint", DCAT.contactPoint),
             ("accrualPeriodicity", DCT.accrualPeriodicity),
             ("spatial", DCT.spatial),
-            ("publisher", DCT.publisher),
             ("modified", DCT.modified),
+            ("publisher", DCT.publisher),
             ("issued", DCT.issued),
-            ("contactPoint", DCAT.contactPoint),
+            ("pid", DCT.identifier),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
