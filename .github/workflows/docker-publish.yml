@@ -31,6 +31,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -67,36 +70,34 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Run Trivy vulnerability scanner (SARIF output)
+      - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-          limit-clean-by-file: 'true'
+          ignore-unfixed: 'true'
 
       - name: Upload Trivy scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always() # Ensures logs are uploaded even if vulnerabilities are caught
+        if: always()
         with:
           sarif_file: 'trivy-results.sarif'
 
-      # Enforce pipeline blocking based on scan findings
-      - name: Run Trivy again to break build on critical failures
+      - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
           format: 'table'
-          exit-code: '1' # Breaks the execution chain if CRITICAL vulnerabilities exist
+          exit-code: '1'
           severity: 'CRITICAL'
-          ignore-unfixed: 'true' # Keeps noise down by skipping bugs without an official software patch
+          ignore-unfixed: 'true'
 
-      # Final step pushes the validated, clean image up to GitHub Packages (ghcr.io)
       - name: Push Docker image to Registry
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+        run: |
+          docker tag ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+
+      - name: Image pushed successfully
+        run: echo "✅ Image pushed to ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
