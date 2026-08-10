@@ -96,11 +96,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return (
             ("title", DCT.title),
             ("description", DCT.description),
-            ("in_series", DCAT.inSeries),
             ("theme", DCAT.theme),
             ("provenance", DCT.provenance),
             ("keyword", DCAT.keyword),
-            # ("hasPurpose", DPV.hasPurpose), #!!! These properties are commented out because they are a part of a future set of features.
+            ("hasPurpose_obj", DPV.hasPurpose),
+            ("hasPurpose_IRI", DPV.hasPurpose),
             ("accessRights", DCT.accessRights),
             ("healthCategory", HEALTHDCATAP.healthCategory),
             ("healthTheme", HEALTHDCATAP.healthTheme),
@@ -142,14 +142,15 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("page", FOAF.page),
             ("sample", ADMS.sample),
             ("analytics", HEALTHDCATAP.analytics),
-            # ("hasQualityAnnotation", DPV.hasQualityAnnotation),
             ("creator", DCT.creator),
+            ("wasGeneratedBy", PROV.wasGeneratedBy),
             ("spatialResolutionInMeters", DCAT.spatialResolutionInMeters),
-            # ("qualifiedAttribution", PROV.qualifiedAttribution),
-            # ("other_identifier", ADMS.identifier),
+            ("qualifiedAttribution", PROV.qualifiedAttribution),
+            ("other_identifier", ADMS.identifier),
             ("versionNotes", ADMS.versionNotes),
             ("issued", DCT.issued),
             ("modified", DCT.modified),
+            ("in_series", DCAT.inSeries),
         )
 
     def _extract_name_vcard(self, dataset_dict: Dict, key: str):
