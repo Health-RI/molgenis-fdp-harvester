@@ -47,40 +47,49 @@ jobs:
       - name: Resolve Docker image tag
         id: resolve_tag
         run: |
+          # Sanitize and lowercase strings for Docker compatibility
+          sanitize_docker_string() {
+            echo "$1" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]'
+          }
+           
           REF="${{ github.event.inputs.ref }}"
           CUSTOM_TAG="${{ github.event.inputs.tag }}"
-             
+              
           # If manual trigger, use inputs; if push trigger, use branch name
           if [ -z "$REF" ]; then
             REF="${{ github.ref_name }}"
           fi
-           
-          # Sanitize ref characters (like slashes) to ensure compatibility with docker
-          REF_CLEAN=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g')
-          echo "ref=$REF_CLEAN" >> $GITHUB_OUTPUT
             
+          # Sanitize ref characters and convert to lowercase
+          REF_CLEAN=$(sanitize_docker_string "$REF")
+          echo "ref=$REF_CLEAN" >> $GITHUB_OUTPUT
+             
           # Extract short git SHA (first 7 characters) - always primary tag
           SHORT_SHA_VALUE=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "short_sha=$SHORT_SHA_VALUE" >> $GITHUB_OUTPUT
-            
+             
           # Primary tag: ref-hash (always used)
           PRIMARY_TAG="${REF_CLEAN}-${SHORT_SHA_VALUE}"
           echo "primary_tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-           
+            
           # Optional extra tag: if user supplies custom version tag
           if [ -n "$CUSTOM_TAG" ]; then
-            CUSTOM_TAG_CLEAN=$(echo "$CUSTOM_TAG" | sed 's/[^a-zA-Z0-9_.-]/_/g')
+            CUSTOM_TAG_CLEAN=$(sanitize_docker_string "$CUSTOM_TAG")
             echo "custom_tag=$CUSTOM_TAG_CLEAN" >> $GITHUB_OUTPUT
             echo "has_custom_tag=true" >> $GITHUB_OUTPUT
           else
             echo "has_custom_tag=false" >> $GITHUB_OUTPUT
           fi
-           
+            
           echo "tag_dev_latest=dev-latest" >> $GITHUB_OUTPUT
-             
-          # Extract repo name from IMAGE_NAME (remove org prefix)
-          REPO_NAME=$(echo "${{ env.IMAGE_NAME }}" | sed 's|.*/||')
+              
+          # Extract repo name from IMAGE_NAME (remove org prefix) and sanitize
+          REPO_NAME=$(echo "${{ env.IMAGE_NAME }}" | sed 's|.*/||' | tr '[:upper:]' '[:lower:]')
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+           
+          # Sanitize full image name to lowercase for registry (removes org prefix, lowercases)
+          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "image_name_lower=$IMAGE_NAME_LOWER" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -129,23 +138,23 @@ jobs:
 
       - name: Push Docker image to Registry
         run: |
-          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}
-          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
+          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
+          docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
            
           # Push custom tag if provided
           if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
-            docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.custom_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}
-            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}
+            docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.custom_tag }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}
+            docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}
             echo "custom_tag_pushed=true" >> $GITHUB_ENV
           fi
 
       - name: Image pushed successfully
         run: |
           echo "✅ Image pushed:"
-          echo "   Primary: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}"
-          echo "   Latest:  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}"
+          echo "   Primary: ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}"
+          echo "   Latest:  ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}"
           if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
-            echo "   Version: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}"
+            echo "   Version: ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}"
           fi
