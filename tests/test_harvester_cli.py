@@ -306,8 +306,8 @@ def test_neither_fdp_nor_fdp_list_raises_error(temp_config_file, monkeypatch):
     assert "--fdp" in result.output or "required" in result.output.lower()
 
 
-def test_fdp_list_with_header(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
-    """CSV with header row: execute_harvest called once per data row"""
+def test_fdp_list(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
+    """YML with FDP entries: execute_harvest called once per data row"""
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
@@ -328,7 +328,7 @@ def test_fdp_list_with_header(temp_config_file, temp_fdp_list, mock_harvester_pa
 
 
 def test_fdp_list_per_row_prefix(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
-    """Each CSV row's fdp_id_prefix is passed to create_harvester as entry_config"""
+    """Each YML row's fdp_id_prefix is passed to create_harvester as entry_config"""
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
@@ -461,13 +461,13 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
     runner = CliRunner()
     monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
-        f.write("fdp_url,fdp_id_prefix\n")  # header only, no data rows
-        csv_path = f.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+        f.write("fdps:\n")  # header only, no data rows
+        yml_path = f.name
 
     try:
         result = runner.invoke(cli, [
-            '--fdp-list', csv_path,
+            '--fdp-list', yml_path,
             '--host', 'http://localhost:8080',
             '--config', temp_config_file,
             '--input_type', 'fdp',
@@ -477,4 +477,4 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
         assert "no valid entries" in result.output.lower(
         ) or "no valid entries" in str(result.exception).lower()
     finally:
-        os.unlink(csv_path)
+        os.unlink(yml_path)
