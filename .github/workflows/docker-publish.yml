@@ -51,6 +51,10 @@ jobs:
           # Sanitize tag characters (like slashes) to ensure compatibility with docker
           TAG_CLEAN=$(echo "$TAG" | sed 's/[^a-zA-Z0-9_.-]/_/g')
           echo "image_tag=$TAG_CLEAN" >> $GITHUB_OUTPUT
+           
+          # Extract repo name from IMAGE_NAME (remove org prefix)
+          REPO_NAME=$(echo "${{ env.IMAGE_NAME }}" | sed 's|.*/||')
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -67,13 +71,13 @@ jobs:
           context: .
           push: false
           load: true # Exports the built image directly to the local Docker daemon for Trivy scanning
-          tags: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          tags: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -88,7 +92,7 @@ jobs:
       - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
@@ -96,7 +100,7 @@ jobs:
 
       - name: Push Docker image to Registry
         run: |
-          docker tag ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
 
       - name: Image pushed successfully
