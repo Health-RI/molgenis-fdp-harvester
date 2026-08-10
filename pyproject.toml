@@ -14,8 +14,7 @@ dependencies = [
   "unidecode~=1.4.0",
   "python-dotenv~=1.2.1",
   "yarl~=1.23.0",
-  "pyyaml~=6.0.3",
-  "fairclient~=1.0.1"
+  "pyyaml~=6.0.3"
 ]
 name = "molgenis-fdp-harvester"
 dynamic = ["version"]
