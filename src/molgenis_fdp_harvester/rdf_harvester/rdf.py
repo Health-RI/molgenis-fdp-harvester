@@ -10,7 +10,7 @@ from rdflib import URIRef
 from .dcatharvester import DCATHarvester
 from ..base.baseharvester import HarvestObject, munge_title_to_name
 from ..base.processor import RDFParser
-from ..utils import HarvesterException
+from ..utils import HarvesterException, get_missing_required_fields, get_record_label
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class DCATRDFHarvester(DCATHarvester):
 
     def gather_stage(self, harvest_root_uri):
         """Gather stage: discover and prepare objects for harvesting."""
-        log.info(f"Starting gather stage for URI: {harvest_root_uri}")
+        log.info("Starting gather stage for URI: %s", harvest_root_uri)
 
         try:
             # Load and parse RDF content
@@ -55,7 +55,7 @@ class DCATRDFHarvester(DCATHarvester):
             self._gather_stage()
 
         except Exception as e:
-            log.error(f"Error in gather stage: {e}")
+            # Not logged here; the caller logs it with a traceback.
             raise HarvesterException(f"Failed to gather objects: {e}") from e
 
         return self._harvest_objects
@@ -131,9 +131,26 @@ class DCATRDFHarvester(DCATHarvester):
         else:
             self.guids_in_harvest[concept_type].append(guid)
 
+    @staticmethod
+    def _fail_fetch(harvest_object: HarvestObject) -> HarvestObject:
+        """Mark an object as failed in the fetch stage, so the import stage skips it."""
+        harvest_object.content = None
+        harvest_object.fetch_failed = True
+        return harvest_object
+
     def fetch_stage(self, harvest_object: HarvestObject):
         concept_type = harvest_object.concept_type
-        concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
+
+        try:
+            concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
+        except Exception as exc:
+            # Broad by intent: one unparseable record must not stop the whole harvest.
+            self._save_gather_error(
+                f"Unexpected error parsing {concept_type} {harvest_object.guid}: {exc}",
+                level=logging.ERROR,
+                exc_info=True,
+            )
+            return self._fail_fetch(harvest_object)
 
         # Ensure required fields
         if not concept_dict.get("name"):
@@ -142,36 +159,64 @@ class DCATRDFHarvester(DCATHarvester):
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
-        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name attached to the ontologyTermURI
-        # The table to query is configured in the configuration.
-        uri_lookup_table = self.harvester_config.get('uri_lookup_config', {}).get(concept_type)
-        if uri_lookup_table:
-            for property, value in concept_dict.items():
-                molgenis_table = uri_lookup_table.get(property)
-                if molgenis_table:
-                    try:
-                        new_property_value = self._resolve_uris_and_labels(value, molgenis_table)
-                        if new_property_value:
-                            concept_dict[property] = new_property_value
-                    except Exception as exc:
-                        log.warning(f"Exception when resolving ontology URI or label: table {molgenis_table}; URI {value}; {str(exc)}")
+        missing_fields = get_missing_required_fields(concept_dict, concept_type)
+        if missing_fields:
+            record_label = get_record_label(concept_dict, concept_type)
+            self._save_gather_error(
+                f"Validation error: {concept_type} '{record_label}' is missing required "
+                f"field(s): {', '.join(missing_fields)}"
+            )
+            return self._fail_fetch(harvest_object)
+
+        self._resolve_ontology_references(concept_dict, concept_type)
 
         harvest_object.content = json.dumps(concept_dict)
 
-        # Check if this is a dataset without a datasetseries and auto_create is enabled
-        if (concept_type == 'dataset'
-                and self.harvester_config.get('auto_create_datasetseries', False)
-                and ('in_series' not in concept_dict or not concept_dict['in_series'])):
-            # Track this dataset for later datasetseries creation
-            self._datasets_without_datasetseries.append({
-                'dataset_name': concept_dict.get('title'),
-                'dataset_id': concept_dict.get('id'),
-                'dataset_description': concept_dict.get('description', ''),
-                'dataset_guid': harvest_object.guid
-            })
-
+        self._track_dataset_without_datasetseries(concept_dict, harvest_object)
 
         return harvest_object
+
+    def _resolve_ontology_references(self, concept_dict: Dict, concept_type: str | None):
+        """Replace configured ontology URIs/labels in place with their Molgenis names.
+
+        A failed lookup is logged and left as-is: an unresolvable term degrades the record
+        but does not invalidate it, so it is not a gather error.
+        """
+        uri_lookup_table = self.harvester_config.get('uri_lookup_config', {}).get(concept_type)
+        if not uri_lookup_table:
+            return
+
+        for property, value in concept_dict.items():
+            molgenis_table = uri_lookup_table.get(property)
+            if not molgenis_table:
+                continue
+            try:
+                new_property_value = self._resolve_uris_and_labels(value, molgenis_table)
+            except Exception as exc:
+                log.warning(
+                    "Could not resolve ontology URI or label: table %s; URI %s; %s",
+                    molgenis_table, value, exc,
+                )
+                continue
+            if new_property_value:
+                concept_dict[property] = new_property_value
+
+    def _track_dataset_without_datasetseries(self, concept_dict: Dict,
+                                             harvest_object: HarvestObject):
+        """Note a dataset that needs a datasetseries generated for it later on."""
+        if harvest_object.concept_type != 'dataset':
+            return
+        if not self.harvester_config.get('auto_create_datasetseries', False):
+            return
+        if concept_dict.get('in_series'):
+            return
+
+        self._datasets_without_datasetseries.append({
+            'dataset_name': concept_dict.get('title'),
+            'dataset_id': concept_dict.get('id'),
+            'dataset_description': concept_dict.get('description', ''),
+            'dataset_guid': harvest_object.guid
+        })
 
     def _resolve_uri(self, value, molgenis_table):
         return self.molgenis_client.get(table=molgenis_table,
@@ -265,32 +310,38 @@ class DCATRDFHarvester(DCATHarvester):
             log.warning("import_stage: deleting datasets is currently not supported")
             return True
 
+        if harvest_object.fetch_failed:
+            # Already reported by the fetch stage; reporting again would double-count it.
+            log.debug("Skipping import of %s: it already failed during fetch", harvest_object.guid)
+            return False
+
         if harvest_object.content is None:
-            log.error(f"import_stage: Empty content for object {harvest_object.guid}")
+            self._save_import_error(f"Empty content for object {harvest_object.guid}")
             return False
 
         try:
             dataset = json.loads(harvest_object.content)
         except ValueError:
-            log.error(f"import_stage: Could not parse content for object {harvest_object.guid}")
+            self._save_import_error(f"Could not parse content for object {harvest_object.guid}")
             return False
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
 
-        dataset_name = dataset.get('title')
+        dataset_name = get_record_label(dataset, harvest_object.concept_type)
 
         try:
             if harvest_object.status == "new":
-                log.info(f"Adding dataset {dataset_name}")
+                log.info("Adding %s %s", harvest_object.concept_type, dataset_name)
             else: # harvest_object.status == "change"
-                log.info(f"Updating dataset {dataset_name}")
+                log.info("Updating %s %s", harvest_object.concept_type, dataset_name)
             self.molgenis_client.save_table(table=entity_name, data=[dataset])
-            return True
         except Exception as e:
-            log.error(
-                f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
+            self._save_import_error(
+                f"Error importing {harvest_object.concept_type} {dataset_name}: {e!r}",
+                exc_info=True,
             )
             return False
+        return True
 
     def _get_rdf(self, harvest_root_uri):
         next_page_url = harvest_root_uri
@@ -304,7 +355,8 @@ class DCATRDFHarvester(DCATHarvester):
             self.parser.parse(content, _format=rdf_format)
         except HarvesterException as e:
             self._save_gather_error(
-                "Error parsing the RDF file: {0}".format(e), next_page_url
+                f"Error parsing the RDF file at {next_page_url}: {e}",
+                level=logging.ERROR,
             )
 
     def _get_dict_value(self, _dict, key, default=None):

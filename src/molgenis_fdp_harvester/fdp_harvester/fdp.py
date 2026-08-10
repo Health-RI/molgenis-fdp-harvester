@@ -11,7 +11,8 @@ from ..utils import HarvesterException
 log = logging.getLogger(__name__)
 
 class FDPHarvester(DCATRDFHarvester):
-    record_provider = None
+    # Assigned by setup_record_provider, which gather_stage always calls first.
+    record_provider: FairDataPointRecordProvider
 
     def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
         super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
@@ -26,19 +27,23 @@ class FDPHarvester(DCATRDFHarvester):
             self._gather_stage()
 
         except Exception as e:
-            log.error(f"Error in gather stage: {e}")
+            # Not logged here; the caller logs it with a traceback.
             raise HarvesterException(f"Failed to gather objects: {e}") from e
         return self._harvest_objects
 
     def _convert_fdp_to_rdf(self):
         for concept_type in self.concept_types:
             for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
-                log.info(f"Got identifier {str(identifier)} from RecordProvider")
+                log.info("Got identifier %s from RecordProvider", identifier)
 
                 try:
                     self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
                 except Exception as e:
-                    log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
+                    self._save_gather_error(
+                        f"Error for identifier {identifier} in gather phase: {e}",
+                        level=logging.ERROR,
+                        exc_info=True,
+                    )
                     continue
 
                 record = self.record_provider.get_record_by_id(identifier)
@@ -47,13 +52,18 @@ class FDPHarvester(DCATRDFHarvester):
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
                     except Exception as e:
-                        log.error(
-                            "Error saving harvest object for identifier [%s] [%r]"
-                            % (identifier, e))
+                        self._save_gather_error(
+                            f"Error saving harvest object for identifier {identifier}: {e!r}",
+                            level=logging.ERROR,
+                            exc_info=True,
+                        )
                 else:
-                    log.error(
-                        "Empty record for identifier %s" % identifier
-                    )
+                    self._save_gather_error(f"Empty record for identifier {identifier}")
+
+        # The FDP client handles its own HTTP and parse failures, but they must still count
+        # towards this run's errors or a broken FDP looks clean.
+        for message in self.record_provider.fair_data_point.drain_errors():
+            self._save_gather_error(message)
 
 
     def setup_record_provider(self, harvest_url):

@@ -2,11 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import pytest
 from pytest_mock import mocker
 from rdflib import Graph
 from rdflib.compare import to_isomorphic
-from rdflib.exceptions import ParserError
 
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point import FairDataPoint
 
@@ -41,9 +39,8 @@ class TestFairDataPoint:
         fdp_get_data.return_value = "I am not a graph"
 
         fdp = FairDataPoint("some endpoint")
-        actual = fdp.get_graph("some_path")
+        actual = fdp.get_graph("some_path")  # must not raise: parse errors are caught and logged
         assert fdp_get_data.call_count == 1
-        assert pytest.raises(ParserError)
         assert to_isomorphic(actual) == to_isomorphic(expected)
 
     def test_fdp_get_graph_pass_empty(self, mocker):

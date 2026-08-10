@@ -478,3 +478,41 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
         ) or "no valid entries" in str(result.exception).lower()
     finally:
         os.unlink(csv_path)
+
+
+# ---------------------------------------------------------------------------
+# Error handling / exit code tests
+# ---------------------------------------------------------------------------
+
+def test_cli_exits_nonzero_when_execute_harvest_reports_failure(base_cli_args, mock_harvester_patches, monkeypatch):
+    """CLI should exit non-zero if execute_harvest reports the run had errors"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+    mock_harvester_patches['execute_harvest'].return_value = False
+
+    result = runner.invoke(cli, base_cli_args)
+
+    assert result.exit_code != 0
+    assert "failed to harvest cleanly" in result.output
+
+
+def test_cli_continues_after_unexpected_error_in_one_fdp(
+    temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch
+):
+    """An unexpected exception harvesting one FDP in a list must not stop the rest"""
+    runner = CliRunner()
+    monkeypatch.setenv('MOLGENIS_TOKEN', 'token')
+    mock_harvester_patches['execute_harvest'].side_effect = [Exception("boom"), True]
+
+    result = runner.invoke(cli, [
+        '--fdp-list', temp_fdp_list,
+        '--host', 'http://localhost:8080',
+        '--config', temp_config_file,
+        '--input_type', 'fdp',
+    ])
+
+    # both entries were attempted despite the first one raising
+    assert mock_harvester_patches['execute_harvest'].call_count == 2
+    assert mock_harvester_patches['create_harvester'].call_count == 2
+    # the run is still reported as failed overall
+    assert result.exit_code != 0

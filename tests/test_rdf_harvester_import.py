@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+import logging
 
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject
 
@@ -25,7 +25,7 @@ def test_import_stage_success(harvester, mock_client):
     assert result
 
 
-def test_import_stage_empty_content(harvester):
+def test_import_stage_empty_content(harvester, caplog):
     """Test import_stage with empty content"""
     # Setup test data
     harvest_object = HarvestObject(
@@ -35,15 +35,17 @@ def test_import_stage_empty_content(harvester):
     )
 
     # Call method
-    with patch('molgenis_fdp_harvester.rdf_harvester.rdf.log') as mock_log:
+    with caplog.at_level(logging.ERROR):
         result = harvester.import_stage(harvest_object)
 
-        # Verify
-        mock_log.error.assert_called_once()
-        assert not result
+    # Verify: the failure is both logged and recorded on the harvester
+    assert not result
+    assert len(harvester._import_errors) == 1
+    assert harvester.has_errors
+    assert "Empty content" in caplog.text
 
 
-def test_import_stage_client_error(harvester, mock_client):
+def test_import_stage_client_error(harvester, mock_client, caplog):
     """Test import_stage with client error"""
     # Setup test data
     harvest_object = HarvestObject(
@@ -56,15 +58,17 @@ def test_import_stage_client_error(harvester, mock_client):
     mock_client.save_table.side_effect = Exception("Database error")
 
     # Call method
-    with patch('molgenis_fdp_harvester.rdf_harvester.rdf.log') as mock_log:
+    with caplog.at_level(logging.ERROR):
         result = harvester.import_stage(harvest_object)
 
-        # Verify
-        mock_log.error.assert_called_once()
-        assert not result
+    # Verify: the failure is both logged and recorded on the harvester
+    assert not result
+    assert len(harvester._import_errors) == 1
+    assert harvester.has_errors
+    assert "Database error" in caplog.text
 
 
-def test_import_stage_change_status(harvester, mock_client):
+def test_import_stage_change_status(harvester, mock_client, caplog):
     """Test import_stage with change status"""
     # Setup test data
     harvest_object = HarvestObject(
@@ -75,20 +79,19 @@ def test_import_stage_change_status(harvester, mock_client):
     )
 
     # Call method
-    with patch('molgenis_fdp_harvester.rdf_harvester.rdf.log') as mock_log:
+    with caplog.at_level(logging.INFO):
         result = harvester.import_stage(harvest_object)
 
-        # Verify
-        mock_client.save_table.assert_called_once_with(
-            table="datasets",
-            data=[{"name": "Updated Dataset"}]
-        )
-        mock_log.info.assert_called_once()
-        assert "Updating dataset" in mock_log.info.call_args[0][0]
-        assert result
+    # Verify
+    mock_client.save_table.assert_called_once_with(
+        table="datasets",
+        data=[{"name": "Updated Dataset"}]
+    )
+    assert "Updating dataset Updated Dataset" in caplog.text
+    assert result
 
 
-def test_import_stage_logs_adding_for_new(harvester, mock_client):
+def test_import_stage_logs_adding_for_new(harvester, mock_client, caplog):
     """Test import_stage logs 'Adding dataset' for new status"""
     harvest_object = HarvestObject(
         guid="http://example.com/dataset1",
@@ -97,9 +100,26 @@ def test_import_stage_logs_adding_for_new(harvester, mock_client):
         status="new"
     )
 
-    with patch('molgenis_fdp_harvester.rdf_harvester.rdf.log') as mock_log:
+    with caplog.at_level(logging.INFO):
         harvester.import_stage(harvest_object)
 
-        mock_log.info.assert_called_once()
-        assert "Adding dataset" in mock_log.info.call_args[0][0]
-        assert "New Dataset" in mock_log.info.call_args[0][0]
+    assert "Adding dataset New Dataset" in caplog.text
+
+
+def test_import_stage_does_not_re_report_a_fetch_failure(harvester, caplog):
+    """A record already reported in the fetch stage must not be counted a second time."""
+    harvest_object = HarvestObject(
+        guid="http://example.com/dataset1",
+        content=None,
+        concept_type="dataset",
+        status="new"
+    )
+    harvest_object.fetch_failed = True
+
+    with caplog.at_level(logging.WARNING):
+        result = harvester.import_stage(harvest_object)
+
+    assert not result
+    assert harvester._import_errors == []
+    assert not harvester.has_errors
+    assert caplog.records == []

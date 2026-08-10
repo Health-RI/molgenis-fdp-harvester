@@ -32,6 +32,8 @@ class HarvestObject(object):
         self.content = content
         self.status = status
         self.concept_type = concept_type
+        # Set by the fetch stage when it has already reported a failure for this object.
+        self.fetch_failed = False
 
     def __str__(self):
         return f"guid: {self.guid}; status: {self.status}; concept_type: {self.concept_type}"
@@ -76,11 +78,39 @@ class HarvesterBase(object):
         self.config = None
         self._user_name = None
         self._gather_errors = []
+        self._import_errors = []
         self._harvest_objects = []
 
-    def _save_gather_error(self, *args):
-        log.warning("Harvester gather error: %s", args)
-        self._gather_errors.append(args)
+    def _save_gather_error(self, message: str, *, level: int = logging.WARNING,
+                           exc_info: bool = False):
+        """Record and log an error that stopped an object from being gathered or validated.
+
+        Validation failures and other expected data problems are warnings; pass
+        level=logging.ERROR for genuinely unexpected failures. Callers must not log the
+        message themselves as well - that puts every failure in the log twice.
+        """
+        log.log(level, "Harvester gather error: %s", message, exc_info=exc_info)
+        self._gather_errors.append(message)
+
+    def _save_import_error(self, message: str, *, exc_info: bool = False):
+        """Record and log an error that stopped an object from being imported."""
+        log.error("Harvester import error: %s", message, exc_info=exc_info)
+        self._import_errors.append(message)
+
+    @property
+    def gather_error_count(self) -> int:
+        """Number of objects that failed to gather or validate during this run."""
+        return len(self._gather_errors)
+
+    @property
+    def import_error_count(self) -> int:
+        """Number of objects that failed to import during this run."""
+        return len(self._import_errors)
+
+    @property
+    def has_errors(self) -> bool:
+        """True if any object failed to gather, validate or import during this run."""
+        return bool(self._gather_errors or self._import_errors)
 
     @classmethod
     def _gen_new_name(cls, title, existing_name=None, append_type=None):

@@ -47,7 +47,12 @@ When `--fdp-id-prefix` is provided, it is prepended to plain-string identifiers 
 When omitted, the plain-string identifier is used as-is for `id`, and the PID service URL is still applied.
 
 Every CLI option can also be set via an environment variable, which is the recommended approach when running
-in Docker or Kubernetes:
+in Docker or Kubernetes. Copy [.env.example](.env.example) to `.env` for a documented starting point — it is
+read from the directory you run the harvester from, and is gitignored:
+
+```console
+cp .env.example .env
+```
 
 | Environment variable | CLI option        | Required               |
 |----------------------|-------------------|------------------------|
@@ -59,6 +64,39 @@ in Docker or Kubernetes:
 | `FDP_URL`            | `--fdp`           | One of                 |
 | `FDP_LIST_PATH`      | `--fdp-list`      | One of                 |
 | `FDP_ID_PREFIX`      | `--fdp-id-prefix` | No                     |
+| `LOG_LEVEL`          | -                 | No (default: `INFO`)   |
+| `LOG_FILE`           | -                 | No                     |
+| `LOG_FILE_RETENTION` | -                 | No (default: `10`)     |
+
+### Logging
+
+`LOG_LEVEL` controls the harvester's log verbosity and must be one of `INFO`, `WARNING` or `ERROR`
+(an invalid value falls back to `INFO` and is reported). Logs are always written to stdout.
+
+If `LOG_FILE` is set, logs are also written to disk. Rather than appending to one ever-growing file,
+every run gets its own file, with the run's start time inserted before the suffix:
+
+```console
+LOG_FILE=/var/log/harvester/harvest.log
+  -> /var/log/harvester/harvest_20240131-021500.log   # this run
+  -> /var/log/harvester/harvest_20240130-021500.log   # yesterday's run
+```
+
+`LOG_FILE_RETENTION` sets how many run logs to keep (default 10); once the current run's file has been
+created, older ones are deleted. Give `LOG_FILE` a directory of its own: pruning removes every sibling
+that matches the run-log naming scheme, not only files the current process created. The log directory is
+created if it does not exist, and if the file cannot be opened at all the run continues on stdout only.
+
+### Error handling
+
+The harvester logs, but does not crash on, expected errors (network/HTTP failures, validation errors on
+individual records) so that a scheduled run can continue past them. Each failure is reported once, with a
+label appropriate to the record's type — a Dataset is identified by its `title`, a Publisher by its `name`,
+a contact point by its `fn` — falling back to the record's URI when it has none. Unexpected errors are
+logged with a full traceback, and one failing FDP does not stop the others in a `--fdp-list` run.
+
+If any errors occurred during a run, the harvester exits with a non-zero exit code so a scheduler can
+detect and alert on it. A run that completes without errors but harvests nothing is logged as a warning.
 
 ## Docker
 
