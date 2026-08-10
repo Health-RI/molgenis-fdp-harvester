@@ -67,7 +67,7 @@ jobs:
           context: .
           push: false
           load: true # Exports the built image directly to the local Docker daemon for Trivy scanning
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Run Trivy vulnerability scanner
