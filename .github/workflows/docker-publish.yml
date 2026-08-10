@@ -4,6 +4,9 @@
 name: Build and Push Docker Image
 
 on:
+  push:
+    branches:
+      - 'docker-publish-pipline-update'
   workflow_dispatch:
     inputs:
       ref:
@@ -29,7 +32,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,14 +47,37 @@ jobs:
       - name: Resolve Docker image tag
         id: resolve_tag
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          if [ -z "$TAG" ]; then
-            TAG="${{ github.event.inputs.ref }}"
+          REF="${{ github.event.inputs.ref }}"
+          CUSTOM_TAG="${{ github.event.inputs.tag }}"
+             
+          # If manual trigger, use inputs; if push trigger, use branch name
+          if [ -z "$REF" ]; then
+            REF="${{ github.ref_name }}"
           fi
-          # Sanitize tag characters (like slashes) to ensure compatibility with docker
-          TAG_CLEAN=$(echo "$TAG" | sed 's/[^a-zA-Z0-9_.-]/_/g')
-          echo "image_tag=$TAG_CLEAN" >> $GITHUB_OUTPUT
            
+          # Sanitize ref characters (like slashes) to ensure compatibility with docker
+          REF_CLEAN=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g')
+          echo "ref=$REF_CLEAN" >> $GITHUB_OUTPUT
+            
+          # Extract short git SHA (first 7 characters) - always primary tag
+          SHORT_SHA_VALUE=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "short_sha=$SHORT_SHA_VALUE" >> $GITHUB_OUTPUT
+            
+          # Primary tag: ref-hash (always used)
+          PRIMARY_TAG="${REF_CLEAN}-${SHORT_SHA_VALUE}"
+          echo "primary_tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
+           
+          # Optional extra tag: if user supplies custom version tag
+          if [ -n "$CUSTOM_TAG" ]; then
+            CUSTOM_TAG_CLEAN=$(echo "$CUSTOM_TAG" | sed 's/[^a-zA-Z0-9_.-]/_/g')
+            echo "custom_tag=$CUSTOM_TAG_CLEAN" >> $GITHUB_OUTPUT
+            echo "has_custom_tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_custom_tag=false" >> $GITHUB_OUTPUT
+          fi
+           
+          echo "tag_dev_latest=dev-latest" >> $GITHUB_OUTPUT
+             
           # Extract repo name from IMAGE_NAME (remove org prefix)
           REPO_NAME=$(echo "${{ env.IMAGE_NAME }}" | sed 's|.*/||')
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
@@ -62,7 +88,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.resolve_tag.outputs.image_tag }}
+            type=raw,value=${{ steps.resolve_tag.outputs.primary_tag }}
 
       # Step updated to build but NOT push immediately, allowing Trivy to test the image locally first
       - name: Build Docker image locally
@@ -71,13 +97,16 @@ jobs:
           context: .
           push: false
           load: true # Exports the built image directly to the local Docker daemon for Trivy scanning
-          tags: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
+          tags: |
+            ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
+            ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
+            ${{ steps.resolve_tag.outputs.has_custom_tag == 'true' && format('{0}:{1}', steps.resolve_tag.outputs.repo_name, steps.resolve_tag.outputs.custom_tag) || '' }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -92,7 +121,7 @@ jobs:
       - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }}
+          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
@@ -100,8 +129,23 @@ jobs:
 
       - name: Push Docker image to Registry
         run: |
-          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.image_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
-          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
+           
+          # Push custom tag if provided
+          if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
+            docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.custom_tag }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}
+            echo "custom_tag_pushed=true" >> $GITHUB_ENV
+          fi
 
       - name: Image pushed successfully
-        run: echo "✅ Image pushed to ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}"
+        run: |
+          echo "✅ Image pushed:"
+          echo "   Primary: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.primary_tag }}"
+          echo "   Latest:  ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}"
+          if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
+            echo "   Version: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.custom_tag }}"
+          fi
