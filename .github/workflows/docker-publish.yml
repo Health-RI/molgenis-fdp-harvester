@@ -23,6 +23,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write # Required to upload Trivy SARIF scan results to GitHub Security tab
 
     steps:
       - name: Checkout repository
@@ -44,7 +45,9 @@ jobs:
           if [ -z "$TAG" ]; then
             TAG="${{ github.event.inputs.ref }}"
           fi
-          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
+          # Sanitize tag characters (like slashes) to ensure compatibility with docker
+          TAG_CLEAN=$(echo "$TAG" | sed 's/[^a-zA-Z0-9_.-]/_/g')
+          echo "image_tag=$TAG_CLEAN" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -54,7 +57,43 @@ jobs:
           tags: |
             type=raw,value=${{ steps.resolve_tag.outputs.image_tag }}
 
-      - name: Build and push Docker image
+      # Step updated to build but NOT push immediately, allowing Trivy to test the image locally first
+      - name: Build Docker image locally
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true # Exports the built image directly to the local Docker daemon for Trivy scanning
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Run Trivy vulnerability scanner (SARIF output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          limit-clean-by-file: 'true'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # Ensures logs are uploaded even if vulnerabilities are caught
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # Enforce pipeline blocking based on scan findings
+      - name: Run Trivy again to break build on critical failures
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve_tag.outputs.image_tag }}
+          format: 'table'
+          exit-code: '1' # Breaks the execution chain if CRITICAL vulnerabilities exist
+          severity: 'CRITICAL'
+          ignore-unfixed: 'true' # Keeps noise down by skipping bugs without an official software patch
+
+      # Final step pushes the validated, clean image up to GitHub Packages (ghcr.io)
+      - name: Push Docker image to Registry
         uses: docker/build-push-action@v6
         with:
           context: .
