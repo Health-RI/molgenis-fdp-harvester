@@ -15,35 +15,35 @@
 fdp:new
     a dcat:Dataset, dcat:Resource;
     r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
-    hea:healthCategory <http://13.81.34.152:1101/resource/authority/healthcategories/EHRS>;
-    hea:healthTheme <http://13.81.34.152:1101/resource/authority/health-theme/ANTIMICROBIAL_CONTROL>;
+    hea:healthCategory <http://publications.europa.eu/resource/authority/healthcategories/EHRS>;
+    hea:healthTheme <http://publications.europa.eu/resource/authority/health-theme/CANCER_DISEASE>;
     hea:numberOfRecords "6"^^xsd:nonNegativeInteger;
     hea:numberOfUniqueIndividuals "5"^^xsd:nonNegativeInteger;
     dct:accessRights <http://publications.europa.eu/resource/authority/access-right/NON_PUBLIC>;
-    dct:description "sfdcsxz";
-    dct:identifier "sobs";
+    dct:description "Test dataset 1 - description";
+    dct:identifier "testdataset1-identifier";
     dct:isPartOf cat:__CATALOG_UUID__;
-    dct:provenance [ a dct:ProvenanceStatement; rdfs:label "xdfgvdxn" ];
+    dct:provenance [ a dct:ProvenanceStatement; rdfs:label "Test dataset 1 - Provenance statement" ];
     dct:publisher
             [
                 a foaf:Organization;
                 foaf:homepage <https://cancerimage.eu>;
-                foaf:name "xfgn forge"
+                foaf:name "Test dataset 1 - publisher"
             ];
-    dct:spatial <http://publications.europa.eu/resource/authority/country/BEL>;
-    dct:title "songs";
-    dct:type <http://publications.europa.eu/resource/authority/dataset-type/STATISTICAL>;
+    dct:spatial <http://publications.europa.eu/resource/authority/country/NLD>;
+    dct:title "Test dataset 1";
+    dct:type <https://cancerimage.eu/ontology/EUCAIM#SPEC1000020>;
     adms:interoperabilityLevel <https://cancerimage.eu/ontology/EUCAIM#SPEC1000009>;
     dcat:contactPoint
-    [ a vcard:Kind; vcard:fn "dfbx"; vcard:hasEmail <mailto:test@test.com> ];
-    dcat:keyword "Seth";
+    [ a vcard:Kind; vcard:fn "Test dataset 1 - Contact point"; vcard:hasEmail <mailto:test@example.com> ];
+    dcat:keyword "testkeyword";
     dcat:theme <http://publications.europa.eu/resource/authority/data-theme/HEAL>;
     dcat:version "1.0";
     EUC:collectionMethod <https://cancerimage.eu/ontology/EUCAIM#SPEC1000005>;
     EUC:hasBirthSex <https://cancerimage.eu/ontology/EUCAIM#COM1001370>;
-    EUC:hasCondition <https://cancerimage.eu/ontology/EUCAIM#CLIN1010238>;
-    EUC:hasEquipmentManufacturer <https://cancerimage.eu/ontology/EUCAIM#IMG1000044>;
-    EUC:hasImageBodyPart <https://cancerimage.eu/ontology/EUCAIM#BP1000055>;
-    EUC:hasImageModality <https://cancerimage.eu/ontology/EUCAIM#IMG1000022>;
+    EUC:hasCondition <http://purl.bioontology.org/ontology/SNOMEDCT/109841003>;
+    EUC:hasEquipmentManufacturer <https://cancerimage.eu/ontology/EUCAIM#IMG1000050>;
+    EUC:hasImageBodyPart <http://purl.bioontology.org/ontology/SNOMEDCT/43799004>;
+    EUC:hasImageModality <https://cancerimage.eu/ontology/EUCAIM#IMG1000038>;
     dpv:hasPurpose [ a dpv:Purpose ].
 
