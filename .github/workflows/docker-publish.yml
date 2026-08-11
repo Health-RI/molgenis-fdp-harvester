@@ -123,41 +123,6 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
           hide-progress: 'true'
-          cache: 'true'
-
-      - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          ignore-unfixed: 'true'
-          format: 'json'
-          output: 'trivy-result.json'
-          hide-progress: 'true'
-        env:
-          TRIVY_SKIP_DB_UPDATE: true
-          TRIVY_SKIP_JAVA_DB_UPDATE: true
-
-      - uses: CemitDigital/trivy-report-issue-action@v1.1
-        with:
-          # Token passed by GitHub actions, required for access to GitHub issues
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-          # File with scan results
-          input-filename: "trivy-result.json"
-
-          # Label name
-          # Default: vulnerability (this label must be created in advance)
-          label: 'trivy-vulnerability'
-
-          # Assignees, comma separated
-          # Default: ''
-          # Example: 'monalisa,hubot'
-          assignee: 'ishtiaqahmad'
-
-          # If set the new issues will be assigned to the specified project
-          # Default: ''
-          project-id: ''
 
       - name: Summarize SARIF into step summary
         env:
