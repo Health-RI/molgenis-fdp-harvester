@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pytest
-
 import rdflib
 from rdflib import URIRef
 
@@ -18,19 +17,19 @@ def parser(profiles):
 
 @pytest.fixture
 def catalog_data():
-    with open("tests/test_data/rdf_catalog.ttl", "r") as f:
+    with open("tests/test_data/rdf_catalog.ttl") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset1_data():
-    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl") as f:
         return f.read()
 
 
 @pytest.fixture
 def dataset2_data():
-    with open("tests/test_data/rdf_dataset2.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset2.ttl") as f:
         return f.read()
 
 def test_parser_initialization(profiles):
@@ -127,7 +126,7 @@ def test_supported_formats(parser):
 
 def test_publisher_generator(parser):
     """publisher() yields dicts with concept_type 'publisher' for FOAF.Organization resources."""
-    with open("tests/test_data/extraction_foaf_organization.ttl", "r") as f:
+    with open("tests/test_data/extraction_foaf_organization.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     publishers = list(parser.publisher())
@@ -138,7 +137,7 @@ def test_publisher_generator(parser):
 
 def test_kind_generator(parser):
     """kind() yields dicts with concept_type 'kind' for VCARD.Kind resources."""
-    with open("tests/test_data/extraction_vcard_contact.ttl", "r") as f:
+    with open("tests/test_data/extraction_vcard_contact.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     kinds = list(parser.kind())
@@ -149,7 +148,7 @@ def test_kind_generator(parser):
 
 def test_provenancestatement_generator(parser):
     """provenancestatement() yields dicts with concept_type 'provenancestatement'."""
-    with open("tests/test_data/extraction_provenancestatement.ttl", "r") as f:
+    with open("tests/test_data/extraction_provenancestatement.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     provs = list(parser.provenancestatement())
@@ -160,7 +159,7 @@ def test_provenancestatement_generator(parser):
 
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
-    with open("tests/test_data/extraction_foaf_organization.ttl", "r") as f:
+    with open("tests/test_data/extraction_foaf_organization.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     publisher_uri = URIRef("http://example.com/org1")
@@ -172,7 +171,7 @@ def test_get_concept_publisher(parser):
 
 def test_get_concept_kind(parser):
     """get_concept() with type 'kind' returns a dict with kind fields."""
-    with open("tests/test_data/extraction_vcard_contact.ttl", "r") as f:
+    with open("tests/test_data/extraction_vcard_contact.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     kind_uri = URIRef("http://example.com/contact1")
@@ -184,7 +183,7 @@ def test_get_concept_kind(parser):
 
 def test_get_concept_provenancestatement(parser):
     """get_concept() with type 'provenancestatement' returns a dict with provenance fields."""
-    with open("tests/test_data/extraction_provenancestatement.ttl", "r") as f:
+    with open("tests/test_data/extraction_provenancestatement.ttl") as f:
         parser.parse(data=f.read(), _format="turtle")
 
     prov_uri = URIRef("http://example.com/prov1")

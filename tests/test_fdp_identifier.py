@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from pytest_mock import mocker
 
 from molgenis_fdp_harvester.fdp_harvester.domain.identifier import (
     Identifier,

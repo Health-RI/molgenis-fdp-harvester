@@ -3,16 +3,15 @@
 # Test that the dotenv is picked up correctly
 # Test that the correct harvester is created in create_harvester, and that ValueError is raised if the 'else' branch is triggered.
 
-import io
 import os
-import pytest
 import tempfile
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from click.testing import CliRunner
+from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_list
-from molgenis_emx2_pyclient import Client
 
 
 @pytest.fixture

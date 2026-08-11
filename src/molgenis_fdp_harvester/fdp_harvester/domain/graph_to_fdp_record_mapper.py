@@ -3,8 +3,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from .fdp_record import FdpRecord
 from ...base.baseparser import LDP
+from .fdp_record import FdpRecord
 
 
 class GraphToFdpRecordMapper:

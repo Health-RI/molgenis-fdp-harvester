@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pytest
-
 import rdflib
-from rdflib import URIRef, Literal
-from rdflib.namespace import DCAT, RDF, FOAF, DCTERMS
+from rdflib import Literal, URIRef
+from rdflib.namespace import DCAT, DCTERMS, FOAF, RDF
 
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
@@ -17,7 +16,7 @@ def rdf_graph():
     g = rdflib.Dataset()
 
     # Load test RDF data
-    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
+    with open("tests/test_data/rdf_dataset1.ttl") as f:
         dataset1_data = f.read()
 
     g.parse(data=dataset1_data, format="turtle")

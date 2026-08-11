@@ -2,7 +2,6 @@ import json
 from unittest.mock import patch
 
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
-from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 
 
 def test_fetch_concept_with_name_and_id(harvester, empty_harvestobject_dataset):

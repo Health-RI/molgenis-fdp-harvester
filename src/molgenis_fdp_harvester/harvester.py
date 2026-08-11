@@ -20,13 +20,14 @@ from .fdp_harvester.fdp import FDPHarvester
 try:
     import tomllib
 except ModuleNotFoundError:
-    import tomli as tomllib
+    pass
 
 import click
 from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+
 from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
@@ -175,10 +176,9 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
 
     if input_type == 'rdf':
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)
-    elif input_type == 'fdp':
+    if input_type == 'fdp':
         return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
-    else:
-        raise ValueError(f"Unknown input_type: {input_type}")
+    raise ValueError(f"Unknown input_type: {input_type}")
 
 def execute_harvest(harvester, source_url, concept_type_order):
     """Execute the complete harvesting process."""

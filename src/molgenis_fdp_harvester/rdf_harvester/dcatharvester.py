@@ -1,11 +1,10 @@
-import os
 import logging
+import os
 
-import requests
 import rdflib
+import requests
 
 from ..base.baseharvester import HarvesterBase
-
 
 log = logging.getLogger(__name__)
 
@@ -31,19 +30,18 @@ class DCATHarvester(HarvesterBase):
         if not url.lower().startswith("http"):
             # Check local file
             if os.path.exists(url):
-                with open(url, "r") as f:
+                with open(url) as f:
                     content = f.read()
                 content_type = content_type or rdflib.util.guess_format(url)
                 return content, content_type
-            else:
-                self._save_gather_error("Could not get content for this url", url)
-                return None, None
+            self._save_gather_error("Could not get content for this url", url)
+            return None, None
 
         try:
 
             if page > 1:
                 url = url + "&" if "?" in url else url + "?"
-                url = url + "page={0}".format(page)
+                url = url + f"page={page}"
 
             log.debug("Getting file %s", url)
 
@@ -65,10 +63,8 @@ class DCATHarvester(HarvesterBase):
 
                 cl = r.headers.get("content-length")
                 if cl and int(cl) > max_file_size:
-                    msg = """Remote file is too big. Allowed
-                        file size: {allowed}, Content-Length: {actual}.""".format(
-                        allowed=max_file_size, actual=cl
-                    )
+                    msg = f"""Remote file is too big. Allowed
+                        file size: {max_file_size}, Content-Length: {cl}."""
                     self._save_gather_error(msg)
                     return None, None
 
@@ -127,7 +123,6 @@ class DCATHarvester(HarvesterBase):
         given the key
         """
         log.warning("_get_object_extra: stubbed")
-        return None
 
     def _get_package_name(self, harvest_object, title):
 

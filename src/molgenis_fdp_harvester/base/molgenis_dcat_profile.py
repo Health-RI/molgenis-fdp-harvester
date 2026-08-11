@@ -7,18 +7,13 @@
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
-from datetime import datetime
-from typing import Dict, Union
+import logging
 from urllib.parse import urlparse
 
-from rdflib import URIRef, FOAF, RDF, RDFS, PROV
-
-import logging
+from rdflib import FOAF, RDF, RDFS, URIRef
 
 from .baseharvester import munge_title_to_name
-from .baseparser import (
-    RDFProfile, VCARD, EUCAIM, HEALTHDCATAP, DCT, DCAT, ADMS, DCATAP, DPV
-)
+from .baseparser import ADMS, DCAT, DCATAP, DCT, DPV, EUCAIM, HEALTHDCATAP, VCARD, RDFProfile
 
 log = logging.getLogger(__name__)
 
@@ -35,30 +30,30 @@ def generate_id(arr):
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
 
-    def _extract_concept_dict(self, concept_ref, concept_dict: Dict, 
-                            field_mappings: tuple) -> Dict:
+    def _extract_concept_dict(self, concept_ref, concept_dict: dict,
+                            field_mappings: tuple) -> dict:
         """Extract RDF properties into a concept dictionary."""
         for field_name, predicate in field_mappings:
             value = self._object_value(concept_ref, predicate)
 
             if not value:
                 continue
-                
+
             # Handle single-item lists
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            
+
             concept_dict[field_name] = value
-            
+
         return concept_dict
 
     def _extract_and_transform_by_type(
             self,
-            dataset_dict: Dict,
+            dataset_dict: dict,
             key: str,
-            expected_types: Union[list, URIRef],
+            expected_types: list | URIRef,
             extraction_fn
-    ) -> Dict:
+    ) -> dict:
         """
         Generic method to extract and transform RDF properties based on type checking.
 
@@ -152,17 +147,17 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("modified", DCT.modified),
         )
 
-    def _extract_name_vcard(self, dataset_dict: Dict, key: str):
+    def _extract_name_vcard(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
             return self._object_value(uri_ref, VCARD.fn).lower().replace(' ', '')
         return self._extract_and_transform_by_type(dataset_dict, key, VCARD.Kind, extraction)
 
-    def _extract_name_publisher(self, dataset_dict: Dict, key: str):
+    def _extract_name_publisher(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
             return self._object_value(uri_ref, FOAF.name).lower().replace(' ', '')
         return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Organization, extraction)
 
-    def _extract_provenancestatement_label(self, dataset_dict: Dict, key: str):
+    def _extract_provenancestatement_label(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
             label_list = self._object_value(uri_ref, RDFS.label)
             if not isinstance(label_list, list):
@@ -170,7 +165,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             return generate_id(label_list)
         return self._extract_and_transform_by_type(dataset_dict, key, DCT.ProvenanceStatement, extraction)
 
-    def _extract_datasetseries_id(self, dataset_dict: Dict):
+    def _extract_datasetseries_id(self, dataset_dict: dict):
         if dataset_dict.get('in_series'):
             original_value = URIRef(dataset_dict['in_series'])
             retrieved_class = self._object_value(original_value, RDF.type)
@@ -180,7 +175,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                     dataset_dict['in_series'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
         return dataset_dict
 
-    def _remove_default_language(self, dataset_dict: Dict):
+    def _remove_default_language(self, dataset_dict: dict):
         if dataset_dict.get('language'):
             language_list = dataset_dict['language']
             if not isinstance(language_list, list):
@@ -196,7 +191,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                 pass
         return dataset_dict
 
-    def handle_pids(self, dataset_dict: Dict):
+    def handle_pids(self, dataset_dict: dict):
         # This method is only used for datasets
         # For datasets it is required that there is an 'id' and 'identifier' column.
         # If the source contains dct:identifier, it is mapped to 'identifier'.
@@ -231,7 +226,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         return dataset_dict
 
-    def parse_dataset(self, dataset_dict: Dict, dataset_ref: URIRef) -> Dict:
+    def parse_dataset(self, dataset_dict: dict, dataset_ref: URIRef) -> dict:
         """Parse dataset from RDF reference into dictionary."""
         dataset_dict["uri"] = str(dataset_ref)
 
@@ -251,7 +246,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         return dataset_dict
 
-    def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
+    def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         # Basic fields
         key_predicate_tuple = (
@@ -277,7 +272,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         return dataset_dict
 
-    def parse_publisher(self, dataset_dict: Dict, dataset_ref: URIRef):
+    def parse_publisher(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
             ("name", FOAF.name),
@@ -288,7 +283,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         return dataset_dict
 
-    def parse_kind(self, dataset_dict: Dict, dataset_ref: URIRef):
+    def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
             ("fn", VCARD.fn),
@@ -301,7 +296,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             dataset_dict["hasEmail"] = dataset_dict["hasEmail"].removeprefix("mailto:")
         return dataset_dict
 
-    def parse_provenancestatement(self, dataset_dict: Dict, dataset_ref: URIRef):
+    def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
             ("label", RDFS.label),

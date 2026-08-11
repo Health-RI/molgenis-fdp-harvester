@@ -19,14 +19,13 @@ from .baseparser import (
     munge_tag,
 )
 
-
 log = logging.getLogger(__name__)
 
 PACKAGE_NAME_MIN_LENGTH = 2
 PACKAGE_NAME_MAX_LENGTH = 100
 
 
-class HarvestObject(object):
+class HarvestObject:
     def __init__(self, guid, concept_type=None, status=None, content=None) :
         self.guid = guid
         self.content = content
@@ -63,7 +62,7 @@ def munge_title_to_name(name: str) -> str:
     return name
 
 
-class HarvesterBase(object):
+class HarvesterBase:
     """
     Generic base class for harvesters, providing a number of useful functions.
 
@@ -159,7 +158,6 @@ class HarvesterBase(object):
 
         """
         log.warning("_get_user_name: stubbed")
-        return None
 
     def _create_harvest_objects(self, remote_ids, harvest_job):
         """

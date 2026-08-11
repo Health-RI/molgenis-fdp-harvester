@@ -2,7 +2,6 @@ from unittest.mock import Mock
 
 import pytest
 import rdflib
-
 from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject
@@ -57,7 +56,7 @@ def catalog_url():
     return "tests/test_data/rdf_catalog.ttl"
 
 
-@pytest.fixture()
+@pytest.fixture
 def empty_harvestobject_dataset():
     return HarvestObject(
         guid="http://example.com/dataset1",

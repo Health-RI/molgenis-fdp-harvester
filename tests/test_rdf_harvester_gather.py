@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pytest
 from unittest.mock import patch
 
-from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+import pytest
+
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
 from molgenis_fdp_harvester.utils import HarvesterException
 
 """

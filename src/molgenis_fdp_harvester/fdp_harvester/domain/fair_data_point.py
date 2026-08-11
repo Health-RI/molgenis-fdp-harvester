@@ -5,7 +5,6 @@
 
 import encodings
 import logging
-from typing import Union
 
 import requests
 from rdflib import Graph, URIRef
@@ -21,7 +20,7 @@ class FairDataPoint:
     def __init__(self, fdp_end_point: str):
         self.fdp_end_point = fdp_end_point
 
-    def get_graph(self, path: Union[str, URIRef]) -> Graph:
+    def get_graph(self, path: str | URIRef) -> Graph:
         """
         Get graph from FDP at specified path. Not using function to load graph from endpoint directly since this
         function fails because of a certificate error. The library it uses probably has no certificates which would
@@ -42,7 +41,7 @@ class FairDataPoint:
         return graph
 
     @staticmethod
-    def _get_data(path: Union[str, URIRef]) -> Union[str, None]:
+    def _get_data(path: str | URIRef) -> str | None:
         headers = {"Accept": "text/turtle"}
         try:
             response = requests.request("GET", path, headers=headers)

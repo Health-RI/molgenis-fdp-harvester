@@ -5,8 +5,6 @@
 from pathlib import Path
 
 import pytest
-import requests_mock
-from pytest_mock import class_mocker, mocker
 from rdflib import Graph
 
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider import (

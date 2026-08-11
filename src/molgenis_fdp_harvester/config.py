@@ -10,7 +10,7 @@ except ModuleNotFoundError:
     import tomli as tomllib
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -38,7 +38,7 @@ class ConceptTableLink:
 class HarvesterConfig:
     """Schema for harvester_config section."""
     auto_create_datasetseries: bool = True
-    uri_lookup_config: Dict[str, Dict[str, str]] | None = None
+    uri_lookup_config: dict[str, dict[str, str]] | None = None
     pid_service_url: str = None
 
 
@@ -49,7 +49,7 @@ class HarvesterConfigSchema:
     harvester_config: HarvesterConfig | None = None
 
 
-def validate_config(config_data: Dict[str, Any]) -> None:
+def validate_config(config_data: dict[str, Any]) -> None:
     """Validate that the configuration contains all required sections and fields.
 
     Args:

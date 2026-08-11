@@ -8,18 +8,15 @@
 # Original location of file: https://github.com/ckan/ckanext-dcat/blob/master/ckanext/dcat/processors.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
-from typing import List
 import xml
 
 import rdflib
 import rdflib.parser
 from rdflib import FOAF
-from rdflib.namespace import RDF, DCAT
+from rdflib.namespace import DCAT, RDF
 
-from .baseparser import VCARD, HYDRA, DCT
 from ..utils import HarvesterException
-
-
+from .baseparser import DCT, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -42,7 +39,7 @@ def url_to_rdflib_format(_format):
     return _format
 
 
-class RDFProcessor(object):
+class RDFProcessor:
     def __init__(self):
         """
         Creates a parser or serializer instance
@@ -59,7 +56,7 @@ class RDFParser(RDFProcessor):
     CKAN dicts from the RDF graph.
     """
 
-    def __init__(self, profiles: List):
+    def __init__(self, profiles: list):
         super().__init__()
         self._profiles = profiles
 

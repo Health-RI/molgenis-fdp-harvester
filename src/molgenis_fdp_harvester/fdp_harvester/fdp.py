@@ -1,19 +1,18 @@
 import logging
-from typing import Dict, List
 
 from molgenis_emx2_pyclient import Client
 
-from .domain.fair_data_point_record_provider import FairDataPointRecordProvider
-from .domain.identifier import Identifier
 from ..rdf_harvester.rdf import DCATRDFHarvester
 from ..utils import HarvesterException
+from .domain.fair_data_point_record_provider import FairDataPointRecordProvider
+from .domain.identifier import Identifier
 
 log = logging.getLogger(__name__)
 
 class FDPHarvester(DCATRDFHarvester):
     record_provider = None
 
-    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
+    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict = None):
         super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
 
     def gather_stage(self, harvest_root_uri):
@@ -33,12 +32,12 @@ class FDPHarvester(DCATRDFHarvester):
     def _convert_fdp_to_rdf(self):
         for concept_type in self.concept_types:
             for identifier in self.record_provider.get_record_ids(concept_type=concept_type):
-                log.info(f"Got identifier {str(identifier)} from RecordProvider")
+                log.info(f"Got identifier {identifier!s} from RecordProvider")
 
                 try:
                     self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
                 except Exception as e:
-                    log.error(f"Error for identifier {str(identifier)} in gather phase: {str(e)}")
+                    log.error(f"Error for identifier {identifier!s} in gather phase: {e!s}")
                     continue
 
                 record = self.record_provider.get_record_by_id(identifier)
