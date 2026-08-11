@@ -183,6 +183,92 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                     dataset_dict['in_series'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
         return dataset_dict
 
+    def _extract_creator(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_creator({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+
+    def _extract_periodoftime(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_periodoftime({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCT.PeriodOfTime, extraction)
+
+    def _extract_attribution(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_attribution({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, PROV.Attribution, extraction)
+
+    def _extract_attribution_agent(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_attribution_agent({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+
+    def _extract_other_identifier(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_other_identifier({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, ADMS.Identifier, extraction)
+
+    def _extract_distribution(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_distribution({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.Distribution, extraction)
+
+    def _extract_policy(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_policy({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, ODRL.Policy, extraction)
+
+    def _extract_checksum(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_checksum({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, SPDX.Checksum, extraction)
+
+    def _extract_rightsstatement(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_rightsstatement({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCT.RightsStatement, extraction)
+
+    def _extract_dataservice(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_dataservice({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.DataService, extraction)
+
+    def _extract_permission(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_permission({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, ODRL.Permission, extraction)
+
+    def _extract_prohibition(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_prohibition({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, ODRL.Prohibition, extraction)
+
+    def _extract_obligation(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_obligation({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, ODRL.Duty, extraction)
+
+    def _extract_purpose(self, dataset_dict: Dict):
+        """Resolve hasPurpose to either a nested Purpose object or a plain vocabulary IRI."""
+        purpose_value = dataset_dict.get('hasPurpose_obj')
+        if not purpose_value:
+            dataset_dict.pop('hasPurpose_obj', None)
+            return dataset_dict
+
+        purpose_value = purpose_value[0] if isinstance(purpose_value, list) else purpose_value
+        purpose_ref = URIRef(purpose_value)
+        purpose_type = self._object_value(purpose_ref, RDF.type)
+        if not isinstance(purpose_type, list):
+            purpose_type = [purpose_type]
+
+        if str(DPV.Purpose) in purpose_type:
+            dataset_dict['hasPurpose_obj'] = self.parse_purpose({}, purpose_ref)
+            dataset_dict.pop('hasPurpose_IRI', None)
+        else:
+            dataset_dict.pop('hasPurpose_obj', None)
+
+        return dataset_dict
+
     def _remove_default_language(self, dataset_dict: Dict):
         if dataset_dict.get('language'):
             language_list = dataset_dict['language']
@@ -251,6 +337,14 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
         dataset_dict = self._extract_provenancestatement_label(dataset_dict, 'provenance')
         dataset_dict = self._extract_datasetseries_id(dataset_dict)
+        dataset_dict = self._extract_purpose(dataset_dict)
+        dataset_dict = self._extract_creator(dataset_dict, 'creator')
+        dataset_dict = self._extract_periodoftime(dataset_dict, 'temporal')
+        dataset_dict = self._extract_periodoftime(dataset_dict, 'retentionPeriod')
+        dataset_dict = self._extract_attribution(dataset_dict, 'qualifiedAttribution')
+        dataset_dict = self._extract_other_identifier(dataset_dict, 'other_identifier')
+        dataset_dict = self._extract_distribution(dataset_dict, 'sample')
+        dataset_dict = self._extract_distribution(dataset_dict, 'analytics')
 
         return dataset_dict
 
@@ -358,9 +452,13 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("title", DCT.title),
             ("page", FOAF.page),
             ("hasPolicy", ODRL.hasPolicy),
-            ("checksum", SPDX.Checksum),
+            ("checksum", SPDX.checksum),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_policy(dataset_dict, 'hasPolicy')
+        dataset_dict = self._extract_checksum(dataset_dict, 'checksum')
+        dataset_dict = self._extract_rightsstatement(dataset_dict, 'rights')
+        dataset_dict = self._extract_dataservice(dataset_dict, 'accessService')
         return dataset_dict
 
     def parse_dataservice(self, dataset_dict: Dict, dataset_ref: URIRef):
@@ -430,6 +528,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("hadRole", DCAT.hadRole),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_attribution_agent(dataset_dict, 'agent')
         return dataset_dict
 
     def parse_attribution_agent(self, dataset_dict: Dict, dataset_ref: URIRef):
@@ -471,6 +570,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("obligation", ODRL.obligation),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_permission(dataset_dict, 'permission')
+        dataset_dict = self._extract_prohibition(dataset_dict, 'prohibition')
+        dataset_dict = self._extract_obligation(dataset_dict, 'obligation')
         return dataset_dict
 
     def parse_permission(self, dataset_dict: Dict, dataset_ref: URIRef):
