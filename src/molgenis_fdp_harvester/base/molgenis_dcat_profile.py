@@ -19,7 +19,7 @@ import logging
 
 from .baseharvester import munge_title_to_name
 from .baseparser import (
-    RDFProfile, VCARD, EUCAIM, HEALTHDCATAP, DCT, DCAT, ADMS, DCATAP, DPV
+    RDFProfile, VCARD, EUCAIM, HEALTHDCATAP, DCT, DCAT, ADMS, DCATAP, DPV, ODRL, SPDX
 )
 
 log = logging.getLogger(__name__)
@@ -329,6 +329,38 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         if dataset_dict.get("hasEmail") and dataset_dict["hasEmail"].startswith("mailto:"):
             dataset_dict["hasEmail"] = dataset_dict["hasEmail"].removeprefix("mailto:")
+        return dataset_dict
+
+    def parse_distribution(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("id", uuid.uuid4()),
+            ("status", ADMS.status),
+            ("accessService", DCAT.accessService),
+            ("accessURL", DCAT.accessURL),
+            ("byteSize", DCAT.byteSize),
+            ("compressFormat", DCAT.compressFormat),
+            ("downloadURL", DCAT.downloadURL),
+            ("mediaType", DCAT.mediaType),
+            ("packageFormat", DCAT.packageFormat),
+            ("spatialResolutionInMeters", DCAT.spatialResolutionInMeters),
+            ("applicableLegislation", DCATAP.applicableLegislation),
+            ("availability", DCATAP.availability),
+            ("conformsTo", DCT.conformsTo),
+            ("description", DCT.description),
+            ("format", DCT.format),
+            ("issued", DCT.issued),
+            ("language", DCT.language),
+            ("license", DCT.license),
+            ("modified", DCT.modified),
+            ("rights", DCT.rights),
+            ("temporal", DCT.temporal),
+            ("title", DCT.title),
+            ("page", FOAF.page),
+            ("hasPolicy", ODRL.hasPolicy),
+            ("checksum", SPDX.Checksum),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         return dataset_dict
 
     def parse_provenancestatement(self, dataset_dict: Dict, dataset_ref: URIRef):

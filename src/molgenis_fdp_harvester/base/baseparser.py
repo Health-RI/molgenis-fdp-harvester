@@ -32,6 +32,7 @@ HEALTHDCATAP = Namespace("http://healthdataportal.eu/ns/health#")
 LDP = Namespace("http://www.w3.org/ns/ldp#")
 DPV = Namespace("https://w3id.org/dpv#")
 HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
+ODRL = Namespace("http://www.w3.org/ns/odrl/2/")
 
 namespaces = {
     "dct": DCT,
@@ -49,7 +50,8 @@ namespaces = {
     "spdx": SPDX,
     "ldp": LDP,
     "dpv": DPV,
-    "hydra": HYDRA
+    "hydra": HYDRA,
+    "odrl": ODRL
 }
 
 PREFIX_MAILTO = "mailto:"
