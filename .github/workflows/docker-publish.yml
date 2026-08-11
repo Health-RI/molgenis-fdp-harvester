@@ -64,8 +64,9 @@ jobs:
           REF_CLEAN=$(sanitize_docker_string "$REF")
           echo "ref=$REF_CLEAN" >> $GITHUB_OUTPUT
              
-          # Extract short git SHA (first 7 characters) - always primary tag
-          SHORT_SHA_VALUE=$(echo "${{ github.sha }}" | cut -c1-7)
+          # Extract short git SHA (first 7 characters) - as primary tag
+          SHA_HASH=${{ github.sha }}
+          SHORT_SHA_VALUE="${SHA_HASH:0:7}"
           echo "short_sha=$SHORT_SHA_VALUE" >> $GITHUB_OUTPUT
              
           # Primary tag: ref-hash (always used)
@@ -115,28 +116,48 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
+          scan-type: 'image'
           image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
 
-      - name: Debug - Check if SARIF file was created
+      - name: Summarize SARIF into step summary
+        env:
+          PRIMARY_TAG: ${{ steps.resolve_tag.outputs.primary_tag }}
         run: |
-          echo "📋 Checking for SARIF file..."
+          echo "Checking for SARIF file..."
           if [ -f trivy-results.sarif ]; then
-            echo "✅ SARIF file found!"
-            echo "📦 File size: $(wc -c < trivy-results.sarif) bytes"
-            echo "📝 Content preview (first 500 chars):"
-            head -c 500 trivy-results.sarif
+            echo "✅ SARIF file found"
+            # Try to build a compact JSON summary via jq; fall back to raw SARIF if jq missing
+            if command -v jq >/dev/null 2>&1; then
+              jq -r --arg primary "$PRIMARY_TAG" '
+                def sev: (.properties.severity // .level // .baselineSeverity // "UNKNOWN");
+                {
+                  primary_tag: $primary,
+                  counts: ([.runs[].results[]? | sev] | group_by(.) | map({severity: .[0], count: length})),
+                  findings: ([.runs[].results[]? | {ruleId: ((.ruleId)//(.ruleIndex|tostring)//"n/a"), message: (.message.text // ""), severity: sev, location: (.locations[0].physicalLocation.artifactLocation.uri // "unknown")} ] | .[0:10])
+                }' trivy-results.sarif > sarif-summary.json
+
+              echo "### Trivy SARIF summary" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              cat sarif-summary.json >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            else
+              echo "jq not available; attaching raw SARIF (truncated)" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              head -c 2000 trivy-results.sarif >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "❌ SARIF file NOT found - Trivy may have found no CRITICAL/HIGH issues"
-            echo "📂 Files in current directory:"
-            ls -lah
+            echo "❌ SARIF file NOT found - Trivy may have found no issues or Trivy failed to write it"
+            echo "Files in workspace:" >> $GITHUB_STEP_SUMMARY
+            ls -lah >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
