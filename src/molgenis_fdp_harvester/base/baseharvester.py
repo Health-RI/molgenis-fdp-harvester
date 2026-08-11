@@ -26,7 +26,7 @@ PACKAGE_NAME_MAX_LENGTH = 100
 
 
 class HarvestObject:
-    def __init__(self, guid, concept_type=None, status=None, content=None) :
+    def __init__(self, guid, concept_type=None, status=None, content=None):
         self.guid = guid
         self.content = content
         self.status = status
@@ -107,12 +107,16 @@ class HarvesterBase:
         ideal_name = munge_title_to_name(title)
         ideal_name = re.sub("-+", "-", ideal_name)  # collapse multiple dashes
         return cls._ensure_name_is_unique(
-            ideal_name, existing_name=existing_name, append_type=append_type_param
+            ideal_name,
+            existing_name=existing_name,
+            append_type=append_type_param,
         )
 
     @staticmethod
     def _ensure_name_is_unique(
-        ideal_name, existing_name=None, append_type="number-sequence"
+        ideal_name,
+        _existing_name=None,
+        _append_type="number-sequence",
     ):
         """
         Returns a dataset name based on the ideal_name, only it will be

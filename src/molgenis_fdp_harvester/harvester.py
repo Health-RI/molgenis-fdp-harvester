@@ -97,6 +97,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     required=False,
     default=None
 )
+# ruff: noqa: PLR0913, PLR0917
 def cli(
     fdp: str,
     fdp_list: Path,
@@ -149,12 +150,12 @@ def cli(
                 f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
-    CONCEPT_TYPE_ORDER = {
+    concept_type_order = {
         'provenancestatement': 0,
         'kind': 1,
         'publisher': 2,
         'datasetseries': 3,
-        'dataset': 4
+        'dataset': 4,
     }
 
     with Client(url=host, schema=schema, token=token) as client:
@@ -165,7 +166,7 @@ def cli(
 
             harvester = create_harvester(
                 input_type, concept_table_dict, client, entry_config)
-            execute_harvest(harvester, entry_fdp_url, CONCEPT_TYPE_ORDER)
+            execute_harvest(harvester, entry_fdp_url, concept_type_order)
 
 
 def create_harvester(input_type, concept_table_dict, client, harvester_config):
@@ -188,7 +189,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
 
     # Process fetch stage for all objects to identify datasets without datasetseries
     for harvest_object in harvester._harvest_objects:
-        harvest_object = harvester.fetch_stage(harvest_object)
+        harvester.fetch_stage(harvest_object)
 
     # Generate missing datasetseries and update dataset references
     harvester.generate_missing_datasetseries()

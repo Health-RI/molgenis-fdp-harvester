@@ -147,14 +147,15 @@ class RDFParser(RDFProcessor):
             rdflib.plugin.PluginException,
             TypeError,
         ) as e:
-            raise HarvesterException(e)
+            raise HarvesterException(e) from e
 
     def supported_formats(self):
         """
         Returns a list of all formats supported by this processor.
         """
         return sorted(
-            [plugin.name for plugin in rdflib.plugin.plugins(kind=rdflib.parser.Parser)]
+            [plugin.name for plugin in rdflib.plugin.plugins(
+                kind=rdflib.parser.Parser)]
         )
 
     def datasets(self):

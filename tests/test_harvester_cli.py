@@ -245,12 +245,9 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
     """Test that create_harvester raises ValueError for invalid input_type"""
     mock_client = Mock(spec=Client)
 
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError, match="Unknown input_type"):
         create_harvester('invalid', concept_table_dict,
                          mock_client, harvester_config)
-
-    assert "Unknown input_type" in str(exc_info.value), \
-        f"Expected error message about unknown input_type, got: {exc_info.value}"
 
 
 # ---------------------------------------------------------------------------
@@ -270,7 +267,7 @@ def temp_fdp_list():
 
     yield yaml_path
 
-    os.unlink(yaml_path)
+    Path(yaml_path).unlink()
 
 
 def test_fdp_and_fdp_list_mutually_exclusive(temp_config_file, temp_fdp_list, monkeypatch):

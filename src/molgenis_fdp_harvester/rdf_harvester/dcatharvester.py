@@ -16,6 +16,7 @@ class DCATHarvester(HarvesterBase):
 
     force_import = False
 
+    # ruff: noqa: PLR0911, PLR0912
     def _get_content_and_type(self, url, page=1, content_type=None):
         """
         Gets the content and type of the given url.

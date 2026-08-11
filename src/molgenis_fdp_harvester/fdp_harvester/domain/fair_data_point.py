@@ -44,7 +44,8 @@ class FairDataPoint:
     def _get_data(path: str | URIRef) -> str | None:
         headers = {"Accept": "text/turtle"}
         try:
-            response = requests.request("GET", path, headers=headers)
+            response = requests.request(
+                "GET", path, headers=headers, timeout=30)
             response.encoding = encodings.utf_8.getregentry().name
             response.raise_for_status()
             return response.text
