@@ -161,7 +161,9 @@ services:
 
     # Harvester
     harvester:
-        image: molgenis-fdp-harvester
+        build:
+            context: ..
+            dockerfile: Dockerfile
         depends_on:
             - molgenis
             - fdp-1
