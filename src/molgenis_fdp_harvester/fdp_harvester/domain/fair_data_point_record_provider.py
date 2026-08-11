@@ -86,7 +86,7 @@ class FairDataPointRecordProvider:
 
     @staticmethod
     def _remove_fdp_defaults(g, subject_uri):
-        for s, p, o in g.triples((subject_uri, DCTERMS.accessRights, None)):
+        for _s, _p, o in g.triples((subject_uri, DCTERMS.accessRights, None)):
             access_rights_default = URIRef(f"{subject_uri}#accessRights")
             if o == access_rights_default:
                 g.remove((subject_uri, DCTERMS.accessRights, o))

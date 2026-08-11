@@ -9,6 +9,7 @@ or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
 The user creating this token requires editing permissions on the host schema.
 """
+import contextlib
 import logging
 from pathlib import Path
 
@@ -17,9 +18,7 @@ import yaml
 from .fdp_harvester.fdp import FDPHarvester
 
 # Python < 3.11 does not have tomllib, but tomli provides same functionality
-try:
-    import tomllib
-except ModuleNotFoundError:
+with contextlib.suppress(ModuleNotFoundError):
     pass
 
 import click
@@ -59,10 +58,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         if not fdp_url:
             continue
         fdp_id_prefix = entry.get('fdp_id_prefix')
-        if fdp_id_prefix is None:
-            prefix_value = None
-        else:
-            prefix_value = str(fdp_id_prefix).strip() or None
+        prefix_value = None if fdp_id_prefix is None else str(fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
     return entries
 

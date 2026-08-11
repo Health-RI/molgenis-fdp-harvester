@@ -34,12 +34,12 @@ class TestIdentifier:
     def test_get_part_no_separator(self):
         with pytest.raises(IdentifierException):
             identifier = Identifier("some_id_no_separator")
-            part = identifier.get_part(index=0)
+            identifier.get_part(index=0)
 
     def test_get_part_raises(self):
         with pytest.raises(IdentifierException):
             identifier = Identifier("too_many;id_separators;in_an_id")
-            part = identifier.get_part(index=1)
+            identifier.get_part(index=1)
 
     def test_get_id_type_and_value(self):
         guid = "dataset=http://example.com/resource?id=123"

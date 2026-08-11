@@ -169,7 +169,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         if dataset_dict.get('in_series'):
             original_value = URIRef(dataset_dict['in_series'])
             retrieved_class = self._object_value(original_value, RDF.type)
-            if any([val in [str(DCAT.DatasetSeries)] for val in retrieved_class]):
+            if any(val in [str(DCAT.DatasetSeries)] for val in retrieved_class):
                 dataset_dict['in_series'] = str(self._object_value(original_value, DCT.identifier))
                 if dataset_dict['in_series'] == '':
                     dataset_dict['in_series'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
@@ -242,9 +242,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_name_vcard(dataset_dict, 'contactPoint')
         dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
         dataset_dict = self._extract_provenancestatement_label(dataset_dict, 'provenance')
-        dataset_dict = self._extract_datasetseries_id(dataset_dict)
+        return self._extract_datasetseries_id(dataset_dict)
 
-        return dataset_dict
 
     def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -280,8 +279,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("publishertype", HEALTHDCATAP.publishertype),
             ("homepage", FOAF.homepage),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        return dataset_dict
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -301,8 +299,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         key_predicate_tuple = (
             ("label", RDFS.label),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        return dataset_dict
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
         raise NotImplementedError("FDP export is handled by MOLGENIS")

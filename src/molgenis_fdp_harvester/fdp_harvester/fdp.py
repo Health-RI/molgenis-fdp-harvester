@@ -2,8 +2,9 @@ import logging
 
 from molgenis_emx2_pyclient import Client
 
-from ..rdf_harvester.rdf import DCATRDFHarvester
-from ..utils import HarvesterException
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .domain.fair_data_point_record_provider import FairDataPointRecordProvider
 from .domain.identifier import Identifier
 
@@ -12,7 +13,7 @@ log = logging.getLogger(__name__)
 class FDPHarvester(DCATRDFHarvester):
     record_provider = None
 
-    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict = None):
+    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict | None = None):
         super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
 
     def gather_stage(self, harvest_root_uri):
@@ -47,11 +48,10 @@ class FDPHarvester(DCATRDFHarvester):
                         self.parser.parse(record, _format="ttl")
                     except Exception as e:
                         log.error(
-                            "Error saving harvest object for identifier [%s] [%r]"
-                            % (identifier, e))
+                            f"Error saving harvest object for identifier [{identifier}] [{e!r}]")
                 else:
                     log.error(
-                        "Empty record for identifier %s" % identifier
+                        f"Empty record for identifier {identifier}"
                     )
 
 

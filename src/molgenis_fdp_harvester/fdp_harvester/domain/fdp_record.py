@@ -5,7 +5,7 @@
 
 from rdflib import DCAT, DCTERMS, FOAF, RDF, URIRef
 
-from ...base.baseparser import VCARD
+from molgenis_fdp_harvester.base.baseparser import VCARD
 
 
 class FdpRecord:

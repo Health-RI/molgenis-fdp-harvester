@@ -15,7 +15,8 @@ import rdflib.parser
 from rdflib import FOAF
 from rdflib.namespace import DCAT, RDF
 
-from ..utils import HarvesterException
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .baseparser import DCT, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
@@ -68,8 +69,7 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
-            yield dataset
+        yield from self.g.subjects(RDF.type, DCAT.Dataset)
 
     def _datasetseries(self):
         """
@@ -78,20 +78,16 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
-            yield datasetseries
+        yield from self.g.subjects(RDF.type, DCAT.DatasetSeries)
 
     def _publisher(self):
-        for publisher in self.g.subjects(RDF.type, FOAF.Organization):
-            yield publisher
+        yield from self.g.subjects(RDF.type, FOAF.Organization)
 
     def _kind(self):
-        for kind in self.g.subjects(RDF.type, VCARD.Kind):
-            yield kind
+        yield from self.g.subjects(RDF.type, VCARD.Kind)
 
     def _provenancestatement(self):
-        for provenancestatement in self.g.subjects(RDF.type, DCT.ProvenanceStatement):
-            yield provenancestatement
+        yield from self.g.subjects(RDF.type, DCT.ProvenanceStatement)
 
     def _catalogs(self):
         """
@@ -100,8 +96,7 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries, or for get requests
         """
-        for catalog in self.g.subjects(RDF.type, DCAT.Catalog):
-            yield catalog
+        yield from self.g.subjects(RDF.type, DCAT.Catalog)
 
     def next_page(self):
         """
@@ -284,5 +279,4 @@ class RDFParser(RDFProcessor):
         Generator that returns URIRef of all datasets referred to in Catalogs
         """
         for catalog_ref in self._catalogs():
-            for object in self.g.objects(catalog_ref, DCAT.dataset):
-                yield object
+            yield from self.g.objects(catalog_ref, DCAT.dataset)

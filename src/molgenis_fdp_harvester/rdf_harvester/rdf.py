@@ -6,9 +6,10 @@ from urllib.parse import quote
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
 
-from ..base.baseharvester import HarvestObject, munge_title_to_name
-from ..base.processor import RDFParser
-from ..utils import HarvesterException
+from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
+from molgenis_fdp_harvester.base.processor import RDFParser
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .dcatharvester import DCATHarvester
 
 log = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class DCATRDFHarvester(DCATHarvester):
     """DCAT RDF Harvester for processing RDF data into Molgenis."""
 
 
-    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict = None):
+    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict | None = None):
         super().__init__()
         self._profiles = profiles
         self.concept_table_link = concept_table_dict
@@ -180,7 +181,7 @@ class DCATRDFHarvester(DCATHarvester):
     def _resolve_uris_and_labels(self, value, molgenis_table):
         new_property_value = None
         if isinstance(value, list):
-            returned_value_list = list()
+            returned_value_list = []
             for val in value:
                 returned_value = self._resolve_uri(val, molgenis_table)
                 if not returned_value:

@@ -55,11 +55,10 @@ def munge_title_to_name(name: str) -> str:
         year_match = re.match(r".*?[_-]((?:\d{2,4}[-/])?\d{2,4})$", name)
         if year_match:
             year = year_match.groups()[0]
-            name = "%s-%s" % (name[: (max_length - len(year) - 1)], year)
+            name = f"{name[: (max_length - len(year) - 1)]}-{year}"
         else:
             name = name[:max_length]
-    name = _munge_to_length(name, PACKAGE_NAME_MIN_LENGTH, PACKAGE_NAME_MAX_LENGTH)
-    return name
+    return _munge_to_length(name, PACKAGE_NAME_MIN_LENGTH, PACKAGE_NAME_MAX_LENGTH)
 
 
 class HarvesterBase:
@@ -103,10 +102,7 @@ class HarvesterBase:
 
         # If append_type was given, use it. Otherwise, use the configured default.
         # If nothing was given and no defaults were set, use 'number-sequence'.
-        if append_type:
-            append_type_param = append_type
-        else:
-            append_type_param = "number-sequence"
+        append_type_param = append_type or "number-sequence"
 
         ideal_name = munge_title_to_name(title)
         ideal_name = re.sub("-+", "-", ideal_name)  # collapse multiple dashes
@@ -141,8 +137,7 @@ class HarvesterBase:
         :type append_type: string
         """
 
-        ideal_name = ideal_name[:PACKAGE_NAME_MAX_LENGTH]
-        return ideal_name
+        return ideal_name[:PACKAGE_NAME_MAX_LENGTH]
 
     def _get_user_name(self):
         """
@@ -236,8 +231,7 @@ class HarvesterBase:
         except TypeError:  # a TypeError is raised if `t` above is a string
             # REST format: 'tags' is a list of strings
             tags = [munge_tag(t) for t in tags if munge_tag(t) != ""]
-            tags = list(set(tags))
-            return tags
+            return list(set(tags))
 
         return tags
 

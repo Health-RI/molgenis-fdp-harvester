@@ -76,8 +76,7 @@ def munge_tag(tag: str) -> str:
     tag = unidecode(tag)
     tag = tag.lower().strip()
     tag = re.sub(r"[^a-zA-Z0-9\- ]", "", tag).replace(" ", "-")
-    tag = _munge_to_length(tag, MIN_TAG_LENGTH, MAX_TAG_LENGTH)
-    return tag
+    return _munge_to_length(tag, MIN_TAG_LENGTH, MAX_TAG_LENGTH)
 
 
 class URIRefOrLiteral:
@@ -169,8 +168,7 @@ class RDFProfile:
         Yields term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
-            yield dataset
+        yield from self.g.subjects(RDF.type, DCAT.Dataset)
 
     def _distributions(self, dataset):
         """
@@ -179,8 +177,7 @@ class RDFProfile:
         Yields term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for distribution in self.g.objects(dataset, DCAT.distribution):
-            yield distribution
+        yield from self.g.objects(dataset, DCAT.distribution)
 
     def _object(self, subject, predicate):
         """

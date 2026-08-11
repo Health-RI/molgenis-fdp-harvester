@@ -4,7 +4,7 @@ import os
 import rdflib
 import requests
 
-from ..base.baseharvester import HarvesterBase
+from molgenis_fdp_harvester.base.baseharvester import HarvesterBase
 
 log = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class DCATHarvester(HarvesterBase):
                 did_get = False
                 r = session.head(url)
 
-                if r.status_code == 405 or r.status_code == 400:
+                if r.status_code in {405, 400}:
                     r = session.get(url, stream=True)
                     did_get = True
                 r.raise_for_status()
@@ -94,25 +94,18 @@ class DCATHarvester(HarvesterBase):
                 # We want to catch these ones later on
                 raise
 
-            msg = "Could not get content from %s. Server responded with %s %s" % (
-                url,
-                error.response.status_code,
-                error.response.reason,
-            )
+            msg = f"Could not get content from {url}. Server responded with {error.response.status_code} {error.response.reason}"
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.ConnectionError as error:
-            msg = """Could not get content from %s because a
-                                connection error occurred. %s""" % (
-                url,
-                error,
-            )
+            msg = f"""Could not get content from {url} because a
+                                connection error occurred. {error}"""
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.Timeout:
             msg = (
-                "Could not get content from %s because the connection timed"
-                " out." % url
+                f"Could not get content from {url} because the connection timed"
+                " out."
             )
             self._save_gather_error(msg)
             return None, None

@@ -100,7 +100,7 @@ def test_dotenv_token_pickup(base_cli_args, mock_harvester_patches, monkeypatch)
 
     # Invoke CLI without --token parameter
     # The lambda default will evaluate os.environ.get("MOLGENIS_TOKEN") at call time
-    result = runner.invoke(cli, base_cli_args + ['--schema', 'Eucaim'])
+    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim'])
 
     # Verify the command completed successfully
     assert result.exit_code == 0, f"CLI failed with exit code {result.exit_code}:\nOutput: {result.output}"
@@ -126,10 +126,7 @@ def test_dotenv_token_explicit_override(base_cli_args, mock_harvester_patches, m
     monkeypatch.setenv('MOLGENIS_TOKEN', 'test_token_from_env_file')
 
     # Invoke CLI with explicit --token parameter (should override environment)
-    result = runner.invoke(cli, base_cli_args + [
-        '--schema', 'Eucaim',
-        '--token', 'explicit_token_override'
-    ])
+    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim', '--token', 'explicit_token_override'])
 
     # Verify command completed successfully
     assert result.exit_code == 0, f"CLI failed with: {result.output}"
@@ -150,7 +147,7 @@ def test_missing_token_raises_error(base_cli_args, monkeypatch):
     monkeypatch.delenv('MOLGENIS_TOKEN', raising=False)
 
     # Invoke CLI without --token parameter and without environment variable
-    result = runner.invoke(cli, base_cli_args + ['--schema', 'Eucaim'])
+    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim'])
 
     # Verify the command failed with appropriate error
     assert result.exit_code != 0, "CLI should have failed when no token is provided"
@@ -226,7 +223,7 @@ def test_cli_all_env_vars(temp_config_file, mock_harvester_patches, monkeypatch)
     assert mock_harvester_patches['execute_harvest'].call_args[0][1] == 'http://env-fdp.example.com'
 
 
-@pytest.mark.parametrize("input_type,expected_class", [
+@pytest.mark.parametrize(('input_type', 'expected_class'), [
     ('rdf', 'DCATRDFHarvester'),
     ('fdp', 'FDPHarvester'),
 ])
