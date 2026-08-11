@@ -7,9 +7,11 @@
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
+import uuid
 from datetime import datetime
 from typing import Dict, Union
 from urllib.parse import urlparse
+from uuid import UUID
 
 from rdflib import URIRef, FOAF, RDF, RDFS, PROV
 
@@ -254,8 +256,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
-        # Basic fields
         key_predicate_tuple = (
+            ("id", uuid.uuid4()),
             ("title", DCT.title),
             ("description", DCT.description),
             ("temporal", DCT.temporal),
@@ -269,7 +271,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("pid", DCT.identifier),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-
         dataset_dict = self._extract_name_vcard(dataset_dict, 'contactPoint')
         dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
 
@@ -281,10 +282,13 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_publisher(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
+            ("id", uuid.uuid4()),
             ("name", FOAF.name),
             ("description", DCT.description),
-            ("publishertype", HEALTHDCATAP.publishertype),
+            ("type", DCT.type),
+            ("mbox", FOAF.mbox),
             ("homepage", FOAF.homepage),
+            ("phone", FOAF.phone),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         return dataset_dict
