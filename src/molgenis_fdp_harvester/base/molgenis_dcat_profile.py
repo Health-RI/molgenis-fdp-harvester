@@ -442,11 +442,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("homepage", FOAF.homepage),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-
-        name_list = self._object_value(dataset_ref, FOAF.name)
-        if not isinstance(name_list, list):
-            name_list = [name_list]
-        dataset_dict["id"] = generate_id(name_list)
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
