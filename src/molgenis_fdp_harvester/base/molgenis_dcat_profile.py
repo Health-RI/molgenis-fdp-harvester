@@ -279,7 +279,22 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         return dataset_dict
 
+
     def parse_publisher(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("id", uuid.uuid4()),
+            ("name", FOAF.name),
+            ("description", DCT.description),
+            ("type", DCT.type),
+            ("mbox", FOAF.mbox),
+            ("homepage", FOAF.homepage),
+            ("phone", FOAF.phone),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        return dataset_dict
+
+    def parse_creator(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
             ("id", uuid.uuid4()),
