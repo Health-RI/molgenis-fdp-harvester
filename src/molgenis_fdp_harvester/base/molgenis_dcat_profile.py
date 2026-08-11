@@ -19,7 +19,7 @@ import logging
 
 from .baseharvester import munge_title_to_name
 from .baseparser import (
-    RDFProfile, VCARD, EUCAIM, HEALTHDCATAP, DCT, DCAT, ADMS, DCATAP, DPV, ODRL, SPDX
+    RDFProfile, VCARD, EUCAIM, HEALTHDCATAP, DCT, DCAT, ADMS, DCATAP, DPV, ODRL, SPDX, SKOS
 )
 
 log = logging.getLogger(__name__)
@@ -399,6 +399,16 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         key_predicate_tuple = (
             ("id", uuid.uuid4()),
             ("description", DCT.description),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        return dataset_dict
+
+    def parse_other_identifier(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("id", uuid.uuid4()),
+            ("notation", SKOS.notation),
+            ("schemaAgency", ADMS.schemaAgency),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         return dataset_dict
