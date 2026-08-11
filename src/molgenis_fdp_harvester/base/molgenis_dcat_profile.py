@@ -423,6 +423,16 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["id"] = f"{dataset_dict.get('startDate')}/{dataset_dict.get('endDate')}"
         return dataset_dict
 
+    def parse_attribution(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("id", uuid.uuid4()),
+            ("agent", PROV.agent),
+            ("hadRole", DCAT.hadRole),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        return dataset_dict
+
     def graph_from_dataset(self, dataset_dict, dataset_ref):
         raise NotImplementedError("FDP export is handled by MOLGENIS")
 
