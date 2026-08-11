@@ -10,10 +10,17 @@ from .domain.identifier import Identifier
 
 log = logging.getLogger(__name__)
 
+
 class FDPHarvester(DCATRDFHarvester):
     record_provider = None
 
-    def __init__(self, profiles: list, concept_table_dict: dict[str, str], molgenis_client: Client, harvester_config: dict | None = None):
+    def __init__(
+        self,
+        profiles: list,
+        concept_table_dict: dict[str, str],
+        molgenis_client: Client,
+        harvester_config: dict | None = None,
+    ):
         super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
 
     def gather_stage(self, harvest_root_uri):
@@ -36,9 +43,11 @@ class FDPHarvester(DCATRDFHarvester):
                 log.info(f"Got identifier {identifier!s} from RecordProvider")
 
                 try:
-                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
+                    self.guids_in_harvest[concept_type].append(
+                        Identifier(identifier).get_id_value())
                 except Exception as e:
-                    log.error(f"Error for identifier {identifier!s} in gather phase: {e!s}")
+                    log.error(
+                        f"Error for identifier {identifier!s} in gather phase: {e!s}")
                     continue
 
                 record = self.record_provider.get_record_by_id(identifier)
@@ -53,7 +62,6 @@ class FDPHarvester(DCATRDFHarvester):
                     log.error(
                         f"Empty record for identifier {identifier}"
                     )
-
 
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config

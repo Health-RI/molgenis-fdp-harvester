@@ -1,10 +1,12 @@
 # CLI tests
-# Test that if only the required parameters are supplied, that we have a workable program.
+# Test that if only the required parameters are supplied,
+# that we have a workable program.
 # Test that the dotenv is picked up correctly
-# Test that the correct harvester is created in create_harvester, and that ValueError is raised if the 'else' branch is triggered.
+# Test that the correct harvester is created in create_harvester,
+# and that ValueError is raised if the 'else' branch is triggered.
 
-import os
 import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -33,7 +35,7 @@ auto_create_datasetseries = true
     yield config_path
 
     # Cleanup
-    os.unlink(config_path)
+    Path(config_path).unlink()
 
 
 @pytest.fixture
@@ -126,7 +128,8 @@ def test_dotenv_token_explicit_override(base_cli_args, mock_harvester_patches, m
     monkeypatch.setenv('MOLGENIS_TOKEN', 'test_token_from_env_file')
 
     # Invoke CLI with explicit --token parameter (should override environment)
-    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim', '--token', 'explicit_token_override'])
+    result = runner.invoke(
+        cli, [*base_cli_args, '--schema', 'Eucaim', '--token', 'explicit_token_override'])
 
     # Verify command completed successfully
     assert result.exit_code == 0, f"CLI failed with: {result.output}"
@@ -368,7 +371,7 @@ def test_fdp_list_row_without_prefix(temp_config_file, mock_harvester_patches, m
         entry_config = call_args[0][3]
         assert 'fdp_id_prefix' not in entry_config
     finally:
-        os.unlink(yaml_path)
+        Path(yaml_path).unlink()
 
 
 def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monkeypatch):
@@ -473,4 +476,4 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
         assert "no valid entries" in result.output.lower(
         ) or "no valid entries" in str(result.exception).lower()
     finally:
-        os.unlink(yml_path)
+        Path(yml_path).unlink()

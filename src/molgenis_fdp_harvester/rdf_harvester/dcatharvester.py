@@ -1,5 +1,5 @@
 import logging
-import os
+from pathlib import Path
 
 import rdflib
 import requests
@@ -29,8 +29,9 @@ class DCATHarvester(HarvesterBase):
 
         if not url.lower().startswith("http"):
             # Check local file
-            if os.path.exists(url):
-                with open(url) as f:
+            path = Path(url)
+            if path.exists():
+                with path.open() as f:
                     content = f.read()
                 content_type = content_type or rdflib.util.guess_format(url)
                 return content, content_type
@@ -85,7 +86,8 @@ class DCATHarvester(HarvesterBase):
                 content = content.decode("utf-8")
 
                 if content_type is None and r.headers.get("content-type"):
-                    content_type = r.headers.get("content-type").split(";", 1)[0]
+                    content_type = r.headers.get(
+                        "content-type").split(";", 1)[0]
 
                 return content, content_type
 
@@ -94,7 +96,10 @@ class DCATHarvester(HarvesterBase):
                 # We want to catch these ones later on
                 raise
 
-            msg = f"Could not get content from {url}. Server responded with {error.response.status_code} {error.response.reason}"
+            msg = (
+                f"Could not get content from {url}. Server responded with "
+                f"{error.response.status_code} {error.response.reason}"
+            )
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.ConnectionError as error:

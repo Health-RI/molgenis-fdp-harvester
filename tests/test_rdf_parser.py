@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+from pathlib import Path
+
 import pytest
 import rdflib
 from rdflib import URIRef
@@ -17,20 +19,18 @@ def parser(profiles):
 
 @pytest.fixture
 def catalog_data():
-    with open("tests/test_data/rdf_catalog.ttl") as f:
-        return f.read()
+    return Path("tests/test_data/rdf_catalog.ttl").read_text()
 
 
 @pytest.fixture
 def dataset1_data():
-    with open("tests/test_data/rdf_dataset1.ttl") as f:
-        return f.read()
+    return Path("tests/test_data/rdf_dataset1.ttl").read_text()
 
 
 @pytest.fixture
 def dataset2_data():
-    with open("tests/test_data/rdf_dataset2.ttl") as f:
-        return f.read()
+    return Path("tests/test_data/rdf_dataset2.ttl").read_text()
+
 
 def test_parser_initialization(profiles):
     """Test that the parser initializes correctly with profiles"""
@@ -54,6 +54,7 @@ def test_parse_catalog_ttl(parser, catalog_data):
     dataset_uris = [str(d) for d in datasets_in_catalog]
     assert "http://example.com/dataset1" in dataset_uris
     assert "http://example.com/dataset2" in dataset_uris
+
 
 def test_parse_dataset_ttl(parser, dataset1_data, dataset2_data):
     """Test parsing dataset Turtle files"""
@@ -87,13 +88,16 @@ def test_datasets_generator(parser, dataset1_data, dataset2_data):
         assert dataset['concept_type'] == 'dataset'
 
     # Verify specific dataset content
-    gryffindor = next(d for d in dataset_dicts if d['title'] == "Gryffindor research project")
+    gryffindor = next(
+        d for d in dataset_dicts if d['title'] == "Gryffindor research project")
     assert gryffindor['uri'] == "http://example.com/dataset1"
     assert gryffindor['description'] == "Impact of muggle technical inventions on word's magic presense"
 
-    slytherin = next(d for d in dataset_dicts if d['title'] == "Slytherin research project")
+    slytherin = next(
+        d for d in dataset_dicts if d['title'] == "Slytherin research project")
     assert slytherin['uri'] == "http://example.com/dataset2"
     assert slytherin['description'] == "Comarative analysis of magic powers of muggle-born and blood wizards "
+
 
 def test_get_concept(parser, dataset1_data):
     """Test retrieving a specific concept by URI"""
@@ -126,7 +130,7 @@ def test_supported_formats(parser):
 
 def test_publisher_generator(parser):
     """publisher() yields dicts with concept_type 'publisher' for FOAF.Organization resources."""
-    with open("tests/test_data/extraction_foaf_organization.ttl") as f:
+    with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     publishers = list(parser.publisher())
@@ -137,7 +141,7 @@ def test_publisher_generator(parser):
 
 def test_kind_generator(parser):
     """kind() yields dicts with concept_type 'kind' for VCARD.Kind resources."""
-    with open("tests/test_data/extraction_vcard_contact.ttl") as f:
+    with Path("tests/test_data/extraction_vcard_contact.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     kinds = list(parser.kind())
@@ -148,7 +152,7 @@ def test_kind_generator(parser):
 
 def test_provenancestatement_generator(parser):
     """provenancestatement() yields dicts with concept_type 'provenancestatement'."""
-    with open("tests/test_data/extraction_provenancestatement.ttl") as f:
+    with Path("tests/test_data/extraction_provenancestatement.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     provs = list(parser.provenancestatement())
@@ -159,7 +163,7 @@ def test_provenancestatement_generator(parser):
 
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
-    with open("tests/test_data/extraction_foaf_organization.ttl") as f:
+    with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     publisher_uri = URIRef("http://example.com/org1")
@@ -171,7 +175,7 @@ def test_get_concept_publisher(parser):
 
 def test_get_concept_kind(parser):
     """get_concept() with type 'kind' returns a dict with kind fields."""
-    with open("tests/test_data/extraction_vcard_contact.ttl") as f:
+    with Path("tests/test_data/extraction_vcard_contact.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     kind_uri = URIRef("http://example.com/contact1")
@@ -183,7 +187,7 @@ def test_get_concept_kind(parser):
 
 def test_get_concept_provenancestatement(parser):
     """get_concept() with type 'provenancestatement' returns a dict with provenance fields."""
-    with open("tests/test_data/extraction_provenancestatement.ttl") as f:
+    with Path("tests/test_data/extraction_provenancestatement.ttl").open() as f:
         parser.parse(data=f.read(), _format="turtle")
 
     prov_uri = URIRef("http://example.com/prov1")

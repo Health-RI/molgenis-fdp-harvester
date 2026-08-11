@@ -45,7 +45,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
     are normalized to ``None``.
     """
-    with open(yaml_path, encoding='utf-8') as f:
+    with Path(yaml_path).open(encoding='utf-8') as f:
         data = yaml.safe_load(f) or {}
 
     entries = []
@@ -58,7 +58,8 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         if not fdp_url:
             continue
         fdp_id_prefix = entry.get('fdp_id_prefix')
-        prefix_value = None if fdp_id_prefix is None else str(fdp_id_prefix).strip() or None
+        prefix_value = None if fdp_id_prefix is None else str(
+            fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
     return entries
 
@@ -128,7 +129,8 @@ def cli(
 
     # Validate mutual exclusivity of --fdp and --fdp-list
     if fdp and fdp_list:
-        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
+        raise click.UsageError(
+            "--fdp and --fdp-list are mutually exclusive. Provide only one.")
     if not fdp and not fdp_list:
         raise click.UsageError("One of --fdp or --fdp-list is required.")
 
@@ -143,7 +145,8 @@ def cli(
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
-            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
+            raise click.ClickException(
+                f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
     CONCEPT_TYPE_ORDER = {
@@ -160,7 +163,8 @@ def cli(
             if entry_fdp_id_prefix is not None:
                 entry_config['fdp_id_prefix'] = entry_fdp_id_prefix
 
-            harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
+            harvester = create_harvester(
+                input_type, concept_table_dict, client, entry_config)
             execute_harvest(harvester, entry_fdp_url, CONCEPT_TYPE_ORDER)
 
 
@@ -175,6 +179,7 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
     if input_type == 'fdp':
         return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
     raise ValueError(f"Unknown input_type: {input_type}")
+
 
 def execute_harvest(harvester, source_url, concept_type_order):
     """Execute the complete harvesting process."""
@@ -196,6 +201,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
     # Import all objects in dependency order
     for harvest_object in harvester._harvest_objects:
         harvester.import_stage(harvest_object)
+
 
 if __name__ == "__main__":
     cli()

@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -86,8 +87,10 @@ Import Stage (import_stage):
 def test_gather_stage(mock_get_guids_in_db, mock_get_rdf, harvester, catalog_url):
     """Test the gather_stage method"""
     # Setup parser with mock data
-    harvester.parser.parse(open('tests/test_data/rdf_dataset1.ttl').read(), _format='turtle')
-    harvester.parser.parse(open('tests/test_data/rdf_dataset2.ttl').read(), _format='turtle')
+    harvester.parser.parse(
+        Path('tests/test_data/rdf_dataset1.ttl').read_text(), _format='turtle')
+    harvester.parser.parse(
+        Path('tests/test_data/rdf_dataset2.ttl').read_text(), _format='turtle')
 
     # Call gather_stage
     result = harvester.gather_stage(catalog_url)
@@ -133,27 +136,31 @@ def test_gather_stage_extraction_failure(mock_extract, mock_get_rdf, harvester, 
 def test_extract_concepts_from_rdf_success(harvester):
     """Test _extract_concepts_from_rdf extracts all concept types"""
     # Setup mock parser methods
-    mock_provenancestatements = [{'uri': 'http://example.com/prov1', 'name': 'Prov 1'}]
+    mock_provenancestatements = [
+        {'uri': 'http://example.com/prov1', 'name': 'Prov 1'}]
     mock_kinds = [{'uri': 'http://example.com/kind1', 'name': 'Kind 1'}]
-    mock_publishers = [{'uri': 'http://example.com/publisher1', 'name': 'Publisher 1'}]
-    mock_datasetseries = [{'uri': 'http://example.com/series1', 'name': 'Series 1'}]
+    mock_publishers = [
+        {'uri': 'http://example.com/publisher1', 'name': 'Publisher 1'}]
+    mock_datasetseries = [
+        {'uri': 'http://example.com/series1', 'name': 'Series 1'}]
     mock_datasets = [
         {'uri': 'http://example.com/dataset1', 'name': 'Dataset 1'},
         {'uri': 'http://example.com/dataset2', 'name': 'Dataset 2'}
     ]
 
     with patch.object(harvester.parser, 'provenancestatement', return_value=mock_provenancestatements), \
-         patch.object(harvester.parser, 'kind', return_value=mock_kinds), \
-         patch.object(harvester.parser, 'publisher', return_value=mock_publishers), \
-         patch.object(harvester.parser, 'datasetseries', return_value=mock_datasetseries), \
-         patch.object(harvester.parser, 'datasets', return_value=mock_datasets), \
-         patch.object(harvester, '_gather_concept_guid') as mock_gather:
+            patch.object(harvester.parser, 'kind', return_value=mock_kinds), \
+            patch.object(harvester.parser, 'publisher', return_value=mock_publishers), \
+            patch.object(harvester.parser, 'datasetseries', return_value=mock_datasetseries), \
+            patch.object(harvester.parser, 'datasets', return_value=mock_datasets), \
+            patch.object(harvester, '_gather_concept_guid') as mock_gather:
 
         harvester._extract_concepts_from_rdf()
 
         # Verify _gather_concept_guid was called for each concept
         assert mock_gather.call_count == 6
-        mock_gather.assert_any_call(mock_provenancestatements[0], 'provenancestatement')
+        mock_gather.assert_any_call(
+            mock_provenancestatements[0], 'provenancestatement')
         mock_gather.assert_any_call(mock_kinds[0], 'kind')
         mock_gather.assert_any_call(mock_publishers[0], 'publisher')
         mock_gather.assert_any_call(mock_datasetseries[0], 'datasetseries')
@@ -173,7 +180,8 @@ def test_extract_concepts_from_rdf_failure(harvester):
 def test_create_harvest_objects(harvester):
     """Test _create_harvest_objects creates objects from GUIDs"""
     # Setup test data
-    harvester.guids_in_harvest['dataset'] = ['http://example.com/dataset1', 'http://example.com/dataset2']
+    harvester.guids_in_harvest['dataset'] = [
+        'http://example.com/dataset1', 'http://example.com/dataset2']
     harvester.guids_in_harvest['kind'] = ['http://example.com/kind1']
 
     # Call method
@@ -201,11 +209,12 @@ def test_create_harvest_objects(harvester):
 def test_gather_concept_guid_failure(harvester):
     """Test _gather_concept_guid handles missing GUID"""
     # Setup test data - uri is required but returns None from _get_guid
-    concept_dict = {"uri": "http://example.com/dataset1", "title": "Test Dataset"}
+    concept_dict = {"uri": "http://example.com/dataset1",
+                    "title": "Test Dataset"}
     concept_type = "dataset"
 
     with patch.object(harvester, '_save_gather_error') as mock_save_error, \
-         patch.object(harvester, '_get_guid', return_value=None):
+            patch.object(harvester, '_get_guid', return_value=None):
 
         # Call method
         harvester._gather_concept_guid(concept_dict, concept_type)
@@ -259,7 +268,8 @@ def test_get_guids_in_db_error_handling(harvester, mock_client):
 def test_gather_concept_guid(harvester):
     """Test _gather_concept_guid method"""
     # Setup test data
-    concept_dict = {"uri": "http://example.com/dataset1", "name": "Test Dataset"}
+    concept_dict = {"uri": "http://example.com/dataset1",
+                    "name": "Test Dataset"}
     concept_type = "dataset"
 
     # Call method
@@ -273,9 +283,10 @@ def test_get_guid(harvester):
     """Test _get_guid method with various inputs"""
     # Test with URI
     dataset_with_uri = {"uri": "http://example.com/dataset1"}
-    assert harvester._get_guid(dataset_with_uri) == "http://example.com/dataset1"
+    assert harvester._get_guid(
+        dataset_with_uri) == "http://example.com/dataset1"
 
     # Test with name and source_url
     dataset_with_name = {"name": "test-dataset"}
-    assert harvester._get_guid(dataset_with_name, source_url="http://example.com") == "http://example.com/test-dataset"
-
+    assert harvester._get_guid(
+        dataset_with_name, source_url="http://example.com") == "http://example.com/test-dataset"

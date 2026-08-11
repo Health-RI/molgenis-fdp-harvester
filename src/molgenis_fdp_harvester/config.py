@@ -10,6 +10,7 @@ except ModuleNotFoundError:
     import tomli as tomllib
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 
@@ -62,13 +63,16 @@ def validate_config(config_data: dict[str, Any]) -> None:
     try:
         # Validate concept_table_link
         if 'concept_table_link' not in config_data:
-            raise ValueError("Configuration must contain a 'concept_table_link' section")
-        concept_table_link = ConceptTableLink(**config_data['concept_table_link'])
+            raise ValueError(
+                "Configuration must contain a 'concept_table_link' section")
+        concept_table_link = ConceptTableLink(
+            **config_data['concept_table_link'])
 
         # Validate harvester_config if present
         harvester_config = None
         if 'harvester_config' in config_data:
-            harvester_config = HarvesterConfig(**config_data['harvester_config'])
+            harvester_config = HarvesterConfig(
+                **config_data['harvester_config'])
 
         # Validate complete schema
         HarvesterConfigSchema(
@@ -82,7 +86,7 @@ def validate_config(config_data: dict[str, Any]) -> None:
 
 def load_config(config_path):
     """Load and parse the configuration file."""
-    with open(config_path, "rb") as f:
+    with Path(config_path).open("rb") as f:
         config_data = tomllib.load(f)
     validate_config(config_data)
     return config_data

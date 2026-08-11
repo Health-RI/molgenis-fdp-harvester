@@ -1,7 +1,6 @@
 name: Run linting and type checking for Python
 
 on:
-  push:
   pull_request:
 
 jobs:
