@@ -122,6 +122,39 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
+          hide-progress: 'true'
+          cache: 'true'
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          severity: 'HIGH,CRITICAL'
+          ignore-unfixed: 'true'
+          format: 'json'
+          output: 'trivy-result.json'
+          hide-progress: 'true'
+
+      - uses: CemitDigital/trivy-report-issue-action@v1.1
+        with:
+          # Token passed by GitHub actions, required for access to GitHub issues
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+          # File with scan results
+          input-filename: "trivy-result.json"
+
+          # Label name
+          # Default: vulnerability (this label must be created in advance)
+          label: 'trivy-vulnerability'
+
+          # Assignees, comma separated
+          # Default: ''
+          # Example: 'monalisa,hubot'
+          assignee: 'ishtiaqahmad'
+
+          # If set the new issues will be assigned to the specified project
+          # Default: ''
+          project-id: ''
 
       - name: Summarize SARIF into step summary
         env:
@@ -129,7 +162,6 @@ jobs:
         run: |
           echo "Checking for SARIF file..."
           if [ -f trivy-results.sarif ]; then
-            echo "✅ SARIF file found"
             # Try to build a compact JSON summary via jq; fall back to raw SARIF if jq missing
             if command -v jq >/dev/null 2>&1; then
               jq -r --arg primary "$PRIMARY_TAG" '
