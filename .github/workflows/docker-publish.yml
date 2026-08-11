@@ -4,9 +4,6 @@
 name: Build and Push Docker Image
 
 on:
-  push:
-    branches:
-      - 'feature/docker-publish-pipline-update'
   workflow_dispatch:
     inputs:
       ref:
