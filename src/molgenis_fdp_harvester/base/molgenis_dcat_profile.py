@@ -432,6 +432,23 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         return dataset_dict
 
+    def parse_attribution_agent(self, dataset_dict: Dict, dataset_ref: URIRef):
+        dataset_dict["uri"] = str(dataset_ref)
+        key_predicate_tuple = (
+            ("name", FOAF.name),
+            ("description", DCT.description),
+            ("type", DCT.type),
+            ("mbox", FOAF.mbox),
+            ("homepage", FOAF.homepage),
+        )
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+
+        name_list = self._object_value(dataset_ref, FOAF.name)
+        if not isinstance(name_list, list):
+            name_list = [name_list]
+        dataset_dict["id"] = generate_id(name_list)
+        return dataset_dict
+
     def graph_from_dataset(self, dataset_dict, dataset_ref):
         raise NotImplementedError("FDP export is handled by MOLGENIS")
 
