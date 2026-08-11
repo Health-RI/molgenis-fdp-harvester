@@ -129,11 +129,14 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          severity: 'HIGH,CRITICAL'
+          severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
           format: 'json'
           output: 'trivy-result.json'
           hide-progress: 'true'
+        env:
+          TRIVY_SKIP_DB_UPDATE: true
+          TRIVY_SKIP_JAVA_DB_UPDATE: true
 
       - uses: CemitDigital/trivy-report-issue-action@v1.1
         with:
