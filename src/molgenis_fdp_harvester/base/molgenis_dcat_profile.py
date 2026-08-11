@@ -406,7 +406,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_other_identifier(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("notation", SKOS.notation),
             ("schemaAgency", ADMS.schemaAgency),
         )
@@ -416,6 +415,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_periodoftime(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
+            ("id", uuid.uuid4()),
             ("startDate", DCAT.startDate),
             ("endDate", DCAT.endDate),
         )
