@@ -6,7 +6,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - 'docker-publish-pipline-update'
+      - 'feature/docker-publish-pipline-update'
   workflow_dispatch:
     inputs:
       ref:
@@ -118,14 +118,29 @@ jobs:
           image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
+
+      - name: Debug - Check if SARIF file was created
+        run: |
+          echo "📋 Checking for SARIF file..."
+          if [ -f trivy-results.sarif ]; then
+            echo "✅ SARIF file found!"
+            echo "📦 File size: $(wc -c < trivy-results.sarif) bytes"
+            echo "📝 Content preview (first 500 chars):"
+            head -c 500 trivy-results.sarif
+          else
+            echo "❌ SARIF file NOT found - Trivy may have found no CRITICAL/HIGH issues"
+            echo "📂 Files in current directory:"
+            ls -lah
+          fi
 
       - name: Upload Trivy scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
 
       - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
