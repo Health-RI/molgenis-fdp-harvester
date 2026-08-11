@@ -296,6 +296,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_kind(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
+            ("id", uuid.uuid4()),
             ("fn", VCARD.fn),
             ("hasEmail", VCARD.hasEmail),
             ("hasURL", VCARD.hasURL),
