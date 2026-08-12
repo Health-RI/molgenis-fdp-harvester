@@ -316,30 +316,112 @@ class DCATRDFHarvester(DCATHarvester):
         entity_name = self.concept_table_link[harvest_object.concept_type]
 
         dataset_name = dataset.get("title")
-        other_identifier = dataset.get("other_identifier")
-        if other_identifier:
-            self.molgenis_client.save_table(
-                table="other_identifier",
-                data=[
-                    {
-                        "notation": other_identifier,
-                        "schemaAgency": self.harvester_config.get("server_url"),
-                    }
-                ],
-            )
+        notation = dataset.get("other_identifier")
+        agency = self.harvester_config.get("server_url")
 
         try:
-            if harvest_object.status == "new":
-                log.info(f"Adding dataset '{dataset_name}'")
-            else:  # harvest_object.status == "change"
-                log.info(f"Updating dataset '{dataset_name}'")
-            self.molgenis_client.save_table(table=entity_name, data=[dataset])
-            return True
+            if entity_name == "collections":
+                self._upsert_collections(
+                    dataset,
+                    agency=agency,
+                    dataset_name=dataset_name,
+                    other_identifier_notation=notation,
+                )
+            else:
+                self._upsert_table(
+                    dataset,
+                    status=harvest_object.status,
+                    entity_name=entity_name,
+                    dataset_name=dataset_name,
+                )
         except Exception as e:
             log.error(
                 f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
             )
             return False
+
+    def _upsert_other_identifier_table(self, notation, agency):
+        if notation:
+            self.molgenis_client.save_table(
+                table="other_identifier",
+                data=[
+                    {
+                        "notation": notation,
+                        "schemaAgency": agency,
+                    }
+                ],
+            )
+
+    def _check_previous_import(
+        self,
+        entity_name: str,
+        dataset: dict,
+        agency: str,
+        other_identifier_notation: str,
+    ) -> tuple[str, bool]:
+        """
+        Check if the object has already been imported into Molgenis.
+
+        Returns the entity ID and a boolean indicating if the agency matches.
+        """
+        try:
+            existing_records = self.molgenis_client.get(
+                table=entity_name,
+                query_filter=f"other_identifier.notation == '{other_identifier_notation}'",
+            )
+            if not existing_records:
+                return (None, False)
+
+            existing_agency = (
+                existing_records[0].get("other_identifier", {}).get("schemaAgency")
+            )
+            return (
+                (existing_records[0].get("id"), existing_agency == agency)
+                if existing_records
+                else (None, False)
+            )
+        except Exception as e:
+            log.exception(
+                f"Error checking previous import for dataset {dataset.get('title')}: {repr(e)}"
+            )
+            return (None, False)
+
+    def _upsert_collections(
+        self,
+        dataset: dict,
+        agency: str,
+        dataset_name: str,
+        other_identifier_notation: str,
+    ) -> bool:
+        (existing_id, same_agency) = self._check_previous_import(
+            "collections", dataset, agency, other_identifier_notation
+        )
+        if existing_id:
+            if same_agency:
+                log.info(f"Updating dataset '{dataset_name}' with ID '{existing_id}'")
+                dataset["id"] = existing_id
+                log.info(f"Updating dataset '{dataset_name}'")
+            else:
+                log.warning(
+                    f"Dataset '{dataset_name}' already exists with a different agency. Skipping update."
+                )
+                return False
+        else:
+            log.info(f"Adding dataset '{dataset_name}'")
+
+        self._upsert_other_identifier_table(other_identifier_notation, agency)
+        self.molgenis_client.save_table(table="collections", data=[dataset])
+        return True
+
+    def _upsert_table(
+        self, dataset: dict, status: str, entity_name: str, dataset_name: str
+    ) -> bool:
+        if status == "new":
+            log.info(f"Adding dataset '{dataset_name}'")
+        else:  # status == "change"
+            log.info(f"Updating dataset '{dataset_name}'")
+        self.molgenis_client.save_table(table=entity_name, data=[dataset])
+        return True
 
     def _get_rdf(self, harvest_root_uri):
         next_page_url = harvest_root_uri
