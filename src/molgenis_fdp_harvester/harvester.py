@@ -9,17 +9,12 @@ or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
 The user creating this token requires editing permissions on the host schema.
 """
-import contextlib
 import logging
 from pathlib import Path
 
 import yaml
 
 from .fdp_harvester.fdp import FDPHarvester
-
-# Python < 3.11 does not have tomllib, but tomli provides same functionality
-with contextlib.suppress(ModuleNotFoundError):
-    pass
 
 import click
 from dotenv import load_dotenv

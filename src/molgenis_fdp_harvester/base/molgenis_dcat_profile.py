@@ -17,6 +17,10 @@ from .baseparser import ADMS, DCAT, DCATAP, DCT, DPV, EUCAIM, HEALTHDCATAP, VCAR
 
 log = logging.getLogger(__name__)
 
+# This is an entry that needs to be removed from the language list. We're not using it so the http protocol unsafety can
+# be ignored.
+DEFAULT_LANGUAGE = 'http://id.loc.gov/vocabulary/iso639-1/en'
+
 # To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
 # as is done on the Molgenis side. Currently this pseudo-hashing function is used.
 
@@ -188,7 +192,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                 language_list = [language_list]
             try:
                 language_list.remove(
-                    'http://id.loc.gov/vocabulary/iso639-1/en')
+                    DEFAULT_LANGUAGE)
                 if not language_list:
                     # If removing the default language makes language_list empty, remove the dictionary entry.
                     del dataset_dict['language']
