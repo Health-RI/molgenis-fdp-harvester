@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 # This is an entry that needs to be removed from the language list. We're not using it so the http protocol unsafety can
 # be ignored.
-DEFAULT_LANGUAGE = 'http://id.loc.gov/vocabulary/iso639-1/en'
+DEFAULT_LANGUAGE = 'http://id.loc.gov/vocabulary/iso639-1/en'  # NOSONAR
 
 # To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
 # as is done on the Molgenis side. Currently this pseudo-hashing function is used.
