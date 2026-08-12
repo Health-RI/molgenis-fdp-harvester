@@ -1,6 +1,8 @@
 {
     "name": "molgenis-fdp-harvester",
-    "image": "mcr.microsoft.com/devcontainers/python:3.12",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
     "customizations": {
         "vscode": {
             "settings": {
@@ -8,7 +10,7 @@
                 "python.analysis.extraPaths": [
                     "src"
                 ],
-                "python.formatting.provider": "black",
+                "python.formatting.provider": "ruff",
                 "python.testing.unittestEnabled": false,
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
@@ -19,8 +21,7 @@
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "ms-python.black-formatter",
-                "ms-python.isort"
+                "charliermarsh.ruff"
             ]
         }
     },
