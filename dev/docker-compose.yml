@@ -136,7 +136,7 @@ services:
         # Remove the fairclient and patch script volume mounts above and use the command below.
         # command: [ "pip install --no-cache-dir fairclient && python upload_data.py" ]
 
-    # Molgenis setup
+        # Molgenis setup
     molgenis:
         image: registry.gitlab.com/radiology/infrastructure/studies/eucaim/molgenis-emx2-eucaim/molgenis-emx2-eucaim:11.36.0-1.1.0
         platform: linux/amd64
