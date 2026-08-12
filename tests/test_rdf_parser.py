@@ -17,19 +17,22 @@ def parser(profiles):
     return RDFParser(profiles)
 
 
+_TEST_DATA_DIR = Path(__file__).parent / "test_data"
+
+
 @pytest.fixture
 def catalog_data():
-    return Path("tests/test_data/rdf_catalog.ttl").read_text()
+    return (_TEST_DATA_DIR / "rdf_catalog.ttl").read_text()
 
 
 @pytest.fixture
 def dataset1_data():
-    return Path("tests/test_data/rdf_dataset1.ttl").read_text()
+    return (_TEST_DATA_DIR / "rdf_dataset1.ttl").read_text()
 
 
 @pytest.fixture
 def dataset2_data():
-    return Path("tests/test_data/rdf_dataset2.ttl").read_text()
+    return (_TEST_DATA_DIR / "rdf_dataset2.ttl").read_text()
 
 
 def test_parser_initialization(profiles):
