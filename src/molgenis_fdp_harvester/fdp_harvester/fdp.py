@@ -46,7 +46,7 @@ class FDPHarvester(DCATRDFHarvester):
                     self.guids_in_harvest[concept_type].append(
                         Identifier(identifier).get_id_value())
                 except Exception as e:
-                    log.error(
+                    log.exception(
                         f"Error for identifier {identifier!s} in gather phase: {e!s}")
                     continue
 
