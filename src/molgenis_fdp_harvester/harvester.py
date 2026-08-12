@@ -12,11 +12,8 @@ The user creating this token requires editing permissions on the host schema.
 import logging
 from pathlib import Path
 
-import yaml
-
-from .fdp_harvester.fdp import FDPHarvester
-
 import click
+import yaml
 from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
@@ -26,6 +23,7 @@ from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
 from .config import load_config
+from .fdp_harvester.fdp import FDPHarvester
 
 # Environment variables:
 # MOLGENIS_TOKEN
