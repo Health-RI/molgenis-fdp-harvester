@@ -25,7 +25,7 @@ Usage: harvest [OPTIONS]
 
 Options:
   --fdp TEXT            FAIR Data Point catalog URL to harvest
-  --fdp-list PATH       Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)
+  --fdp-list PATH       Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)
   --host TEXT           MOLGENIS host to harvest to
   --schema TEXT         Schema on MOLGENIS host to harvest to
   --config PATH         Configuration.
@@ -35,7 +35,7 @@ Options:
   --help                Show this message and exit.
 ```
 
-Either `--fdp` (single URL) or `--fdp-list` (CSV file) must be provided; they are mutually exclusive.
+Either `--fdp` (single URL) or `--fdp-list` (YML file) must be provided; they are mutually exclusive.
 
 The `--fdp-list` YML file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). 
 
@@ -121,27 +121,28 @@ docker run --rm \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-### Running with a CSV list of FDPs
+### Running with a YML list of FDPs
 
 ```console
 docker run --rm \
   -e MOLGENIS_TOKEN=<your-token> \
   -e MOLGENIS_HOST=https://your-molgenis-host \
   -e INPUT_TYPE=fdp \
-  -e FDP_LIST_PATH=/app/fdps.csv \
+  -e FDP_LIST_PATH=/app/fdps.yml \
   -e HARVEST_CONFIG=/app/config.toml \
   -v /path/to/your/config.toml:/app/config.toml \
-  -v /path/to/your/fdps.csv:/app/fdps.csv \
+  -v /path/to/your/fdps.yml:/app/fdps.yml \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-The CSV file format:
+The YML file format:
 
-```csv
-fdp_url,fdp_id_prefix
-https://fdp1.example.com,prefix1
-https://fdp2.example.com,prefix2
-https://fdp3.example.com,
+```yml
+fdps:
+  - fdp_url: http://fdp-1.test
+    fdp_id_prefix: prefix1
+  - fdp_url: http://fdp-2.test
+    fdp_id_prefix: prefix2
 ```
 
 ### Building the image locally
@@ -206,8 +207,11 @@ To test the harvester, create a file `.env`:
 MOLGENIS_TOKEN=-your molgenis token-
 ```
 
-Running the harvester can be done by running:
+Running the harvester can be done by first building the docker image of the source files and then running it:
 ```
+cd [root_of_repo]
+docker compose build . -t molgenis-fdp-harvester
+cd dev
 docker compose up harvester
 ```
 

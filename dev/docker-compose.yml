@@ -173,10 +173,10 @@ services:
             - MOLGENIS_HOST=http://molgenis:8080
             - INPUT_TYPE=fdp
             - HARVEST_CONFIG=/app/config.toml
-            - FDP_LIST_PATH=/app/fdps.csv
+            - FDP_LIST_PATH=/app/fdps.yml
         volumes:
             - ../config.toml:/app/config.toml:ro
-            - ./harvester/fdps.csv:/app/fdps.csv:ro
+            - ./harvester/fdps.yml:/app/fdps.yml:ro
 
 volumes:
     mongo-data-1:

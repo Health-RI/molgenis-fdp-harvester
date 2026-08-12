@@ -53,7 +53,8 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         data = yaml.safe_load(f) or {}
 
     entries = []
-    fdp_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    raw_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    fdp_entries = raw_entries if isinstance(raw_entries, list) else []
     for entry in fdp_entries:
         if not isinstance(entry, dict):
             continue
@@ -74,7 +75,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
 @click.option(
     "--fdp-list",
     envvar="FDP_LIST_PATH",
-    help="Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)",
+    help="Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)",
     required=False,
     default=None,
     type=click.Path(exists=True, path_type=Path, readable=True)
