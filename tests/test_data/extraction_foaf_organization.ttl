@@ -6,5 +6,5 @@
 <http://example.com/org1> a foaf:Organization ;
     foaf:name "Test Publisher Org" ;
     dct:description "A test publishing organisation" ;
-    healthdcatap:publishertype "ResearchInstitute" ;
+    dct:type "ResearchInstitute" ;
     foaf:homepage <https://example.com> .
