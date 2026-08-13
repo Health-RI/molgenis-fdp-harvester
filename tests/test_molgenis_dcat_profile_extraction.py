@@ -105,7 +105,7 @@ def test_parse_publisher():
     assert result["uri"] == "http://example.com/org1"
     assert result["name"] == "Test Publisher Org"
     assert result["description"] == "A test publishing organisation"
-    assert result["publishertype"] == "ResearchInstitute"
+    assert result["type"] == "ResearchInstitute"
     assert result["homepage"] == "https://example.com"
 
 

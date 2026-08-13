@@ -10,7 +10,7 @@ import pytest
 
 @pytest.fixture
 def catalog_url():
-    url = os.path.abspath("tests/test_data/rdf_testdata.ttl")
+    url = os.path.abspath("test_data/rdf_testdata.ttl")
     assert os.path.exists(url), f"Test file not found: {url}"
     return url
 
