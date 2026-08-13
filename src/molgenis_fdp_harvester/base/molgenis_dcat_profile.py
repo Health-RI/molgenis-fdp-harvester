@@ -421,8 +421,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
-        if dataset_dict.get("hasEmail") and dataset_dict["hasEmail"].startswith("mailto:"):
-            dataset_dict["hasEmail"] = dataset_dict["hasEmail"].removeprefix("mailto:")
+        has_email = dataset_dict.get("hasEmail")
+        if isinstance(has_email, str) and has_email.startswith("mailto:"):
+            dataset_dict["hasEmail"] = has_email.removeprefix("mailto:")
         return dataset_dict
 
     def parse_distribution(self, dataset_dict: Dict, dataset_ref: URIRef):

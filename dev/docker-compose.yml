@@ -45,8 +45,8 @@ services:
         depends_on:
             - fdp-1
         volumes:
-            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
-            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+            - ./fdp/properties-2026-08-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-08-03:/opt/app/SHACLs:ro
         environment:
             - FDP_HOST=http://fdp-1
             - FDP_USER=albert.einstein@example.com
@@ -101,8 +101,8 @@ services:
         depends_on:
             - fdp-2
         volumes:
-            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
-            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+            - ./fdp/properties-2026-08-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-08-03:/opt/app/SHACLs:ro
         environment:
             - FDP_HOST=http://fdp-1
             - FDP_USER=albert.einstein@example.com
@@ -161,24 +161,22 @@ services:
 
     # Harvester
     harvester:
-        build:
-            context: ..
-            dockerfile: Dockerfile
+        image: molgenis-fdp-harvester
         depends_on:
             - molgenis
-            - fdp-1
+            - fdp-1.test
             - schema-tool-1
-            - fdp-2
+            - fdp-2.test
             - schema-tool-2
         environment:
             - MOLGENIS_TOKEN=${MOLGENIS_TOKEN:-}
             - MOLGENIS_HOST=http://molgenis:8080
             - INPUT_TYPE=fdp
             - HARVEST_CONFIG=/app/config.toml
-            - FDP_LIST_PATH=/app/fdps.csv
+            - FDP_LIST_PATH=/app/fdps.yml
         volumes:
             - ../config.toml:/app/config.toml:ro
-            - ./harvester/fdps.csv:/app/fdps.csv:ro
+            - ./harvester/fdps.yml:/app/fdps.yml:ro
 
 volumes:
     mongo-data-1:
