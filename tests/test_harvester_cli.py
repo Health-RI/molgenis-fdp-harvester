@@ -15,6 +15,16 @@ from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_lis
 from molgenis_emx2_pyclient import Client
 
 
+@pytest.fixture(autouse=True)
+def clean_cli_env(monkeypatch):
+    """Ensure CLI-related env vars from the ambient shell/.env don't leak into tests."""
+    for var in (
+        'MOLGENIS_TOKEN', 'MOLGENIS_HOST', 'MOLGENIS_SCHEMA', 'HARVEST_CONFIG',
+        'INPUT_TYPE', 'FDP_URL', 'FDP_LIST_PATH',
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+
 @pytest.fixture
 def temp_config_file():
     """Create a temporary config file"""
