@@ -32,12 +32,11 @@ load_dotenv()
 logging.basicConfig(level="INFO")
 
 
-def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
+def read_fdp_list(yaml_path: Path) -> list[str]:
     """Read FDP entries from a YAML file.
 
     Expects a top-level list under ``fdps`` where each item contains
-    ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
-    are normalized to ``None``.
+    an ``fdp_url`` value.
     """
     with Path(yaml_path).open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
@@ -51,9 +50,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         fdp_url = str(entry.get("fdp_url", "")).strip()
         if not fdp_url:
             continue
-        fdp_id_prefix = entry.get("fdp_id_prefix")
-        prefix_value = None if fdp_id_prefix is None else str(fdp_id_prefix).strip() or None
-        entries.append((fdp_url, prefix_value))
+        entries.append(fdp_url)
     return entries
 
 
@@ -62,7 +59,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
 @click.option(
     "--fdp-list",
     envvar="FDP_LIST_PATH",
-    help="Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)",
+    help="Path to YML file with column fdp_url (one FDP per row)",
     required=False,
     default=None,
     type=click.Path(exists=True, path_type=Path, readable=True),
@@ -87,13 +84,6 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     default=None,
 )
 @click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(["rdf", "fdp"]), required=False, default=None)
-@click.option(
-    "--fdp-id-prefix",
-    envvar="FDP_ID_PREFIX",
-    help="FDP ID prefix used for PID construction. Only used with --fdp.",
-    required=False,
-    default=None,
-)
 # ruff: noqa: PLR0913, PLR0917
 def cli(
     fdp: str,
@@ -103,7 +93,6 @@ def cli(
     config: click.Path,
     token: str,
     input_type: str,
-    fdp_id_prefix: str,
 ):
     """Run the harvester with the specified configuration."""
     # Check required options (not enforced at Click level to allow env var fallback)
@@ -130,9 +119,9 @@ def cli(
     concept_table_dict = config_data["concept_table_link"]
     harvester_config = config_data.get("harvester_config", {})
 
-    # Build uniform list of (fdp_url, fdp_id_prefix) entries
+    # Build uniform list of fdp_url entries
     if fdp:
-        fdp_entries = [(fdp, fdp_id_prefix)]
+        fdp_entries = [fdp]
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
@@ -148,11 +137,9 @@ def cli(
     }
 
     with Client(url=host, schema=schema, token=token) as client:
-        for entry_fdp_url, entry_fdp_id_prefix in fdp_entries:
+        for entry_fdp_url in fdp_entries:
             entry_config = dict(harvester_config)
             entry_config["server_url"] = entry_fdp_url
-            if entry_fdp_id_prefix is not None:
-                entry_config["fdp_id_prefix"] = entry_fdp_id_prefix
 
             harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
             execute_harvest(harvester, entry_fdp_url, concept_type_order)

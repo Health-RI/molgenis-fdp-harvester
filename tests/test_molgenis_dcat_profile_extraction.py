@@ -57,7 +57,7 @@ def test_extract_datasetseries_id_fallback_to_title(graph_datasetseries_no_id):
 def test_parse_dataset_integration(graph_dataset_integration):
     """Test full dataset parsing with multiple extraction functions."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_dataset_integration)
-    profile.config = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+    profile.config = {'pid_service_url': 'https://pid.example.com'}
     dataset_ref = URIRef("http://example.com/dataset_full")
 
     dataset_dict = {}
@@ -68,9 +68,9 @@ def test_parse_dataset_integration(graph_dataset_integration):
     assert result["title"] == "Full Integration Test Dataset"
     assert result["description"] == "A comprehensive dataset for integration testing"
 
-    # Verify PID handling: plain string identifier gets prefixed
-    assert result["id"] == "testorg-dataset-full-001"
-    assert result["identifier"] == "https://pid.example.com/testorg-dataset-full-001"
+    # Verify PID handling: original identifier moves to other_identifier, id/identifier are generated
+    assert result["other_identifier"] == "dataset-full-001"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
     # Verify extracted name from VCARD contact
     assert result["contactPoint"] == "drjanesmith"

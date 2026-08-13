@@ -159,8 +159,7 @@ class RDFProfile(object):
         self._licenceregister_cache = None
 
         # self.config = {
-        #     'pid_service_url': 'http://pid.eucaim.cancerimage.eu',
-        #     'fdp_id_prefix': 'testidprefix'
+        #     'pid_service_url': 'http://pid.eucaim.cancerimage.eu'
         # }
 
     def _datasets(self):

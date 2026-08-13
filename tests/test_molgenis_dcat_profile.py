@@ -27,7 +27,7 @@ def rdf_graph():
 @pytest.fixture
 def profile(rdf_graph):
     p = MolgenisEUCAIMDCATAPProfile(rdf_graph)
-    p.config = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+    p.config = {'pid_service_url': 'https://pid.example.com'}
     return p
 
 
@@ -132,40 +132,31 @@ def test_parse_datasetseries():
 # --- handle_pids tests ---
 
 def test_handle_pids_no_pid(profile):
-    """Plain string identifier: id gets prefixed, identifier becomes PID service URL."""
+    """Plain string identifier: original moves to other_identifier, id/identifier are generated."""
     dataset_dict = {'identifier': 'mydata'}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['id'] == 'testorg-mydata'
-    assert result['identifier'] == 'https://pid.example.com/testorg-mydata'
+    assert result['other_identifier'] == 'mydata'
+    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
 
 
 def test_handle_pids_external_pid(profile):
-    """External URL identifier: id is sanitised via munge_title_to_name."""
+    """External URL identifier: original moves to other_identifier, id/identifier are generated."""
     dataset_dict = {'identifier': 'https://other.pid/dataset/abc'}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['id'] == 'https-other-pid-dataset-abc'
+    assert result['other_identifier'] == 'https://other.pid/dataset/abc'
+    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
 
 
 def test_handle_pids_generated_pid(profile):
-    """Identifier is a previously-generated PID service URL: id is the stable suffix, identifier unchanged."""
+    """Identifier is a previously-generated PID service URL: it still moves to other_identifier."""
     pid_url = 'https://pid.example.com/testorg-mydata'
     dataset_dict = {'identifier': pid_url}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['id'] == 'testorg-mydata'
-    assert result['identifier'] == pid_url
-
-
-def test_handle_pids_no_pid_no_prefix(profile):
-    """Plain string identifier with no fdp_id_prefix: id = identifier, identifier = PID service URL/id."""
-    profile.config = {'pid_service_url': 'https://pid.example.com'}  # no fdp_id_prefix
-    dataset_dict = {'identifier': 'mydata'}
-    result = profile.handle_pids(dataset_dict)
-
-    assert result['id'] == 'mydata'
-    assert result['identifier'] == 'https://pid.example.com/mydata'
+    assert result['other_identifier'] == pid_url
+    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
 
 
 # --- _extract_name_publisher tests ---
