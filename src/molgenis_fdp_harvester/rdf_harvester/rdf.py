@@ -321,14 +321,14 @@ class DCATRDFHarvester(DCATHarvester):
 
         try:
             if entity_name == "collections":
-                self._upsert_collections(
+                success = self._upsert_collections(
                     dataset,
                     agency=agency,
                     dataset_name=dataset_name,
                     other_identifier_notation=notation,
                 )
             else:
-                self._upsert_table(
+                success = self._upsert_table(
                     dataset,
                     status=harvest_object.status,
                     entity_name=entity_name,
@@ -339,6 +339,8 @@ class DCATRDFHarvester(DCATHarvester):
                 f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
             )
             return False
+
+        return bool(success)
 
     def _upsert_other_identifier_table(self, notation, agency):
         if notation:
