@@ -354,7 +354,6 @@ class DCATRDFHarvester(DCATHarvester):
 
     def _check_previous_import(
         self,
-        entity_name: str,
         dataset: dict,
         agency: str,
         other_identifier_notation: str,
@@ -366,20 +365,24 @@ class DCATRDFHarvester(DCATHarvester):
         """
         try:
             existing_records = self.molgenis_client.get(
-                table=entity_name,
-                query_filter=f"other_identifier.notation == '{other_identifier_notation}'",
+                table="collections",
+                query_filter=f"other_identifier.notation == '{quote(other_identifier_notation)}'",
+                # query_filter="id == '75eeae9b-3521-4d20-b40b-536e5258146d'",
+            )
+            print(
+                "EXISITING RECORDS",
+                quote(other_identifier_notation),
+                existing_records,
+                "OTHER IDENTIFIER NOTATION",
+                existing_records[0].get("other_identifier")
+                if existing_records
+                else None,
             )
             if not existing_records:
                 return (None, False)
 
-            existing_agency = (
-                existing_records[0].get("other_identifier", {}).get("schemaAgency")
-            )
-            return (
-                (existing_records[0].get("id"), existing_agency == agency)
-                if existing_records
-                else (None, False)
-            )
+            existing_agency = existing_records[0].get("other_identifier")
+            return (existing_records[0].get("id"), existing_agency == agency)
         except Exception as e:
             log.exception(
                 f"Error checking previous import for dataset {dataset.get('title')}: {repr(e)}"
@@ -394,7 +397,7 @@ class DCATRDFHarvester(DCATHarvester):
         other_identifier_notation: str,
     ) -> bool:
         (existing_id, same_agency) = self._check_previous_import(
-            "collections", dataset, agency, other_identifier_notation
+            dataset, agency, other_identifier_notation
         )
         if existing_id:
             if same_agency:
