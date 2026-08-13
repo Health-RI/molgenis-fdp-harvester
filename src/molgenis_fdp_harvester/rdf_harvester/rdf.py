@@ -366,17 +366,7 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             existing_records = self.molgenis_client.get(
                 table="collections",
-                query_filter=f"other_identifier.notation == '{quote(other_identifier_notation)}'",
-                # query_filter="id == '75eeae9b-3521-4d20-b40b-536e5258146d'",
-            )
-            print(
-                "EXISITING RECORDS",
-                quote(other_identifier_notation),
-                existing_records,
-                "OTHER IDENTIFIER NOTATION",
-                existing_records[0].get("other_identifier")
-                if existing_records
-                else None,
+                query_filter=f"other_identifier.notation == {other_identifier_notation}",
             )
             if not existing_records:
                 return (None, False)
