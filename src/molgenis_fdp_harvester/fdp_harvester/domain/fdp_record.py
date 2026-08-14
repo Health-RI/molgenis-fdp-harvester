@@ -3,9 +3,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from rdflib import DCAT, RDF, URIRef, FOAF, DCTERMS
+from rdflib import DCAT, DCTERMS, FOAF, RDF, URIRef
 
-from ...base.baseparser import VCARD
+from molgenis_fdp_harvester.base.baseparser import VCARD
 
 
 class FdpRecord:

@@ -7,8 +7,11 @@ SEPARATOR = ";"
 KEY_VALUE_SEPARATOR = "="
 
 
-class IdentifierException(Exception):
+class IdentifierError(Exception):
     pass
+
+
+IdentifierException = IdentifierError
 
 
 class Identifier:

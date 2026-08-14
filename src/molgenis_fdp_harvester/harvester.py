@@ -12,25 +12,18 @@ The user creating this token requires editing permissions on the host schema.
 import logging
 from pathlib import Path
 
-import yaml
-
-from .fdp_harvester.fdp import FDPHarvester
-
-# Python < 3.11 does not have tomllib, but tomli provides same functionality
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib
-
 import click
+import yaml
 from dotenv import load_dotenv
 from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+
 from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
 from .config import load_config
+from .fdp_harvester.fdp import FDPHarvester
 
 # Environment variables:
 # MOLGENIS_TOKEN
@@ -45,7 +38,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
     are normalized to ``None``.
     """
-    with open(yaml_path, encoding='utf-8') as f:
+    with Path(yaml_path).open(encoding='utf-8') as f:
         data = yaml.safe_load(f) or {}
 
     entries = []
@@ -58,10 +51,8 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         if not fdp_url:
             continue
         fdp_id_prefix = entry.get('fdp_id_prefix')
-        if fdp_id_prefix is None:
-            prefix_value = None
-        else:
-            prefix_value = str(fdp_id_prefix).strip() or None
+        prefix_value = None if fdp_id_prefix is None else str(
+            fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
     return entries
 
@@ -99,6 +90,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     required=False,
     default=None
 )
+# ruff: noqa: PLR0913, PLR0917
 def cli(
     fdp: str,
     fdp_list: Path,
@@ -131,7 +123,8 @@ def cli(
 
     # Validate mutual exclusivity of --fdp and --fdp-list
     if fdp and fdp_list:
-        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
+        raise click.UsageError(
+            "--fdp and --fdp-list are mutually exclusive. Provide only one.")
     if not fdp and not fdp_list:
         raise click.UsageError("One of --fdp or --fdp-list is required.")
 
@@ -146,15 +139,16 @@ def cli(
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
-            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
+            raise click.ClickException(
+                f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
-    CONCEPT_TYPE_ORDER = {
+    concept_type_order = {
         'provenancestatement': 0,
         'kind': 1,
         'publisher': 2,
         'datasetseries': 3,
-        'dataset': 4
+        'dataset': 4,
     }
 
     with Client(url=host, schema=schema, token=token) as client:
@@ -163,8 +157,9 @@ def cli(
             if entry_fdp_id_prefix is not None:
                 entry_config['fdp_id_prefix'] = entry_fdp_id_prefix
 
-            harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
-            execute_harvest(harvester, entry_fdp_url, CONCEPT_TYPE_ORDER)
+            harvester = create_harvester(
+                input_type, concept_table_dict, client, entry_config)
+            execute_harvest(harvester, entry_fdp_url, concept_type_order)
 
 
 def create_harvester(input_type, concept_table_dict, client, harvester_config):
@@ -175,10 +170,10 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
 
     if input_type == 'rdf':
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)
-    elif input_type == 'fdp':
+    if input_type == 'fdp':
         return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
-    else:
-        raise ValueError(f"Unknown input_type: {input_type}")
+    raise ValueError(f"Unknown input_type: {input_type}")
+
 
 def execute_harvest(harvester, source_url, concept_type_order):
     """Execute the complete harvesting process."""
@@ -187,7 +182,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
 
     # Process fetch stage for all objects to identify datasets without datasetseries
     for harvest_object in harvester._harvest_objects:
-        harvest_object = harvester.fetch_stage(harvest_object)
+        harvester.fetch_stage(harvest_object)
 
     # Generate missing datasetseries and update dataset references
     harvester.generate_missing_datasetseries()
@@ -200,6 +195,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
     # Import all objects in dependency order
     for harvest_object in harvester._harvest_objects:
         harvester.import_stage(harvest_object)
+
 
 if __name__ == "__main__":
     cli()

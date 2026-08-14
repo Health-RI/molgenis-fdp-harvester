@@ -5,8 +5,6 @@
 from pathlib import Path
 
 import pytest
-import requests_mock
-from pytest_mock import class_mocker, mocker
 from rdflib import Graph
 
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider import (
@@ -27,7 +25,7 @@ class TestRecordProvider:
     fdp_record_provider = FairDataPointRecordProvider("http://test_end_point.com")
 
     @pytest.mark.parametrize(
-        "fdp_response_file,expected",
+        ("fdp_response_file", "expected"),
         [
             (
                     Path(TEST_DATA_DIRECTORY, "root_fdp_response.ttl"),
@@ -56,7 +54,7 @@ class TestRecordProvider:
         assert actual == expected
 
     @pytest.mark.parametrize(
-        "fdp_response_file,expected",
+        ("fdp_response_file", "expected"),
         [
             (
                     Path(TEST_DATA_DIRECTORY, "fdp_multiple_parents.ttl"),

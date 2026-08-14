@@ -3,13 +3,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from pytest_mock import mocker
 from rdflib import Graph
 from rdflib.compare import to_isomorphic
 from rdflib.exceptions import ParserError
 
 from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point import FairDataPoint
-
 
 TEST_DATA = "@prefix dcat: <http://www.w3.org/ns/dcat#> .\n"\
             "@prefix dcterms: <http://purl.org/dc/terms/> .\n" \

@@ -1,18 +1,19 @@
 # CLI tests
-# Test that if only the required parameters are supplied, that we have a workable program.
+# Test that if only the required parameters are supplied,
+# that we have a workable program.
 # Test that the dotenv is picked up correctly
-# Test that the correct harvester is created in create_harvester, and that ValueError is raised if the 'else' branch is triggered.
+# Test that the correct harvester is created in create_harvester,
+# and that ValueError is raised if the 'else' branch is triggered.
 
-import io
-import os
-import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 from click.testing import CliRunner
+from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_list
-from molgenis_emx2_pyclient import Client
 
 
 @pytest.fixture
@@ -34,7 +35,7 @@ auto_create_datasetseries = true
     yield config_path
 
     # Cleanup
-    os.unlink(config_path)
+    Path(config_path).unlink()
 
 
 @pytest.fixture
@@ -101,7 +102,7 @@ def test_dotenv_token_pickup(base_cli_args, mock_harvester_patches, monkeypatch)
 
     # Invoke CLI without --token parameter
     # The lambda default will evaluate os.environ.get("MOLGENIS_TOKEN") at call time
-    result = runner.invoke(cli, base_cli_args + ['--schema', 'Eucaim'])
+    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim'])
 
     # Verify the command completed successfully
     assert result.exit_code == 0, f"CLI failed with exit code {result.exit_code}:\nOutput: {result.output}"
@@ -127,10 +128,8 @@ def test_dotenv_token_explicit_override(base_cli_args, mock_harvester_patches, m
     monkeypatch.setenv('MOLGENIS_TOKEN', 'test_token_from_env_file')
 
     # Invoke CLI with explicit --token parameter (should override environment)
-    result = runner.invoke(cli, base_cli_args + [
-        '--schema', 'Eucaim',
-        '--token', 'explicit_token_override'
-    ])
+    result = runner.invoke(
+        cli, [*base_cli_args, '--schema', 'Eucaim', '--token', 'explicit_token_override'])
 
     # Verify command completed successfully
     assert result.exit_code == 0, f"CLI failed with: {result.output}"
@@ -151,7 +150,7 @@ def test_missing_token_raises_error(base_cli_args, monkeypatch):
     monkeypatch.delenv('MOLGENIS_TOKEN', raising=False)
 
     # Invoke CLI without --token parameter and without environment variable
-    result = runner.invoke(cli, base_cli_args + ['--schema', 'Eucaim'])
+    result = runner.invoke(cli, [*base_cli_args, '--schema', 'Eucaim'])
 
     # Verify the command failed with appropriate error
     assert result.exit_code != 0, "CLI should have failed when no token is provided"
@@ -227,7 +226,7 @@ def test_cli_all_env_vars(temp_config_file, mock_harvester_patches, monkeypatch)
     assert mock_harvester_patches['execute_harvest'].call_args[0][1] == 'http://env-fdp.example.com'
 
 
-@pytest.mark.parametrize("input_type,expected_class", [
+@pytest.mark.parametrize(('input_type', 'expected_class'), [
     ('rdf', 'DCATRDFHarvester'),
     ('fdp', 'FDPHarvester'),
 ])
@@ -246,12 +245,9 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
     """Test that create_harvester raises ValueError for invalid input_type"""
     mock_client = Mock(spec=Client)
 
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ValueError, match="Unknown input_type"):
         create_harvester('invalid', concept_table_dict,
                          mock_client, harvester_config)
-
-    assert "Unknown input_type" in str(exc_info.value), \
-        f"Expected error message about unknown input_type, got: {exc_info.value}"
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +267,7 @@ def temp_fdp_list():
 
     yield yaml_path
 
-    os.unlink(yaml_path)
+    Path(yaml_path).unlink()
 
 
 def test_fdp_and_fdp_list_mutually_exclusive(temp_config_file, temp_fdp_list, monkeypatch):
@@ -372,7 +368,7 @@ def test_fdp_list_row_without_prefix(temp_config_file, mock_harvester_patches, m
         entry_config = call_args[0][3]
         assert 'fdp_id_prefix' not in entry_config
     finally:
-        os.unlink(yaml_path)
+        Path(yaml_path).unlink()
 
 
 def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monkeypatch):
@@ -477,4 +473,4 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
         assert "no valid entries" in result.output.lower(
         ) or "no valid entries" in str(result.exception).lower()
     finally:
-        os.unlink(yml_path)
+        Path(yml_path).unlink()

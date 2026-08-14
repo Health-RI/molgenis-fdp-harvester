@@ -3,7 +3,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pytest
-from molgenis_fdp_harvester.config import validate_config, ConceptTableLink, HarvesterConfig
+
+from molgenis_fdp_harvester.config import HarvesterConfig, validate_config
+
 
 @pytest.fixture
 def valid_config_data():

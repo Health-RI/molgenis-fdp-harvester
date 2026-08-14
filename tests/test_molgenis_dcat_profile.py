@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pytest
+from pathlib import Path
 
+import pytest
 import rdflib
-from rdflib import URIRef, Literal
-from rdflib.namespace import DCAT, RDF, FOAF, DCTERMS
+from rdflib import Literal, URIRef
+from rdflib.namespace import DCAT, DCTERMS, FOAF, RDF
 
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
@@ -17,8 +18,7 @@ def rdf_graph():
     g = rdflib.Dataset()
 
     # Load test RDF data
-    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
-        dataset1_data = f.read()
+    dataset1_data = Path("tests/test_data/rdf_dataset1.ttl").read_text()
 
     g.parse(data=dataset1_data, format="turtle")
     return g
@@ -27,7 +27,8 @@ def rdf_graph():
 @pytest.fixture
 def profile(rdf_graph):
     p = MolgenisEUCAIMDCATAPProfile(rdf_graph)
-    p.config = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+    p.config = {'pid_service_url': 'https://pid.example.com',
+                'fdp_id_prefix': 'testorg'}
     return p
 
 
@@ -112,7 +113,8 @@ def test_parse_datasetseries():
 
     series_g.add((series_uri, RDF.type, DCAT.DatasetSeries))
     series_g.add((series_uri, DCTERMS.title, Literal("Test Series")))
-    series_g.add((series_uri, DCTERMS.description, Literal("Series Description")))
+    series_g.add((series_uri, DCTERMS.description,
+                 Literal("Series Description")))
     series_g.add((series_uri, DCTERMS.publisher, Literal("Test Publisher")))
 
     # Create profile with series graph
@@ -160,7 +162,8 @@ def test_handle_pids_generated_pid(profile):
 
 def test_handle_pids_no_pid_no_prefix(profile):
     """Plain string identifier with no fdp_id_prefix: id = identifier, identifier = PID service URL/id."""
-    profile.config = {'pid_service_url': 'https://pid.example.com'}  # no fdp_id_prefix
+    profile.config = {
+        'pid_service_url': 'https://pid.example.com'}  # no fdp_id_prefix
     dataset_dict = {'identifier': 'mydata'}
     result = profile.handle_pids(dataset_dict)
 

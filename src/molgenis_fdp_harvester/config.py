@@ -10,7 +10,8 @@ except ModuleNotFoundError:
     import tomli as tomllib
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -38,7 +39,7 @@ class ConceptTableLink:
 class HarvesterConfig:
     """Schema for harvester_config section."""
     auto_create_datasetseries: bool = True
-    uri_lookup_config: Dict[str, Dict[str, str]] | None = None
+    uri_lookup_config: dict[str, dict[str, str]] | None = None
     pid_service_url: str = None
 
 
@@ -49,7 +50,7 @@ class HarvesterConfigSchema:
     harvester_config: HarvesterConfig | None = None
 
 
-def validate_config(config_data: Dict[str, Any]) -> None:
+def validate_config(config_data: dict[str, Any]) -> None:
     """Validate that the configuration contains all required sections and fields.
 
     Args:
@@ -62,13 +63,16 @@ def validate_config(config_data: Dict[str, Any]) -> None:
     try:
         # Validate concept_table_link
         if 'concept_table_link' not in config_data:
-            raise ValueError("Configuration must contain a 'concept_table_link' section")
-        concept_table_link = ConceptTableLink(**config_data['concept_table_link'])
+            raise ValueError(
+                "Configuration must contain a 'concept_table_link' section")
+        concept_table_link = ConceptTableLink(
+            **config_data['concept_table_link'])
 
         # Validate harvester_config if present
         harvester_config = None
         if 'harvester_config' in config_data:
-            harvester_config = HarvesterConfig(**config_data['harvester_config'])
+            harvester_config = HarvesterConfig(
+                **config_data['harvester_config'])
 
         # Validate complete schema
         HarvesterConfigSchema(
@@ -82,7 +86,7 @@ def validate_config(config_data: Dict[str, Any]) -> None:
 
 def load_config(config_path):
     """Load and parse the configuration file."""
-    with open(config_path, "rb") as f:
+    with Path(config_path).open("rb") as f:
         config_data = tomllib.load(f)
     validate_config(config_data)
     return config_data

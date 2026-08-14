@@ -19,15 +19,14 @@ from .baseparser import (
     munge_tag,
 )
 
-
 log = logging.getLogger(__name__)
 
 PACKAGE_NAME_MIN_LENGTH = 2
 PACKAGE_NAME_MAX_LENGTH = 100
 
 
-class HarvestObject(object):
-    def __init__(self, guid, concept_type=None, status=None, content=None) :
+class HarvestObject:
+    def __init__(self, guid, concept_type=None, status=None, content=None):
         self.guid = guid
         self.content = content
         self.status = status
@@ -56,14 +55,13 @@ def munge_title_to_name(name: str) -> str:
         year_match = re.match(r".*?[_-]((?:\d{2,4}[-/])?\d{2,4})$", name)
         if year_match:
             year = year_match.groups()[0]
-            name = "%s-%s" % (name[: (max_length - len(year) - 1)], year)
+            name = f"{name[: (max_length - len(year) - 1)]}-{year}"
         else:
             name = name[:max_length]
-    name = _munge_to_length(name, PACKAGE_NAME_MIN_LENGTH, PACKAGE_NAME_MAX_LENGTH)
-    return name
+    return _munge_to_length(name, PACKAGE_NAME_MIN_LENGTH, PACKAGE_NAME_MAX_LENGTH)
 
 
-class HarvesterBase(object):
+class HarvesterBase:
     """
     Generic base class for harvesters, providing a number of useful functions.
 
@@ -104,20 +102,21 @@ class HarvesterBase(object):
 
         # If append_type was given, use it. Otherwise, use the configured default.
         # If nothing was given and no defaults were set, use 'number-sequence'.
-        if append_type:
-            append_type_param = append_type
-        else:
-            append_type_param = "number-sequence"
+        append_type_param = append_type or "number-sequence"
 
         ideal_name = munge_title_to_name(title)
         ideal_name = re.sub("-+", "-", ideal_name)  # collapse multiple dashes
         return cls._ensure_name_is_unique(
-            ideal_name, existing_name=existing_name, append_type=append_type_param
+            ideal_name,
+            existing_name=existing_name,
+            append_type=append_type_param,
         )
 
     @staticmethod
     def _ensure_name_is_unique(
-        ideal_name, existing_name=None, append_type="number-sequence"
+        ideal_name,
+        _existing_name=None,
+        _append_type="number-sequence",
     ):
         """
         Returns a dataset name based on the ideal_name, only it will be
@@ -142,8 +141,7 @@ class HarvesterBase(object):
         :type append_type: string
         """
 
-        ideal_name = ideal_name[:PACKAGE_NAME_MAX_LENGTH]
-        return ideal_name
+        return ideal_name[:PACKAGE_NAME_MAX_LENGTH]
 
     def _get_user_name(self):
         """
@@ -159,7 +157,6 @@ class HarvesterBase(object):
 
         """
         log.warning("_get_user_name: stubbed")
-        return None
 
     def _create_harvest_objects(self, remote_ids, harvest_job):
         """
@@ -238,8 +235,7 @@ class HarvesterBase(object):
         except TypeError:  # a TypeError is raised if `t` above is a string
             # REST format: 'tags' is a list of strings
             tags = [munge_tag(t) for t in tags if munge_tag(t) != ""]
-            tags = list(set(tags))
-            return tags
+            return list(set(tags))
 
         return tags
 

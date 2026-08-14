@@ -34,7 +34,7 @@ def test_resolve_uris_and_labels_list_all_values_found(harvester):
             'http://publications.europa.eu/resource/authority/country/ESP': [{'name': 'ESP'}],
             'http://publications.europa.eu/resource/authority/country/DEU': [{'name': 'DEU'}]
         }
-        return uri_to_name.get(value, None)
+        return uri_to_name.get(value)
 
     with patch.object(harvester, '_resolve_uri', side_effect=mock_resolve_uri):
         with patch.object(harvester, '_resolve_label', return_value=None):
@@ -58,7 +58,7 @@ def test_resolve_uris_and_labels_list_some_values_found(harvester):
             'http://publications.europa.eu/resource/authority/country/NLD': [{'name': 'NLD'}],
             'http://publications.europa.eu/resource/authority/country/DEU': [{'name': 'DEU'}]
         }
-        return uri_to_name.get(value, None)
+        return uri_to_name.get(value)
 
     with patch.object(harvester, '_resolve_uri', side_effect=mock_resolve_uri):
         with patch.object(harvester, '_resolve_label', return_value=None):
