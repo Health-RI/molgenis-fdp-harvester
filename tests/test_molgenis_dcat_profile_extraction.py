@@ -105,7 +105,7 @@ def test_parse_publisher():
     assert result["uri"] == "http://example.com/org1"
     assert result["name"] == "Test Publisher Org"
     assert result["description"] == "A test publishing organisation"
-    assert result["type"] == "ResearchInstitute"
+    assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
     assert result["homepage"] == "https://example.com"
 
 
@@ -148,14 +148,16 @@ def test_extract_purpose_keeps_plain_vocabulary_iri():
     g.parse("tests/test_data/extraction_purpose.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
 
+    # A plain vocabulary term (e.g. from the DPV purpose vocabulary) referenced directly,
+    # with no local dpv:Purpose typing triple in this graph.
     dataset_dict = {
-        "hasPurpose_obj": "http://example.com/purpose_iri",
-        "hasPurpose_IRI": "http://example.com/purpose_iri",
+        "hasPurpose_obj": "https://w3id.org/dpv#AcademicResearch",
+        "hasPurpose_IRI": "https://w3id.org/dpv#AcademicResearch",
     }
     result = profile._extract_purpose(dataset_dict)
 
     assert "hasPurpose_obj" not in result
-    assert result["hasPurpose_IRI"] == "http://example.com/purpose_iri"
+    assert result["hasPurpose_IRI"] == "https://w3id.org/dpv#AcademicResearch"
 
 
 def test_extract_purpose_missing_key_is_noop():
@@ -167,6 +169,26 @@ def test_extract_purpose_missing_key_is_noop():
     result = profile._extract_purpose(dataset_dict)
 
     assert result == {"title": "Some Dataset"}
+
+
+def test_extract_purpose_resolves_multiple_mixed_values():
+    """dpv:hasPurpose is a ref_array in the Molgenis model, so a dataset may declare more than
+    one value. A dpv:Purpose-typed value and a plain vocabulary IRI given together should both
+    survive: hasPurpose_obj gets the parsed object, hasPurpose_IRI keeps the plain IRI, rather
+    than one silently overwriting/dropping the other."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_purpose.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {
+        "hasPurpose_obj": ["http://example.com/purpose1", "https://w3id.org/dpv#AcademicResearch"],
+        "hasPurpose_IRI": ["http://example.com/purpose1", "https://w3id.org/dpv#AcademicResearch"],
+    }
+    result = profile._extract_purpose(dataset_dict)
+
+    assert result["hasPurpose_obj"]["uri"] == "http://example.com/purpose1"
+    assert result["hasPurpose_obj"]["description"] == "Scientific research"
+    assert result["hasPurpose_IRI"] == "https://w3id.org/dpv#AcademicResearch"
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +221,11 @@ def test_extract_creator_wrong_type_left_as_iri(graph_foaf_wrong_type):
 
 
 def test_parse_creator_fields():
-    """parse_creator should extract uri, name, description, type, mbox, homepage and phone."""
+    """parse_creator should extract uri, name, description, type, mbox, homepage.
+
+    Unlike publisher, the Molgenis 'creator' table has no 'phone' column, so parse_creator
+    must not attempt to extract foaf:phone.
+    """
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_creator_foaf_agent.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -210,10 +236,35 @@ def test_parse_creator_fields():
     assert result["uri"] == "http://example.com/creator1"
     assert result["name"] == "Test Creator"
     assert result["description"] == "A creator agent"
-    assert result["type"] == "Person"
-    assert result["mbox"] == "mailto:creator@example.com"
+    assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
+    assert result["mbox"] == "creator@example.com"
     assert result["homepage"] == "https://creator.example.com"
-    assert result["phone"] == "tel:+31612345678"
+    assert "phone" not in result
+
+
+def test_extract_creator_multiple_values_resolved_independently():
+    """dct:creator is a ref_array in the Molgenis model, so a dataset may declare more than one
+    creator. _extract_and_transform_by_type must resolve each value independently instead of
+    crashing on URIRef(list) -- each matching foaf:Agent gets parsed, non-matching resources
+    are left as plain IRI strings, same as the single-value case."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_creator_multi.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {
+        "creator": [
+            "http://example.com/creator_multi_1",
+            "http://example.com/creator_multi_2",
+            "http://example.com/creator_multi_not_agent",
+        ]
+    }
+    result = profile._extract_creator(dataset_dict, "creator")
+
+    assert isinstance(result["creator"], list)
+    assert len(result["creator"]) == 3
+    assert result["creator"][0]["name"] == "First Multi Creator"
+    assert result["creator"][1]["name"] == "Second Multi Creator"
+    assert result["creator"][2] == "http://example.com/creator_multi_not_agent"
 
 
 # ---------------------------------------------------------------------------
@@ -230,9 +281,9 @@ def test_extract_periodoftime_temporal_valid(graph_date_range):
     result = profile._extract_periodoftime(dataset_dict, "temporal")
 
     assert result["temporal"]["uri"] == "http://example.com/period1"
-    assert result["temporal"]["startDate"] == "2020-01-01"
-    assert result["temporal"]["endDate"] == "2023-12-31"
-    assert result["temporal"]["id"] == "2020-01-01/2023-12-31"
+    assert result["temporal"]["startDate"] == "2020-01-01T00:00:00"
+    assert result["temporal"]["endDate"] == "2023-12-31T00:00:00"
+    assert result["temporal"]["id"] == "2020-01-01T00:00:00/2023-12-31T00:00:00"
 
 
 def test_extract_periodoftime_retentionperiod_valid(graph_date_range):
@@ -243,8 +294,8 @@ def test_extract_periodoftime_retentionperiod_valid(graph_date_range):
     dataset_dict = {"retentionPeriod": "http://example.com/period1"}
     result = profile._extract_periodoftime(dataset_dict, "retentionPeriod")
 
-    assert result["retentionPeriod"]["startDate"] == "2020-01-01"
-    assert result["retentionPeriod"]["endDate"] == "2023-12-31"
+    assert result["retentionPeriod"]["startDate"] == "2020-01-01T00:00:00"
+    assert result["retentionPeriod"]["endDate"] == "2023-12-31T00:00:00"
 
 
 def test_parse_periodoftime_id_is_start_end_range(graph_date_range):
@@ -255,9 +306,9 @@ def test_parse_periodoftime_id_is_start_end_range(graph_date_range):
     result = profile.parse_periodoftime({}, period_ref)
 
     assert result["uri"] == "http://example.com/period1"
-    assert result["startDate"] == "2020-01-01"
-    assert result["endDate"] == "2023-12-31"
-    assert result["id"] == "2020-01-01/2023-12-31"
+    assert result["startDate"] == "2020-01-01T00:00:00"
+    assert result["endDate"] == "2023-12-31T00:00:00"
+    assert result["id"] == "2020-01-01T00:00:00/2023-12-31T00:00:00"
 
 
 def test_extract_periodoftime_missing_key_is_noop(graph_date_range_missing):
@@ -289,7 +340,7 @@ def test_extract_attribution_valid():
 
     attribution = result["qualifiedAttribution"]
     assert attribution["uri"] == "http://example.com/attribution1"
-    assert attribution["hadRole"] == "http://example.com/roles/author"
+    assert attribution["hadRole"] == "http://registry.it.csiro.au/def/isotc211/CI_RoleCode/author"
     assert attribution["agent"]["name"] == "Attribution Agent"
 
 
@@ -317,7 +368,7 @@ def test_parse_attribution_fields_and_nested_agent():
     result = profile.parse_attribution({}, attribution_ref)
 
     assert result["uri"] == "http://example.com/attribution1"
-    assert result["hadRole"] == "http://example.com/roles/author"
+    assert result["hadRole"] == "http://registry.it.csiro.au/def/isotc211/CI_RoleCode/author"
     assert result["agent"]["uri"] == "http://example.com/attribution_agent1"
     assert result["agent"]["name"] == "Attribution Agent"
 
@@ -334,16 +385,9 @@ def test_parse_attribution_agent_fields():
     assert result["uri"] == "http://example.com/attribution_agent1"
     assert result["name"] == "Attribution Agent"
     assert result["description"] == "An attributed agent"
-    assert result["type"] == "Person"
-    assert result["mbox"] == "mailto:agent@example.com"
+    assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
+    assert result["mbox"] == "agent@example.com"
     assert result["homepage"] == "https://agent.example.com"
-
-
-# ---------------------------------------------------------------------------
-# _extract_other_identifier / parse_other_identifier (adms:identifier -> adms:Identifier)
-# Fixtures needed: tests/test_data/extraction_other_identifier.ttl,
-#                  tests/test_data/extraction_other_identifier_wrong_type.ttl
-# ---------------------------------------------------------------------------
 
 def test_extract_other_identifier_valid():
     """other_identifier pointing to an adms:Identifier resource should be replaced with a
@@ -386,15 +430,6 @@ def test_parse_other_identifier_fields():
     assert result["notation"] == "ABC-123"
     assert result["schemaAgency"] == "Test Agency"
 
-
-# ---------------------------------------------------------------------------
-# _extract_distribution / parse_distribution (adms:sample / healthdcatap:analytics -> dcat:Distribution)
-# Fixtures: reuses tests/test_data/extraction_distribution_full.ttl for the scalar fields,
-#           checksum and rights (already present); needs
-#           tests/test_data/extraction_distribution_wrong_type.ttl for the type-mismatch case,
-#           and the policy/dataservice sub-resources on extraction_distribution_full.ttl to be
-#           typed (odrl:Policy / dcat:DataService) for the nested resolution tests.
-# ---------------------------------------------------------------------------
 
 def test_extract_distribution_sample_valid():
     """sample pointing to a dcat:Distribution resource should be replaced with a parsed dict."""
@@ -528,13 +563,6 @@ def test_parse_distribution_nested_dataservice():
     assert result["accessService"]["uri"] == "http://example.com/distribution1/service"
 
 
-# ---------------------------------------------------------------------------
-# _extract_policy / parse_policy / _extract_permission / parse_permission /
-# _extract_prohibition / parse_prohibition / _extract_obligation / parse_obligation
-# (odrl:Policy -> odrl:permission/prohibition/obligation)
-# Fixture needed: tests/test_data/extraction_policy.ttl
-# ---------------------------------------------------------------------------
-
 def test_extract_policy_valid():
     """hasPolicy pointing to an odrl:Policy resource should be replaced with a parsed dict."""
     g = rdflib.Dataset()
@@ -545,7 +573,7 @@ def test_extract_policy_valid():
     result = profile._extract_policy(dataset_dict, "hasPolicy")
 
     assert result["hasPolicy"]["uri"] == "http://example.com/policy1"
-    assert result["hasPolicy"]["permission"]["action"] == "http://example.com/actions/read"
+    assert result["hasPolicy"]["permission"]["action"] == "http://www.w3.org/ns/odrl/2/use"
 
 
 def test_parse_policy_nested_permission_prohibition_obligation():
@@ -560,11 +588,11 @@ def test_parse_policy_nested_permission_prohibition_obligation():
 
     assert result["uri"] == "http://example.com/policy1"
     assert result["permission"]["uri"] == "http://example.com/policy1/permission1"
-    assert result["permission"]["action"] == "http://example.com/actions/read"
+    assert result["permission"]["action"] == "http://www.w3.org/ns/odrl/2/use"
     assert result["prohibition"]["uri"] == "http://example.com/policy1/prohibition1"
-    assert result["prohibition"]["action"] == "http://example.com/actions/redistribute"
+    assert result["prohibition"]["action"] == "http://www.w3.org/ns/odrl/2/distribute"
     assert result["obligation"]["uri"] == "http://example.com/policy1/obligation1"
-    assert result["obligation"]["action"] == "http://example.com/actions/attribute"
+    assert result["obligation"]["action"] == "http://www.w3.org/ns/odrl/2/attribute"
 
 
 def test_parse_permission_fields():
@@ -577,7 +605,7 @@ def test_parse_permission_fields():
     result = profile.parse_permission({}, permission_ref)
 
     assert result["uri"] == "http://example.com/policy1/permission1"
-    assert result["action"] == "http://example.com/actions/read"
+    assert result["action"] == "http://www.w3.org/ns/odrl/2/use"
 
 
 def test_parse_prohibition_fields():
@@ -590,7 +618,7 @@ def test_parse_prohibition_fields():
     result = profile.parse_prohibition({}, prohibition_ref)
 
     assert result["uri"] == "http://example.com/policy1/prohibition1"
-    assert result["action"] == "http://example.com/actions/redistribute"
+    assert result["action"] == "http://www.w3.org/ns/odrl/2/distribute"
 
 
 def test_parse_obligation_fields():
@@ -603,13 +631,24 @@ def test_parse_obligation_fields():
     result = profile.parse_obligation({}, obligation_ref)
 
     assert result["uri"] == "http://example.com/policy1/obligation1"
-    assert result["action"] == "http://example.com/actions/attribute"
+    assert result["action"] == "http://www.w3.org/ns/odrl/2/attribute"
 
 
-# ---------------------------------------------------------------------------
-# _extract_checksum / parse_checksum (spdx:checksum -> spdx:Checksum)
-# Fixture: reuses tests/test_data/extraction_distribution_full.ttl's checksum resource
-# ---------------------------------------------------------------------------
+def test_extract_obligation_accepts_molgenis_obligation_class():
+    """The Molgenis metadata model's own semantics annotation for the 'obligation' table uses
+    odrl:Obligation rather than the real ODRL 2.2 class odrl:Duty. _extract_obligation must
+    resolve resources typed either way, since we can't be sure which one Molgenis actually
+    emits."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_obligation_molgenis_class.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"obligation": "http://example.com/obligation_molgenis1"}
+    result = profile._extract_obligation(dataset_dict, "obligation")
+
+    assert result["obligation"]["uri"] == "http://example.com/obligation_molgenis1"
+    assert result["obligation"]["action"] == "http://www.w3.org/ns/odrl/2/attribute"
+
 
 def test_extract_checksum_valid():
     """checksum pointing to an spdx:Checksum resource should be replaced with a parsed dict."""
@@ -638,10 +677,6 @@ def test_parse_checksum_fields():
     assert result["checksumValue"] == "abc123def456"
 
 
-# ---------------------------------------------------------------------------
-# _extract_rightsstatement / parse_rightsstatement (dct:rights -> dct:RightsStatement)
-# Fixture: reuses tests/test_data/extraction_distribution_full.ttl's rights resource
-# ---------------------------------------------------------------------------
 
 def test_extract_rightsstatement_valid():
     """rights pointing to a dct:RightsStatement resource should be replaced with a parsed dict."""
@@ -669,10 +704,6 @@ def test_parse_rightsstatement_fields():
     assert result["label"] == "Access restricted to authorised researchers"
 
 
-# ---------------------------------------------------------------------------
-# _extract_dataservice / parse_dataservice (dcat:accessService -> dcat:DataService)
-# Fixture needed: tests/test_data/extraction_dataservice.ttl
-# ---------------------------------------------------------------------------
 
 def test_extract_dataservice_valid():
     """accessService pointing to a dcat:DataService resource should be replaced with a parsed
@@ -691,7 +722,8 @@ def test_extract_dataservice_valid():
 def test_parse_dataservice_fields():
     """parse_dataservice should extract accessRights, applicableLegislation, conformsTo,
     contactPoint, description, endpointDescription, endPointURL, format, keyword,
-    landingPage, license, publisher, theme, title."""
+    landingPage, license, publisher, theme, title. contactPoint and publisher should be
+    resolved to a name, mirroring the equivalent wiring in parse_dataset/parse_datasetseries."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataservice.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -703,16 +735,39 @@ def test_parse_dataservice_fields():
     assert result["title"] == "Test Data Service"
     assert result["description"] == "A test data service"
     assert result["endPointURL"] == "http://example.com/dataservice1/api"
-    assert result["endpointDescription"] == "http://example.com/dataservice1/openapi"
+    assert result["endpointDescription"] == "OpenAPI specification available for this service"
     assert result["landingPage"] == "http://example.com/dataservice1/landing"
     assert result["conformsTo"] == "http://example.com/standards/fhir"
     assert result["keyword"] == "test"
+    assert result["contactPoint"] == "dataservicecontact"
+    assert result["publisher"] == "dataservicepublisherorg"
 
 
-# ---------------------------------------------------------------------------
-# parse_legal_basis (dpv:hasLegalBasis) - not yet wired through an _extract_* helper
-# Fixture needed: tests/test_data/extraction_legal_basis.ttl
-# ---------------------------------------------------------------------------
+def test_extract_legalbasis_valid():
+    """hasLegalBasis pointing to a dpv:LegalBasis resource should be replaced with a parsed dict."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_legal_basis.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"hasLegalBasis": "http://example.com/legalbasis1"}
+    result = profile._extract_legalbasis(dataset_dict, "hasLegalBasis")
+
+    assert result["hasLegalBasis"]["uri"] == "http://example.com/legalbasis1"
+    assert result["hasLegalBasis"]["description"] == "GDPR Art. 9(2)(j)"
+
+
+def test_extract_legalbasis_wrong_type_left_as_iri():
+    """hasLegalBasis pointing to a resource that is not a dpv:LegalBasis should remain a plain
+    IRI string."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_attribution_wrong_type.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"hasLegalBasis": "http://example.com/attribution_wrong"}
+    result = profile._extract_legalbasis(dataset_dict, "hasLegalBasis")
+
+    assert result["hasLegalBasis"] == "http://example.com/attribution_wrong"
+
 
 def test_parse_legal_basis_fields():
     """parse_legal_basis should extract description."""
@@ -727,10 +782,6 @@ def test_parse_legal_basis_fields():
     assert result["description"] == "GDPR Art. 9(2)(j)"
 
 
-# ---------------------------------------------------------------------------
-# parse_kind edge case introduced by the isinstance(has_email, str) guard
-# Fixture needed: tests/test_data/extraction_kind_multiple_emails.ttl
-# ---------------------------------------------------------------------------
 
 def test_parse_kind_hasemail_as_list_not_stripped():
     """When hasEmail resolves to a list (multiple vcard:hasEmail values), the mailto: prefix
@@ -747,32 +798,28 @@ def test_parse_kind_hasemail_as_list_not_stripped():
     assert "mailto:two@example.com" in result["hasEmail"]
 
 
-# ---------------------------------------------------------------------------
-# parse_publisher additional fields (mbox, phone)
-# Fixture needed: tests/test_data/extraction_publisher_full.ttl
-# ---------------------------------------------------------------------------
-
 def test_parse_publisher_mbox_and_phone_fields():
     """parse_publisher should extract mbox and phone in addition to name/description/type/homepage."""
     g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_publisher_full.ttl", format="turtle")
+    g.parse("tests/test_data/extraction_foaf_organization.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
-    publisher_ref = URIRef("http://example.com/publisher_full")
+    publisher_ref = URIRef("http://example.com/org1")
 
     result = profile.parse_publisher({}, publisher_ref)
 
-    assert result["name"] == "Full Publisher Org"
-    assert result["mbox"] == "mailto:publisher@example.com"
+    assert result["name"] == "Test Publisher Org"
+    assert result["mbox"] == "org1@example.com"
     assert result["phone"] == "tel:+31201234567"
 
 
-# ---------------------------------------------------------------------------
-# parse_datasetseries changes: pid renamed from identifier, contactPoint added
-# Fixture needed: tests/test_data/extraction_datasetseries_full.ttl
-# ---------------------------------------------------------------------------
+
 
 def test_parse_datasetseries_pid_field_from_identifier():
-    """dct:identifier on a DatasetSeries should be mapped to 'pid' (not 'id')."""
+    """dct:identifier on a DatasetSeries should be mapped to 'pid' (not 'id').
+
+    The biobanks.pid column is typed 'hyperlink' in the Molgenis model, so a real PID is a
+    URI, not a bare string.
+    """
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_datasetseries_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -780,7 +827,7 @@ def test_parse_datasetseries_pid_field_from_identifier():
 
     result = profile.parse_datasetseries({}, series_ref)
 
-    assert result["pid"] == "series-pid-001"
+    assert result["pid"] == "https://pid.example.com/series-pid-001"
     assert "identifier" not in result
 
 
@@ -797,6 +844,20 @@ def test_parse_datasetseries_contactpoint_extracted_as_vcard_name():
     assert result["contactPoint"] == "seriescontactperson"
 
 
+def test_parse_datasetseries_temporal_extracted_as_periodoftime():
+    """temporal pointing to a dct:PeriodOfTime resource should be resolved into a parsed dict,
+    mirroring the equivalent wiring already present in parse_dataset."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_datasetseries_full.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+    series_ref = URIRef("http://example.com/series_full2")
+
+    result = profile.parse_datasetseries({}, series_ref)
+
+    assert result["temporal"]["startDate"] == "2015-01-01T00:00:00"
+    assert result["temporal"]["endDate"] == "2019-12-31T00:00:00"
+
+
 def test_parse_datasetseries_default_id_fallback_to_title(graph_datasetseries_no_id):
     """When no 'id' is otherwise present, id should fall back to the munged title (mirrors
     existing parse_datasetseries fallback behavior)."""
@@ -808,10 +869,6 @@ def test_parse_datasetseries_default_id_fallback_to_title(graph_datasetseries_no
     assert result["id"] == "biobank-without-id"
 
 
-# ---------------------------------------------------------------------------
-# parse_dataset wiring for newly added extraction steps
-# Fixture needed: tests/test_data/extraction_dataset_wired_fields.ttl
-# ---------------------------------------------------------------------------
 
 def _parse_wired_dataset():
     g = rdflib.Dataset()
@@ -842,16 +899,16 @@ def test_parse_dataset_temporal_wired_as_periodoftime():
     """parse_dataset should resolve 'temporal' into a parsed dct:PeriodOfTime dict."""
     result = _parse_wired_dataset()
 
-    assert result["temporal"]["startDate"] == "2020-01-01"
-    assert result["temporal"]["endDate"] == "2021-01-01"
+    assert result["temporal"]["startDate"] == "2020-01-01T00:00:00"
+    assert result["temporal"]["endDate"] == "2021-01-01T00:00:00"
 
 
 def test_parse_dataset_retentionperiod_wired_as_periodoftime():
     """parse_dataset should resolve 'retentionPeriod' into a parsed dct:PeriodOfTime dict."""
     result = _parse_wired_dataset()
 
-    assert result["retentionPeriod"]["startDate"] == "2022-01-01"
-    assert result["retentionPeriod"]["endDate"] == "2032-01-01"
+    assert result["retentionPeriod"]["startDate"] == "2022-01-01T00:00:00"
+    assert result["retentionPeriod"]["endDate"] == "2032-01-01T00:00:00"
 
 
 def test_parse_dataset_qualifiedattribution_wired():
@@ -866,6 +923,13 @@ def test_parse_dataset_other_identifier_wired():
     result = _parse_wired_dataset()
 
     assert result["other_identifier"]["notation"] == "WIRED-001"
+
+
+def test_parse_dataset_legalbasis_wired_as_object():
+    """parse_dataset should resolve 'hasLegalBasis' into a parsed dpv:LegalBasis dict."""
+    result = _parse_wired_dataset()
+
+    assert result["hasLegalBasis"]["description"] == "Wired legal basis"
 
 
 def test_parse_dataset_sample_wired_as_distribution():
