@@ -85,21 +85,21 @@ def test_datasets_generator(parser, dataset1_data, dataset2_data):
 
     # Check dataset dicts have required fields
     for dataset in dataset_dicts:
-        assert 'uri' in dataset
-        assert 'title' in dataset
-        assert 'description' in dataset
-        assert dataset['concept_type'] == 'dataset'
+        assert "uri" in dataset
+        assert "title" in dataset
+        assert "description" in dataset
+        assert dataset["concept_type"] == "dataset"
 
     # Verify specific dataset content
     gryffindor = next(
-        d for d in dataset_dicts if d['title'] == "Gryffindor research project")
-    assert gryffindor['uri'] == "http://example.com/dataset1"
-    assert gryffindor['description'] == "Impact of muggle technical inventions on word's magic presense"
+        d for d in dataset_dicts if d["title"] == "Gryffindor research project")
+    assert gryffindor["uri"] == "http://example.com/dataset1"
+    assert gryffindor["description"] == "Impact of muggle technical inventions on word's magic presense"
 
     slytherin = next(
-        d for d in dataset_dicts if d['title'] == "Slytherin research project")
-    assert slytherin['uri'] == "http://example.com/dataset2"
-    assert slytherin['description'] == "Comarative analysis of magic powers of muggle-born and blood wizards "
+        d for d in dataset_dicts if d["title"] == "Slytherin research project")
+    assert slytherin["uri"] == "http://example.com/dataset2"
+    assert slytherin["description"] == "Comarative analysis of magic powers of muggle-born and blood wizards "
 
 
 def test_get_concept(parser, dataset1_data):
@@ -109,11 +109,11 @@ def test_get_concept(parser, dataset1_data):
 
     # Get concept by URI
     dataset_uri = URIRef("http://example.com/dataset1")
-    concept = parser.get_concept(dataset_uri, 'dataset')
+    concept = parser.get_concept(dataset_uri, "dataset")
 
     # Verify concept fields
-    assert concept['uri'] == "http://example.com/dataset1"
-    assert concept['title'] == "Gryffindor research project"
+    assert concept["uri"] == "http://example.com/dataset1"
+    assert concept["title"] == "Gryffindor research project"
 
 
 def test_parse_invalid_data(parser):
@@ -128,7 +128,7 @@ def test_supported_formats(parser):
     """Test the supported_formats method returns a list of formats"""
     formats = parser.supported_formats()
     assert isinstance(formats, list)
-    assert 'turtle' in formats
+    assert "turtle" in formats
 
 
 def test_publisher_generator(parser):
@@ -138,8 +138,8 @@ def test_publisher_generator(parser):
 
     publishers = list(parser.publisher())
     assert len(publishers) == 1
-    assert publishers[0]['concept_type'] == 'publisher'
-    assert publishers[0]['name'] == 'Test Publisher Org'
+    assert publishers[0]["concept_type"] == "publisher"
+    assert publishers[0]["name"] == "Test Publisher Org"
 
 
 def test_kind_generator(parser):
@@ -149,8 +149,8 @@ def test_kind_generator(parser):
 
     kinds = list(parser.kind())
     assert len(kinds) == 1
-    assert kinds[0]['concept_type'] == 'kind'
-    assert kinds[0]['fn'] == 'John Doe Contact'
+    assert kinds[0]["concept_type"] == "kind"
+    assert kinds[0]["fn"] == "John Doe Contact"
 
 
 def test_provenancestatement_generator(parser):
@@ -160,8 +160,8 @@ def test_provenancestatement_generator(parser):
 
     provs = list(parser.provenancestatement())
     assert len(provs) == 1
-    assert provs[0]['concept_type'] == 'provenancestatement'
-    assert provs[0]['label'] == 'Data collected from hospital records'
+    assert provs[0]["concept_type"] == "provenancestatement"
+    assert provs[0]["label"] == "Data collected from hospital records"
 
 
 def test_get_concept_publisher(parser):
@@ -170,10 +170,10 @@ def test_get_concept_publisher(parser):
         parser.parse(data=f.read(), _format="turtle")
 
     publisher_uri = URIRef("http://example.com/org1")
-    concept = parser.get_concept(publisher_uri, 'publisher')
+    concept = parser.get_concept(publisher_uri, "publisher")
 
-    assert concept['uri'] == "http://example.com/org1"
-    assert concept['name'] == "Test Publisher Org"
+    assert concept["uri"] == "http://example.com/org1"
+    assert concept["name"] == "Test Publisher Org"
 
 
 def test_get_concept_kind(parser):
@@ -182,10 +182,10 @@ def test_get_concept_kind(parser):
         parser.parse(data=f.read(), _format="turtle")
 
     kind_uri = URIRef("http://example.com/contact1")
-    concept = parser.get_concept(kind_uri, 'kind')
+    concept = parser.get_concept(kind_uri, "kind")
 
-    assert concept['uri'] == "http://example.com/contact1"
-    assert concept['fn'] == "John Doe Contact"
+    assert concept["uri"] == "http://example.com/contact1"
+    assert concept["fn"] == "John Doe Contact"
 
 
 def test_get_concept_provenancestatement(parser):
@@ -194,7 +194,7 @@ def test_get_concept_provenancestatement(parser):
         parser.parse(data=f.read(), _format="turtle")
 
     prov_uri = URIRef("http://example.com/prov1")
-    concept = parser.get_concept(prov_uri, 'provenancestatement')
+    concept = parser.get_concept(prov_uri, "provenancestatement")
 
-    assert concept['uri'] == "http://example.com/prov1"
-    assert concept['label'] == "Data collected from hospital records"
+    assert concept["uri"] == "http://example.com/prov1"
+    assert concept["label"] == "Data collected from hospital records"

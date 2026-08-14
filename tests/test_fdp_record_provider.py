@@ -28,15 +28,10 @@ class TestRecordProvider:
         ("fdp_response_file", "expected"),
         [
             (
-                    Path(TEST_DATA_DIRECTORY, "root_fdp_response.ttl"),
-                    {
-                        'datasetseries=http://example.org/DatasetSeries1', 'dataset=http://example.org/Dataset1'
-                    }
+                Path(TEST_DATA_DIRECTORY, "root_fdp_response.ttl"),
+                {"datasetseries=http://example.org/DatasetSeries1", "dataset=http://example.org/Dataset1"},
             ),
-            (
-                    Path(TEST_DATA_DIRECTORY, "root_fdp_response_no_catalogs.ttl"),
-                    set()
-            ),
+            (Path(TEST_DATA_DIRECTORY, "root_fdp_response_no_catalogs.ttl"), set()),
         ],
     )
     def test_get_record_ids(self, mocker, fdp_response_file, expected):
@@ -57,11 +52,8 @@ class TestRecordProvider:
         ("fdp_response_file", "expected"),
         [
             (
-                    Path(TEST_DATA_DIRECTORY, "fdp_multiple_parents.ttl"),
-                    {
-                        'datasetseries=http://example.org/Dataseries1',
-                        'dataset=http://example.org/Dataset1'
-                    },
+                Path(TEST_DATA_DIRECTORY, "fdp_multiple_parents.ttl"),
+                {"datasetseries=http://example.org/Dataseries1", "dataset=http://example.org/Dataset1"},
             )
         ],
     )
@@ -77,10 +69,8 @@ class TestRecordProvider:
         actual = set(actual)
         assert actual == expected
 
-
     def test_get_record_ids_pass_none(self, mocker):
-        with pytest.raises(
-                ValueError, match="rdf_graph cannot be None"):
+        with pytest.raises(ValueError, match="rdf_graph cannot be None"):
             fdp_get_graph = mocker.MagicMock(name="get_data")
             mocker.patch(
                 "molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point.FairDataPoint.get_graph",

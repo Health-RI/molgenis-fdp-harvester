@@ -22,8 +22,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Step 1: Gather stage
     harvest_objects = harvester.gather_stage(catalog_url)
-    expected_guids = ["http://example.com/dataset1",
-                      "http://example.com/dataset2"]
+    expected_guids = ["http://example.com/dataset1", "http://example.com/dataset2"]
 
     # Verify gather results
     assert harvest_objects is not None
@@ -31,8 +30,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Verify guids_in_harvest contains the expected datasets
     for guid in expected_guids:
-        assert guid in harvester.guids_in_harvest['dataset'], \
-            f"Expected guid {guid} not found in guids_in_harvest"
+        assert guid in harvester.guids_in_harvest["dataset"], f"Expected guid {guid} not found in guids_in_harvest"
 
     # Step 2: Fetch stage - process each harvest object
     processed_objects = []
@@ -49,10 +47,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Verify content was saved to Molgenis
     data = json.loads(obj.content)
-    mock_client.save_table.assert_any_call(
-        table=concept_table_dict['dataset'],
-        data=[data]
-    )
+    mock_client.save_table.assert_any_call(table=concept_table_dict["dataset"], data=[data])
 
     expected_save_calls = len(processed_objects)
 
@@ -60,5 +55,4 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
     assert all(import_results), "Not all imports were successful"
 
     # Verify expected number of calls to save_table
-    assert mock_client.save_table.call_count == expected_save_calls, \
-        "Unexpected number of save_table calls"
+    assert mock_client.save_table.call_count == expected_save_calls, "Unexpected number of save_table calls"

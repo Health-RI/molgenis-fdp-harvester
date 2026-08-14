@@ -38,19 +38,19 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
     are normalized to ``None``.
     """
-    with Path(yaml_path).open(encoding='utf-8') as f:
+    with Path(yaml_path).open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     entries = []
-    raw_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    raw_entries = data.get("fdps", []) if isinstance(data, dict) else []
     fdp_entries = raw_entries if isinstance(raw_entries, list) else []
     for entry in fdp_entries:
         if not isinstance(entry, dict):
             continue
-        fdp_url = str(entry.get('fdp_url', '')).strip()
+        fdp_url = str(entry.get("fdp_url", "")).strip()
         if not fdp_url:
             continue
-        fdp_id_prefix = entry.get('fdp_id_prefix')
+        fdp_id_prefix = entry.get("fdp_id_prefix")
         prefix_value = None if fdp_id_prefix is None else str(
             fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
@@ -65,30 +65,34 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     help="Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)",
     required=False,
     default=None,
-    type=click.Path(exists=True, path_type=Path, readable=True)
+    type=click.Path(exists=True, path_type=Path, readable=True),
 )
 @click.option("--host", envvar="MOLGENIS_HOST", help="MOLGENIS host to harvest to", required=False, default=None)
-@click.option("--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to",
-              required=False, default="Eucaim")
+@click.option(
+    "--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to", required=False, default="Eucaim"
+)
 @click.option(
     "--config",
     envvar="HARVEST_CONFIG",
     help="Configuration.",
     required=False,
     default=None,
-    type=click.Path(exists=True, path_type=Path, readable=True)
+    type=click.Path(exists=True, path_type=Path, readable=True),
 )
 @click.option(
-    "--token", envvar="MOLGENIS_TOKEN", help="Authentication token of the user harvesting data.",
-    required=False, default=None
+    "--token",
+    envvar="MOLGENIS_TOKEN",
+    help="Authentication token of the user harvesting data.",
+    required=False,
+    default=None,
 )
-@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(['rdf', 'fdp']), required=False, default=None)
+@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(["rdf", "fdp"]), required=False, default=None)
 @click.option(
     "--fdp-id-prefix",
     envvar="FDP_ID_PREFIX",
     help="FDP ID prefix used for PID construction. Only used with --fdp.",
     required=False,
-    default=None
+    default=None,
 )
 # ruff: noqa: PLR0913, PLR0917
 def cli(
@@ -99,7 +103,7 @@ def cli(
     config: click.Path,
     token: str,
     input_type: str,
-    fdp_id_prefix: str
+    fdp_id_prefix: str,
 ):
     """Run the harvester with the specified configuration."""
     # Check required options (not enforced at Click level to allow env var fallback)
@@ -110,16 +114,13 @@ def cli(
         )
     if not host:
         raise click.ClickException(
-            "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host."
-        )
+            "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host.")
     if not config:
         raise click.ClickException(
-            "Configuration file is required. Set HARVEST_CONFIG or provide --config."
-        )
+            "Configuration file is required. Set HARVEST_CONFIG or provide --config.")
     if not input_type:
         raise click.ClickException(
-            "Input type is required. Set INPUT_TYPE or provide --input_type."
-        )
+            "Input type is required. Set INPUT_TYPE or provide --input_type.")
 
     # Validate mutual exclusivity of --fdp and --fdp-list
     if fdp and fdp_list:
@@ -130,8 +131,8 @@ def cli(
 
     # Load configuration
     config_data = load_config(config)
-    concept_table_dict = config_data['concept_table_link']
-    harvester_config = config_data.get('harvester_config', {})
+    concept_table_dict = config_data["concept_table_link"]
+    harvester_config = config_data.get("harvester_config", {})
 
     # Build uniform list of (fdp_url, fdp_id_prefix) entries
     if fdp:
@@ -144,18 +145,18 @@ def cli(
 
     # Define processing order for concept types
     concept_type_order = {
-        'provenancestatement': 0,
-        'kind': 1,
-        'publisher': 2,
-        'datasetseries': 3,
-        'dataset': 4,
+        "provenancestatement": 0,
+        "kind": 1,
+        "publisher": 2,
+        "datasetseries": 3,
+        "dataset": 4,
     }
 
     with Client(url=host, schema=schema, token=token) as client:
         for entry_fdp_url, entry_fdp_id_prefix in fdp_entries:
             entry_config = dict(harvester_config)
             if entry_fdp_id_prefix is not None:
-                entry_config['fdp_id_prefix'] = entry_fdp_id_prefix
+                entry_config["fdp_id_prefix"] = entry_fdp_id_prefix
 
             harvester = create_harvester(
                 input_type, concept_table_dict, client, entry_config)
@@ -168,9 +169,9 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
     for profile in profiles:
         profile.config = harvester_config
 
-    if input_type == 'rdf':
+    if input_type == "rdf":
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)
-    if input_type == 'fdp':
+    if input_type == "fdp":
         return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
     raise ValueError(f"Unknown input_type: {input_type}")
 
@@ -189,8 +190,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
 
     # Sort by dependency order (now including auto-generated datasetseries)
     harvester._harvest_objects.sort(
-        key=lambda obj: concept_type_order[obj.concept_type]
-    )
+        key=lambda obj: concept_type_order[obj.concept_type])
 
     # Import all objects in dependency order
     for harvest_object in harvester._harvest_objects:
