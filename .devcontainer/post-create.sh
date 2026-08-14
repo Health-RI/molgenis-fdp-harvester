@@ -2,4 +2,4 @@
 
 set -eu
 
-uv sync --locked --group lint
+uv sync --locked

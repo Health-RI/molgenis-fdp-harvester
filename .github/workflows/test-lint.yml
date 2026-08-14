@@ -1,4 +1,4 @@
-name: Run linting and type checking for Python
+name: Run linting for Python
 
 on:
   pull_request:
@@ -15,15 +15,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v10
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install dependency-groups
-          pip-install-dependency-groups lint
+        run: uv sync --lock 
 
       - name: Lint
-        run: ruff check . --ignore SLF001,G004,PLR2004,ERA001,ARG002,ARG001,SIM117,S105,PT012
-
-      # For later:
-      # - name: Type check
-      #   run: mypy src
+        run: ruff check .  
