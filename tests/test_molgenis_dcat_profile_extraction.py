@@ -77,15 +77,18 @@ def test_parse_dataset_integration(graph_dataset_integration):
 
     # Verify the referenced VCARD contact was resolved to its assigned UUIDv4
     assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/contact_full")
-    uuid.UUID(result["contactPoint"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["contactPoint"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
     # Verify the referenced FOAF Organization publisher was resolved to its assigned UUIDv4
     assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/provider_org")
-    uuid.UUID(result["publisher"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["publisher"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
     # Verify the referenced ProvenanceStatement was resolved to its assigned UUIDv4
     assert result["provenance"] == profile._get_or_create_reference_id("http://example.com/provenance_full")
-    uuid.UUID(result["provenance"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["provenance"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
     # Verify extracted DatasetSeries ID
     assert result["in_series"] == "biobank-full"
@@ -101,7 +104,8 @@ def test_parse_kind(graph_vcard_contact):
     assert result["uri"] == "http://example.com/contact1"
     assert result["fn"] == "John Doe Contact"
     assert result["id"] == profile._get_or_create_reference_id("http://example.com/contact1")
-    uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
 
 def test_parse_publisher():
@@ -119,7 +123,8 @@ def test_parse_publisher():
     assert result["publishertype"] == "ResearchInstitute"
     assert result["homepage"] == "https://example.com"
     assert result["id"] == profile._get_or_create_reference_id("http://example.com/org1")
-    uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
 
 def test_parse_provenancestatement():
@@ -134,4 +139,5 @@ def test_parse_provenancestatement():
     assert result["uri"] == "http://example.com/prov1"
     assert result["label"] == "Data collected from hospital records"
     assert result["id"] == profile._get_or_create_reference_id("http://example.com/prov1")
-    uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4

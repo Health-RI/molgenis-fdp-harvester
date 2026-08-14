@@ -167,7 +167,8 @@ def test_get_or_create_reference_id_returns_valid_uuid(profile):
     """A fresh URI is assigned a UUIDv4."""
     result = profile._get_or_create_reference_id("http://example.com/org1")
 
-    uuid.UUID(result)  # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result)  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
 
 def test_get_or_create_reference_id_is_stable_for_same_uri(profile):
