@@ -58,6 +58,9 @@ test = [
 types = ["mypy>=1.0.0"]
 lint = ["ruff>=0.8.0"]
 
+[tool.pytest.ini_options]
+norecursedirs = ["dev"]
+
 [tool.coverage.run]
 source_pkgs = ["molgenis_fdp_harvester", "tests"]
 branch = true
