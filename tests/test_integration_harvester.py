@@ -3,16 +3,17 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import json
-import os
+from pathlib import Path
 
 import pytest
 
 
 @pytest.fixture
 def catalog_url():
-    url = os.path.abspath("tests/test_data/rdf_testdata.ttl")
-    assert os.path.exists(url), f"Test file not found: {url}"
+    url = str(Path("tests/test_data/rdf_testdata.ttl").resolve())
+    assert Path(url).exists(), f"Test file not found: {url}"
     return url
+
 
 def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_dict):
     """Test the complete harvest flow from gather to import"""
@@ -29,8 +30,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Verify guids_in_harvest contains the expected datasets
     for guid in expected_guids:
-        assert guid in harvester.guids_in_harvest['dataset'], \
-        f"Expected guid {guid} not found in guids_in_harvest"
+        assert guid in harvester.guids_in_harvest["dataset"], f"Expected guid {guid} not found in guids_in_harvest"
 
     # Step 2: Fetch stage - process each harvest object
     processed_objects = []
@@ -47,10 +47,7 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
 
     # Verify content was saved to Molgenis
     data = json.loads(obj.content)
-    mock_client.save_table.assert_any_call(
-        table=concept_table_dict['dataset'],
-        data=[data]
-    )
+    mock_client.save_table.assert_any_call(table=concept_table_dict["dataset"], data=[data])
 
     expected_save_calls = len(processed_objects)
 
@@ -58,5 +55,4 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
     assert all(import_results), "Not all imports were successful"
 
     # Verify expected number of calls to save_table
-    assert mock_client.save_table.call_count == expected_save_calls, \
-        "Unexpected number of save_table calls"
+    assert mock_client.save_table.call_count == expected_save_calls, "Unexpected number of save_table calls"

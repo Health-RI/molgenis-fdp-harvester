@@ -2,11 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-import pytest
+from pathlib import Path
 
+import pytest
 import rdflib
-from rdflib import URIRef, Literal
-from rdflib.namespace import DCAT, RDF, FOAF, DCTERMS
+from rdflib import Literal, URIRef
+from rdflib.namespace import DCAT, DCTERMS, FOAF, RDF
 
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
@@ -17,8 +18,7 @@ def rdf_graph():
     g = rdflib.Dataset()
 
     # Load test RDF data
-    with open("tests/test_data/rdf_dataset1.ttl", "r") as f:
-        dataset1_data = f.read()
+    dataset1_data = Path("tests/test_data/rdf_dataset1.ttl").read_text()
 
     g.parse(data=dataset1_data, format="turtle")
     return g
@@ -62,15 +62,11 @@ def test_extract_concept_dict():
 
     # Test extraction
     concept_dict = {}
-    key_predicate_tuple = ((
-        ("name", DCTERMS.title),
-        ("description", DCTERMS.description),
-        ("theme", DCAT.theme)
-    ))
+    key_predicate_tuple = (("name", DCTERMS.title),
+                           ("description", DCTERMS.description), ("theme", DCAT.theme))
 
     result = test_profile._extract_concept_dict(
-        test_uri, concept_dict, key_predicate_tuple
-    )
+        test_uri, concept_dict, key_predicate_tuple)
 
     # Verify results
     assert result["name"] == "Test Title"
@@ -91,13 +87,10 @@ def test_extract_concept_dict_unwraps_single_item_list():
 
     # Test extraction
     concept_dict = {}
-    key_predicate_tuple = (
-        ("name", DCTERMS.title),
-    )
+    key_predicate_tuple = (("name", DCTERMS.title),)
 
     result = test_profile._extract_concept_dict(
-        test_uri, concept_dict, key_predicate_tuple
-    )
+        test_uri, concept_dict, key_predicate_tuple)
 
     # Verify that the result is a string, not a list
     assert isinstance(result["name"], str)
@@ -112,7 +105,8 @@ def test_parse_datasetseries():
 
     series_g.add((series_uri, RDF.type, DCAT.DatasetSeries))
     series_g.add((series_uri, DCTERMS.title, Literal("Test Series")))
-    series_g.add((series_uri, DCTERMS.description, Literal("Series Description")))
+    series_g.add((series_uri, DCTERMS.description,
+                 Literal("Series Description")))
     series_g.add((series_uri, DCTERMS.publisher, Literal("Test Publisher")))
 
     # Create profile with series graph
@@ -130,6 +124,7 @@ def test_parse_datasetseries():
 
 
 # --- handle_pids tests ---
+
 
 def test_handle_pids_no_pid(profile):
     """Plain string identifier: original moves to other_identifier, id/identifier are generated."""
@@ -161,16 +156,17 @@ def test_handle_pids_generated_pid(profile):
 
 # --- _extract_name_publisher tests ---
 
+
 def test_extract_name_publisher_valid(profile):
     """URI typed as FOAF.Organization: name is lowercased with spaces stripped."""
     org_uri = URIRef("http://example.com/org1")
     profile.g.add((org_uri, RDF.type, FOAF.Organization))
     profile.g.add((org_uri, FOAF.name, Literal("Test Publisher Org")))
 
-    dataset_dict = {'publisher': str(org_uri)}
-    result = profile._extract_name_publisher(dataset_dict, 'publisher')
+    dataset_dict = {"publisher": str(org_uri)}
+    result = profile._extract_name_publisher(dataset_dict, "publisher")
 
-    assert result['publisher'] == 'testpublisherorg'
+    assert result["publisher"] == "testpublisherorg"
 
 
 def test_extract_name_publisher_wrong_type(profile):
@@ -178,38 +174,39 @@ def test_extract_name_publisher_wrong_type(profile):
     uri = URIRef("http://example.com/thing1")
     profile.g.add((uri, RDF.type, DCAT.Dataset))
 
-    dataset_dict = {'publisher': str(uri)}
-    result = profile._extract_name_publisher(dataset_dict, 'publisher')
+    dataset_dict = {"publisher": str(uri)}
+    result = profile._extract_name_publisher(dataset_dict, "publisher")
 
-    assert result['publisher'] == str(uri)
+    assert result["publisher"] == str(uri)
 
 
 # --- _remove_default_language tests ---
 
+
 def test_remove_default_language_removes_english(profile):
     """English is removed; other languages remain."""
     dataset_dict = {
-        'language': [
-            'http://id.loc.gov/vocabulary/iso639-1/en',
-            'http://id.loc.gov/vocabulary/iso639-1/nl',
+        "language": [
+            "http://id.loc.gov/vocabulary/iso639-1/en",
+            "http://id.loc.gov/vocabulary/iso639-1/nl",
         ]
     }
     result = profile._remove_default_language(dataset_dict)
 
-    assert result['language'] == ['http://id.loc.gov/vocabulary/iso639-1/nl']
+    assert result["language"] == ["http://id.loc.gov/vocabulary/iso639-1/nl"]
 
 
 def test_remove_default_language_only_english(profile):
     """If English is the only language, the key is deleted."""
-    dataset_dict = {'language': ['http://id.loc.gov/vocabulary/iso639-1/en']}
+    dataset_dict = {"language": ["http://id.loc.gov/vocabulary/iso639-1/en"]}
     result = profile._remove_default_language(dataset_dict)
 
-    assert 'language' not in result
+    assert "language" not in result
 
 
 def test_remove_default_language_no_english(profile):
     """If English is absent, the language list is unchanged."""
-    dataset_dict = {'language': ['http://id.loc.gov/vocabulary/iso639-1/nl']}
+    dataset_dict = {"language": ["http://id.loc.gov/vocabulary/iso639-1/nl"]}
     result = profile._remove_default_language(dataset_dict)
 
-    assert result['language'] == ['http://id.loc.gov/vocabulary/iso639-1/nl']
+    assert result["language"] == ["http://id.loc.gov/vocabulary/iso639-1/nl"]

@@ -1,16 +1,16 @@
 import json
 import logging
 import traceback
-from typing import List, Dict
 from urllib.parse import quote
 
 from molgenis_emx2_pyclient import Client
 from rdflib import URIRef
 
+from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
+from molgenis_fdp_harvester.base.processor import RDFParser
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .dcatharvester import DCATHarvester
-from ..base.baseharvester import HarvestObject, munge_title_to_name
-from ..base.processor import RDFParser
-from ..utils import HarvesterException
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +41,8 @@ class DCATRDFHarvester(DCATHarvester):
         self.guids_in_harvest = {concept: [] for concept in self.concept_types}
         self.guids_in_db = {concept: [] for concept in self.concept_types}
         # self._names_taken = {concept: [] for concept in self.concept_types}
-        self._datasets_without_datasetseries = []  # Track datasets that need auto-generated datasetseries
+        # Track datasets that need auto-generated datasetseries
+        self._datasets_without_datasetseries = []
 
     def info(self):
         return {
@@ -76,7 +77,8 @@ class DCATRDFHarvester(DCATHarvester):
         # Create harvest objects
         self._create_harvest_objects()
 
-        log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
+        log.info(
+            f"Gathered {len(self._harvest_objects)} objects for harvesting")
 
     def _load_rdf_content(self, harvest_root_uri):
         """Load RDF content from the source URI."""
@@ -112,7 +114,8 @@ class DCATRDFHarvester(DCATHarvester):
             entity_name = self.concept_table_link[concept_type]
             try:
                 existing_ids = self.molgenis_client.get(entity_name)
-                self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
+                self.guids_in_db[concept_type] = [x["id"]
+                                                  for x in existing_ids]
             except Exception as e:
                 log.error(
                     f"fetch_stage: Error getting list of uids {str(entity_name)}: {repr(e)} / {str(traceback.format_exc())}"
@@ -133,7 +136,7 @@ class DCATRDFHarvester(DCATHarvester):
 
         return self._harvest_objects
 
-    def _gather_concept_guid(self, concept_dict: Dict, concept_type: str):
+    def _gather_concept_guid(self, concept_dict: dict, concept_type: str):
         guid = self._get_guid(concept_dict, source_url=concept_dict["uri"])
         if not guid:
             self._save_gather_error(
@@ -210,7 +213,7 @@ class DCATRDFHarvester(DCATHarvester):
     def _resolve_uris_and_labels(self, value, molgenis_table):
         new_property_value = None
         if isinstance(value, list):
-            returned_value_list = list()
+            returned_value_list = []
             for val in value:
                 returned_value = self._resolve_uri(val, molgenis_table)
                 if not returned_value:
@@ -298,11 +301,13 @@ class DCATRDFHarvester(DCATHarvester):
 
         status = harvest_object.status
         if status == "delete":
-            log.warning("import_stage: deleting datasets is currently not supported")
+            log.warning(
+                "import_stage: deleting datasets is currently not supported")
             return True
 
         if harvest_object.content is None:
-            log.error(f"import_stage: Empty content for object {harvest_object.guid}")
+            log.error(
+                f"import_stage: Empty content for object {harvest_object.guid}")
             return False
 
         try:
@@ -336,8 +341,7 @@ class DCATRDFHarvester(DCATHarvester):
                 )
         except Exception as e:
             log.error(
-                f"import_stage: Error importing dataset {dataset_name}: {repr(e)} / {traceback.format_exc()}"
-            )
+                f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}")
             return False
 
         return bool(success)
@@ -393,7 +397,8 @@ class DCATRDFHarvester(DCATHarvester):
         )
         if existing_id:
             if same_agency:
-                log.info(f"Updating dataset '{dataset_name}' with ID '{existing_id}'")
+                log.info(
+                    f"Updating dataset '{dataset_name}' with ID '{existing_id}'")
                 dataset["id"] = existing_id
                 log.info(f"Updating dataset '{dataset_name}'")
             else:
@@ -423,15 +428,13 @@ class DCATRDFHarvester(DCATHarvester):
         rdf_format = None
 
         content, rdf_format = self._get_content_and_type(
-            next_page_url, 1, content_type=rdf_format
-        )
+            next_page_url, 1, content_type=rdf_format)
 
         try:
             self.parser.parse(content, _format=rdf_format)
         except HarvesterException as e:
             self._save_gather_error(
-                "Error parsing the RDF file: {0}".format(e), next_page_url
-            )
+                f"Error parsing the RDF file: {e}", next_page_url)
 
     def _get_dict_value(self, _dict, key, default=None):
         """

@@ -7,12 +7,14 @@ SEPARATOR = ";"
 KEY_VALUE_SEPARATOR = "="
 
 
-class IdentifierException(Exception):
+class IdentifierError(Exception):
     pass
 
 
-class Identifier:
+IdentifierException = IdentifierError
 
+
+class Identifier:
     def __init__(self, guid: str):
         self.guid: str = guid
 
@@ -31,16 +33,12 @@ class Identifier:
     def get_part(self, index: int) -> str:
         key_values = self.guid.split(SEPARATOR)
 
-        if not self.guid.strip() or key_values == ['']:
-            raise IdentifierException(
-                f"Empty or improperly formatted record identifier: [{self.guid}]"
-            )
+        if not self.guid.strip() or key_values == [""]:
+            raise IdentifierException(f"Empty or improperly formatted record identifier: [{self.guid}]")
 
         key_value = key_values[-1].split(KEY_VALUE_SEPARATOR, 1)
 
         if len(key_value) != 2:
-            raise IdentifierException(
-                f"Unexpected number of parts in key_value [{key_values[-1]}]: [{len(key_value)}]"
-            )
+            raise IdentifierException(f"Unexpected number of parts in key_value [{key_values[-1]}]: [{len(key_value)}]")
 
         return key_value[index]

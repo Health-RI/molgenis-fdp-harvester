@@ -8,18 +8,16 @@
 # Original location of file: https://github.com/ckan/ckanext-dcat/blob/master/ckanext/dcat/processors.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
-from typing import List
 import xml
 
 import rdflib
 import rdflib.parser
 from rdflib import FOAF
-from rdflib.namespace import RDF, DCAT
+from rdflib.namespace import DCAT, RDF
 
-from .baseparser import VCARD, HYDRA, DCT
-from ..utils import HarvesterException
+from molgenis_fdp_harvester.utils import HarvesterException
 
-
+from .baseparser import DCT, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -42,7 +40,7 @@ def url_to_rdflib_format(_format):
     return _format
 
 
-class RDFProcessor(object):
+class RDFProcessor:
     def __init__(self):
         """
         Creates a parser or serializer instance
@@ -59,7 +57,7 @@ class RDFParser(RDFProcessor):
     CKAN dicts from the RDF graph.
     """
 
-    def __init__(self, profiles: List):
+    def __init__(self, profiles: list):
         super().__init__()
         self._profiles = profiles
 
@@ -71,8 +69,7 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
-            yield dataset
+        yield from self.g.subjects(RDF.type, DCAT.Dataset)
 
     def _datasetseries(self):
         """
@@ -81,20 +78,16 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for datasetseries in self.g.subjects(RDF.type, DCAT.DatasetSeries):
-            yield datasetseries
+        yield from self.g.subjects(RDF.type, DCAT.DatasetSeries)
 
     def _publisher(self):
-        for publisher in self.g.subjects(RDF.type, FOAF.Organization):
-            yield publisher
+        yield from self.g.subjects(RDF.type, FOAF.Organization)
 
     def _kind(self):
-        for kind in self.g.subjects(RDF.type, VCARD.Kind):
-            yield kind
+        yield from self.g.subjects(RDF.type, VCARD.Kind)
 
     def _provenancestatement(self):
-        for provenancestatement in self.g.subjects(RDF.type, DCT.ProvenanceStatement):
-            yield provenancestatement
+        yield from self.g.subjects(RDF.type, DCT.ProvenanceStatement)
 
     def _catalogs(self):
         """
@@ -103,8 +96,7 @@ class RDFParser(RDFProcessor):
         Yields rdflib.term.URIRef objects that can be used on graph lookups
         and queries, or for get requests
         """
-        for catalog in self.g.subjects(RDF.type, DCAT.Catalog):
-            yield catalog
+        yield from self.g.subjects(RDF.type, DCAT.Catalog)
 
     def next_page(self):
         """
@@ -155,15 +147,13 @@ class RDFParser(RDFProcessor):
             rdflib.plugin.PluginException,
             TypeError,
         ) as e:
-            raise HarvesterException(e)
+            raise HarvesterException(e) from e
 
     def supported_formats(self):
         """
         Returns a list of all formats supported by this processor.
         """
-        return sorted(
-            [plugin.name for plugin in rdflib.plugin.plugins(kind=rdflib.parser.Parser)]
-        )
+        return sorted([plugin.name for plugin in rdflib.plugin.plugins(kind=rdflib.parser.Parser)])
 
     def datasets(self):
         """
@@ -181,7 +171,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_dataset(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'dataset'
+            dataset_dict["concept_type"] = "dataset"
 
             yield dataset_dict
 
@@ -201,7 +191,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_datasetseries(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'datasetseries'
+            dataset_dict["concept_type"] = "datasetseries"
 
             yield dataset_dict
 
@@ -221,7 +211,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_publisher(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'publisher'
+            dataset_dict["concept_type"] = "publisher"
 
             yield dataset_dict
 
@@ -241,7 +231,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_kind(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'kind'
+            dataset_dict["concept_type"] = "kind"
 
             yield dataset_dict
 
@@ -261,7 +251,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_provenancestatement(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'provenancestatement'
+            dataset_dict["concept_type"] = "provenancestatement"
 
             yield dataset_dict
 
@@ -269,15 +259,15 @@ class RDFParser(RDFProcessor):
         concept_dict = {}
         for profile_class in self._profiles:
             profile = profile_class(self.g)
-            if concept_type == 'publisher':
+            if concept_type == "publisher":
                 profile.parse_publisher(concept_dict, uri_ref)
-            elif concept_type == 'kind':
+            elif concept_type == "kind":
                 profile.parse_kind(concept_dict, uri_ref)
-            elif concept_type == 'dataset':
+            elif concept_type == "dataset":
                 profile.parse_dataset(concept_dict, uri_ref)
-            elif concept_type == 'datasetseries':
+            elif concept_type == "datasetseries":
                 profile.parse_datasetseries(concept_dict, uri_ref)
-            elif concept_type == 'provenancestatement':
+            elif concept_type == "provenancestatement":
                 profile.parse_provenancestatement(concept_dict, uri_ref)
 
         return concept_dict
@@ -287,5 +277,4 @@ class RDFParser(RDFProcessor):
         Generator that returns URIRef of all datasets referred to in Catalogs
         """
         for catalog_ref in self._catalogs():
-            for object in self.g.objects(catalog_ref, DCAT.dataset):
-                yield object
+            yield from self.g.objects(catalog_ref, DCAT.dataset)
