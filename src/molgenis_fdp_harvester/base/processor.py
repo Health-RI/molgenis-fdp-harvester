@@ -70,6 +70,12 @@ class RDFParser(RDFProcessor):
         RDF resource resolves to the same internal ID everywhere it is referenced.
         Instances are created lazily so they capture the graph after parsing
         (self.g is replaced by its skolemized copy in parse()).
+
+        This assumes every parse() call happens before this method is first
+        called, i.e. before any of datasets()/kind()/publisher()/etc. are used
+        - both DCATRDFHarvester and FDPHarvester satisfy this. Calling parse()
+        again afterwards would leave the cached instances pointing at a stale
+        graph.
         """
         if self._profile_instances is None:
             self._profile_instances = [profile_class(self.g) for profile_class in self._profiles]

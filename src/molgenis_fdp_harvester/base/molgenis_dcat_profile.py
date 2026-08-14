@@ -39,7 +39,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             self._reference_ids[uri] = str(uuid.uuid4())
         return self._reference_ids[uri]
 
-    def _resolve_reference_id(self, uri_ref, _dataset_dict=None):
+    def _resolve_reference_id(self, uri_ref, _):
         return self._get_or_create_reference_id(str(uri_ref))
 
     def _extract_concept_dict(self, concept_ref, concept_dict: dict, field_mappings: tuple) -> dict:
