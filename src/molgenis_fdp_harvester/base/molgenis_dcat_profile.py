@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 # This is an entry that needs to be removed from the language list. We're not using it so the http protocol unsafety can
 # be ignored.
-DEFAULT_LANGUAGE = "http://id.loc.gov/vocabulary/iso639-1/en"  # NOSONAR
+DEFAULT_LANGUAGE = 'http://id.loc.gov/vocabulary/iso639-1/en'  # NOSONAR
 
 # To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
 # as is done on the Molgenis side. Currently this pseudo-hashing function is used.
@@ -176,9 +176,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             original_value = URIRef(dataset_dict["in_series"])
             retrieved_class = self._object_value(original_value, RDF.type)
             if any(val in [str(DCAT.DatasetSeries)] for val in retrieved_class):
-                dataset_dict["in_series"] = str(self._object_value(original_value, DCT.identifier))
+                dataset_dict["in_series"] = str(
+                    self._object_value(original_value, DCT.identifier))
                 if dataset_dict["in_series"] == "":
-                    dataset_dict["in_series"] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
+                    dataset_dict["in_series"] = munge_title_to_name(
+                        str(self._object_value(original_value, DCT.title)))
         return dataset_dict
 
     def _remove_default_language(self, dataset_dict: dict):
@@ -187,7 +189,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             if not isinstance(language_list, list):
                 language_list = [language_list]
             try:
-                language_list.remove(DEFAULT_LANGUAGE)
+                language_list.remove(
+                    DEFAULT_LANGUAGE)
                 if not language_list:
                     # If removing the default language makes language_list empty, remove the dictionary entry.
                     del dataset_dict["language"]
@@ -215,7 +218,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             # Otherwise treat it as an external PID and sanitize it into 'id'.
             identifier = str(dataset_dict["identifier"])
             if identifier.startswith(pid_service_url + "/"):
-                dataset_dict["id"] = identifier[len(pid_service_url) + 1 :]
+                dataset_dict["id"] = identifier[len(pid_service_url) + 1:]
             else:
                 dataset_dict["id"] = munge_title_to_name(identifier)
         else:
@@ -240,12 +243,14 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         # Extract hasPurpose to hasPurpose_obj or hasPurpose_IRI
 
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, field_mappings)
+        dataset_dict = self._extract_concept_dict(
+            dataset_ref, dataset_dict, field_mappings)
         dataset_dict = self.handle_pids(dataset_dict)
         dataset_dict = self._remove_default_language(dataset_dict)
         dataset_dict = self._extract_name_vcard(dataset_dict, "contactPoint")
         dataset_dict = self._extract_name_publisher(dataset_dict, "publisher")
-        dataset_dict = self._extract_provenancestatement_label(dataset_dict, "provenance")
+        dataset_dict = self._extract_provenancestatement_label(
+            dataset_dict, "provenance")
         return self._extract_datasetseries_id(dataset_dict)
 
     def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
@@ -264,7 +269,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("issued", DCT.issued),
             ("contactPoint", DCAT.contactPoint),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(
+            dataset_ref, dataset_dict, key_predicate_tuple)
 
         dataset_dict = self._extract_name_vcard(dataset_dict, "contactPoint")
         dataset_dict = self._extract_name_publisher(dataset_dict, "publisher")
@@ -291,10 +297,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("hasEmail", VCARD.hasEmail),
             ("hasURL", VCARD.hasURL),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(
+            dataset_ref, dataset_dict, key_predicate_tuple)
 
         if dataset_dict.get("hasEmail") and dataset_dict["hasEmail"].startswith("mailto:"):
-            dataset_dict["hasEmail"] = dataset_dict["hasEmail"].removeprefix("mailto:")
+            dataset_dict["hasEmail"] = dataset_dict["hasEmail"].removeprefix(
+                "mailto:")
         return dataset_dict
 
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
