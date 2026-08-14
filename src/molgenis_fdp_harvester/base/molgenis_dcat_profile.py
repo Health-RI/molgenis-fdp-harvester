@@ -11,7 +11,6 @@ import uuid
 from datetime import datetime
 from typing import Dict, Union
 from urllib.parse import urlparse
-from uuid import UUID
 
 from rdflib import URIRef, FOAF, RDF, RDFS, PROV
 
@@ -37,21 +36,25 @@ def generate_id(arr):
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
 
-    def _extract_concept_dict(self, concept_ref, concept_dict: Dict, 
-                            field_mappings: tuple) -> Dict:
+    @staticmethod
+    def _strip_mailto_prefix(value):
+        """Strip a 'mailto:' prefix from an email value for Molgenis's plain-string email columns."""
+        if isinstance(value, str) and value.startswith("mailto:"):
+            return value.removeprefix("mailto:")
+        return value
+
+    def _extract_concept_dict(self, concept_ref, concept_dict: Dict, field_mappings: tuple) -> Dict:
         """Extract RDF properties into a concept dictionary."""
         for field_name, predicate in field_mappings:
             value = self._object_value(concept_ref, predicate)
-
             if not value:
                 continue
                 
             # Handle single-item lists
             if isinstance(value, list) and len(value) == 1:
                 value = value[0]
-            
+
             concept_dict[field_name] = value
-            
         return concept_dict
 
     def _extract_and_transform_by_type(
@@ -63,6 +66,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     ) -> Dict:
         """
         Generic method to extract and transform RDF properties based on type checking.
+
+        Many Molgenis columns backing `key` are ref_array (e.g. contactPoint, creator,
+        qualifiedAttribution, sample/analytics, other_identifier, temporal), so `value` may be
+        either a single IRI string or a list of IRI strings. Each referenced resource is
+        type-checked and transformed independently; resources that don't match
+        `expected_types` are left as plain IRI strings, same as the single-value case.
 
         Args:
             dataset_dict: Dictionary to modify
@@ -78,18 +87,26 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         if not value:
             return dataset_dict
 
-        uri_ref = URIRef(value)
-        rdf_type = self._object_value(uri_ref, RDF.type)
-        # Normalize to list
-        if not isinstance(rdf_type, list):
-            rdf_type = [rdf_type]
         if not isinstance(expected_types, list):
             expected_types = [expected_types]
         expected_types = [str(exp_type) for exp_type in expected_types]
 
-        # Simple membership check
-        if any(t in expected_types for t in rdf_type):
-            dataset_dict[key] = extraction_fn(uri_ref, dataset_dict)
+        def resolve(single_value):
+            uri_ref = URIRef(single_value)
+            rdf_type = self._object_value(uri_ref, RDF.type)
+            # Normalize to list
+            if not isinstance(rdf_type, list):
+                rdf_type = [rdf_type]
+
+            # Simple membership check
+            if any(t in expected_types for t in rdf_type):
+                return extraction_fn(uri_ref, dataset_dict)
+            return single_value
+
+        if isinstance(value, list):
+            dataset_dict[key] = [resolve(v) for v in value]
+        else:
+            dataset_dict[key] = resolve(value)
 
         return dataset_dict
 
@@ -246,26 +263,52 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def _extract_obligation(self, dataset_dict: Dict, key: str):
         def extraction(uri_ref, _):
             return self.parse_obligation({}, uri_ref)
-        return self._extract_and_transform_by_type(dataset_dict, key, ODRL.Duty, extraction)
+        # The real ODRL 2.2 vocabulary names this class Duty, but the Molgenis metadata model's
+        # own semantics annotation for the 'obligation' table uses odrl:Obligation instead.
+        # Accept either so we resolve regardless of which one Molgenis actually emits.
+        return self._extract_and_transform_by_type(dataset_dict, key, [ODRL.Duty, ODRL.Obligation], extraction)
+
+    def _extract_legalbasis(self, dataset_dict: Dict, key: str):
+        def extraction(uri_ref, _):
+            return self.parse_legal_basis({}, uri_ref)
+        return self._extract_and_transform_by_type(dataset_dict, key, DPV.LegalBasis, extraction)
 
     def _extract_purpose(self, dataset_dict: Dict):
-        """Resolve hasPurpose to either a nested Purpose object or a plain vocabulary IRI."""
+        """Resolve hasPurpose to nested Purpose object(s) and/or plain vocabulary IRI(s).
+
+        dpv:hasPurpose is a Molgenis ref_array, so a dataset may declare more than one
+        value; each is independently resolved into either hasPurpose_obj (dpv:Purpose
+        resources) or hasPurpose_IRI (plain vocabulary terms).
+        """
         purpose_value = dataset_dict.get('hasPurpose_obj')
         if not purpose_value:
             dataset_dict.pop('hasPurpose_obj', None)
             return dataset_dict
 
-        purpose_value = purpose_value[0] if isinstance(purpose_value, list) else purpose_value
-        purpose_ref = URIRef(purpose_value)
-        purpose_type = self._object_value(purpose_ref, RDF.type)
-        if not isinstance(purpose_type, list):
-            purpose_type = [purpose_type]
+        purpose_values = purpose_value if isinstance(purpose_value, list) else [purpose_value]
 
-        if str(DPV.Purpose) in purpose_type:
-            dataset_dict['hasPurpose_obj'] = self.parse_purpose({}, purpose_ref)
-            dataset_dict.pop('hasPurpose_IRI', None)
+        purpose_objects = []
+        purpose_iris = []
+        for value in purpose_values:
+            purpose_ref = URIRef(value)
+            purpose_type = self._object_value(purpose_ref, RDF.type)
+            if not isinstance(purpose_type, list):
+                purpose_type = [purpose_type]
+
+            if str(DPV.Purpose) in purpose_type:
+                purpose_objects.append(self.parse_purpose({}, purpose_ref))
+            else:
+                purpose_iris.append(value)
+
+        if purpose_objects:
+            dataset_dict['hasPurpose_obj'] = purpose_objects[0] if len(purpose_objects) == 1 else purpose_objects
         else:
             dataset_dict.pop('hasPurpose_obj', None)
+
+        if purpose_iris:
+            dataset_dict['hasPurpose_IRI'] = purpose_iris[0] if len(purpose_iris) == 1 else purpose_iris
+        else:
+            dataset_dict.pop('hasPurpose_IRI', None)
 
         return dataset_dict
 
@@ -338,6 +381,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_provenancestatement_label(dataset_dict, 'provenance')
         dataset_dict = self._extract_datasetseries_id(dataset_dict)
         dataset_dict = self._extract_purpose(dataset_dict)
+        dataset_dict = self._extract_legalbasis(dataset_dict, 'hasLegalBasis')
         dataset_dict = self._extract_creator(dataset_dict, 'creator')
         dataset_dict = self._extract_periodoftime(dataset_dict, 'temporal')
         dataset_dict = self._extract_periodoftime(dataset_dict, 'retentionPeriod')
@@ -351,7 +395,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_datasetseries(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("title", DCT.title),
             ("description", DCT.description),
             ("temporal", DCT.temporal),
@@ -367,6 +410,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict = self._extract_name_vcard(dataset_dict, 'contactPoint')
         dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
+        dataset_dict = self._extract_periodoftime(dataset_dict, 'temporal')
 
         if not dataset_dict.get('id', False):
             dataset_dict['id'] = munge_title_to_name(dataset_dict["title"])
@@ -377,7 +421,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_publisher(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("name", FOAF.name),
             ("description", DCT.description),
             ("type", DCT.type),
@@ -386,50 +429,51 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("phone", FOAF.phone),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
+        if "mbox" in dataset_dict:
+            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
     def parse_creator(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("name", FOAF.name),
             ("description", DCT.description),
             ("type", DCT.type),
             ("mbox", FOAF.mbox),
             ("homepage", FOAF.homepage),
-            ("phone", FOAF.phone),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
+        if "mbox" in dataset_dict:
+            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
     def parse_legal_basis(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("description", DCT.description),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_kind(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("fn", VCARD.fn),
             ("hasEmail", VCARD.hasEmail),
             ("hasURL", VCARD.hasURL),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-
-        has_email = dataset_dict.get("hasEmail")
-        if isinstance(has_email, str) and has_email.startswith("mailto:"):
-            dataset_dict["hasEmail"] = has_email.removeprefix("mailto:")
+        dataset_dict["id"] = str(uuid.uuid4())
+        if "hasEmail" in dataset_dict:
+            dataset_dict["hasEmail"] = self._strip_mailto_prefix(dataset_dict["hasEmail"])
         return dataset_dict
 
     def parse_distribution(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("status", ADMS.status),
             ("accessService", DCAT.accessService),
             ("accessURL", DCAT.accessURL),
@@ -456,6 +500,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("checksum", SPDX.checksum),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_policy(dataset_dict, 'hasPolicy')
         dataset_dict = self._extract_checksum(dataset_dict, 'checksum')
         dataset_dict = self._extract_rightsstatement(dataset_dict, 'rights')
@@ -465,7 +510,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_dataservice(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("accessRights", DCT.accessRights),
             ("applicableLegislation", DCATAP.applicableLegislation),
             ("conformsTo", DCT.conformsTo),
@@ -482,24 +526,27 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("title", DCT.title),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict = self._extract_name_vcard(dataset_dict, 'contactPoint')
+        dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
         return dataset_dict
 
     def parse_provenancestatement(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("label", RDFS.label),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_purpose(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("description", DCT.description),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_other_identifier(self, dataset_dict: Dict, dataset_ref: URIRef):
@@ -524,11 +571,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_attribution(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("agent", PROV.agent),
             ("hadRole", DCAT.hadRole),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_attribution_agent(dataset_dict, 'agent')
         return dataset_dict
 
@@ -542,6 +589,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("homepage", FOAF.homepage),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
+        if "mbox" in dataset_dict:
+            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
     def parse_checksum(self, dataset_dict: Dict, dataset_ref: URIRef):
@@ -556,21 +606,21 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_rightsstatement(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("label", RDFS.label),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_policy(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("permission", ODRL.permission),
             ("prohibition", ODRL.prohibition),
             ("obligation", ODRL.obligation),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_permission(dataset_dict, 'permission')
         dataset_dict = self._extract_prohibition(dataset_dict, 'prohibition')
         dataset_dict = self._extract_obligation(dataset_dict, 'obligation')
@@ -579,28 +629,28 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_permission(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("action", ODRL.action),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_prohibition(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("action", ODRL.action),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def parse_obligation(self, dataset_dict: Dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
-            ("id", uuid.uuid4()),
             ("action", ODRL.action),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
