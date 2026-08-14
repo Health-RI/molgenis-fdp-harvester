@@ -1,0 +1,56 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dpv: <https://w3id.org/dpv#> .
+@prefix healthdcatap: <http://healthdataportal.eu/ns/health#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix cirole: <http://registry.it.csiro.au/def/isotc211/CI_RoleCode/> .
+
+<http://example.com/dataset_wired> a dcat:Dataset ;
+    dct:identifier "dataset-wired-001" ;
+    dct:title "Wired Fields Test Dataset" ;
+    dpv:hasPurpose <http://example.com/dataset_wired/purpose> ;
+    dct:creator <http://example.com/dataset_wired/creator> ;
+    dct:temporal <http://example.com/dataset_wired/temporal> ;
+    healthdcatap:retentionPeriod <http://example.com/dataset_wired/retention> ;
+    prov:qualifiedAttribution <http://example.com/dataset_wired/attribution> ;
+    adms:identifier <http://example.com/dataset_wired/other_id> ;
+    adms:sample <http://example.com/dataset_wired/sample> ;
+    healthdcatap:analytics <http://example.com/dataset_wired/analytics> ;
+    dpv:hasLegalBasis <http://example.com/dataset_wired/legalbasis> .
+
+<http://example.com/dataset_wired/purpose> a dpv:Purpose ;
+    dct:description "Wired purpose" .
+
+<http://example.com/dataset_wired/legalbasis> a dpv:LegalBasis ;
+    dct:description "Wired legal basis" .
+
+<http://example.com/dataset_wired/creator> a foaf:Agent ;
+    foaf:name "Wired Creator" .
+
+<http://example.com/dataset_wired/temporal> a dct:PeriodOfTime ;
+    dcat:startDate "2020-01-01T00:00:00"^^xsd:dateTime ;
+    dcat:endDate "2021-01-01T00:00:00"^^xsd:dateTime .
+
+<http://example.com/dataset_wired/retention> a dct:PeriodOfTime ;
+    dcat:startDate "2022-01-01T00:00:00"^^xsd:dateTime ;
+    dcat:endDate "2032-01-01T00:00:00"^^xsd:dateTime .
+
+<http://example.com/dataset_wired/attribution> a prov:Attribution ;
+    prov:agent <http://example.com/dataset_wired/attribution_agent> ;
+    dcat:hadRole cirole:author .
+
+<http://example.com/dataset_wired/attribution_agent> a foaf:Agent ;
+    foaf:name "Wired Attribution Agent" .
+
+<http://example.com/dataset_wired/other_id> a adms:Identifier ;
+    skos:notation "WIRED-001" .
+
+<http://example.com/dataset_wired/sample> a dcat:Distribution ;
+    dct:title "Wired Sample Distribution" .
+
+<http://example.com/dataset_wired/analytics> a dcat:Distribution ;
+    dct:title "Wired Analytics Distribution" .

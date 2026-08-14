@@ -1,0 +1,5 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dpv: <https://w3id.org/dpv#> .
+
+<http://example.com/purpose1> a dpv:Purpose ;
+    dct:description "Scientific research" .
