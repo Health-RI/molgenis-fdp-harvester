@@ -4,29 +4,36 @@
 
 """Tests for MOLGENIS DCAT profile extraction helper methods."""
 
+import uuid
+
 import rdflib
 from rdflib import URIRef
 
+from molgenis_fdp_harvester.base.baseparser import VCARD
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 
 
-def test_extract_name_vcard_valid_contact(graph_vcard_contact):
-    """Test extracting name from valid VCARD.Kind contact."""
+def test_resolve_reference_id_valid_vcard_contact(graph_vcard_contact):
+    """A valid VCARD.Kind contact is replaced by its assigned UUIDv4 reference id."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_contact)
+    contact_uri = URIRef("http://example.com/contact1")
 
-    dataset_dict = {"contact": "http://example.com/contact1"}
-    result = profile._extract_name_vcard(dataset_dict, "contact")
+    dataset_dict = {"contact": str(contact_uri)}
+    result = profile._extract_and_transform_by_type(
+        dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id
+    )
 
-    # Should extract and lowercase name with spaces stripped: "John Doe Contact" -> "johndoecontact"
-    assert result["contact"] == "johndoecontact"
+    assert result["contact"] == profile._get_or_create_reference_id(str(contact_uri))
 
 
-def test_extract_name_vcard_missing_key(graph_vcard_missing):
+def test_resolve_reference_id_missing_key(graph_vcard_missing):
     """Test that missing key doesn't cause errors."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_missing)
 
     dataset_dict = {}  # No contact key
-    result = profile._extract_name_vcard(dataset_dict, "contact")
+    result = profile._extract_and_transform_by_type(
+        dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id
+    )
 
     # Should return unchanged dict without errors
     assert "contact" not in result
@@ -72,11 +79,13 @@ def test_parse_dataset_integration(graph_dataset_integration):
     assert result["id"] == "testorg-dataset-full-001"
     assert result["identifier"] == "https://pid.example.com/testorg-dataset-full-001"
 
-    # Verify extracted name from VCARD contact
-    assert result["contactPoint"] == "drjanesmith"
+    # Verify the referenced VCARD contact was resolved to its assigned UUIDv4
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/contact_full")
+    uuid.UUID(result["contactPoint"])
 
-    # Verify extracted name from FOAF Organization publisher
-    assert result["publisher"] == "testorganization"
+    # Verify the referenced FOAF Organization publisher was resolved to its assigned UUIDv4
+    assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/provider_org")
+    uuid.UUID(result["publisher"])
 
     # Verify extracted DatasetSeries ID
     assert result["in_series"] == "biobank-full"
@@ -91,6 +100,8 @@ def test_parse_kind(graph_vcard_contact):
 
     assert result["uri"] == "http://example.com/contact1"
     assert result["fn"] == "John Doe Contact"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/contact1")
+    uuid.UUID(result["id"])
 
 
 def test_parse_publisher():
@@ -107,6 +118,8 @@ def test_parse_publisher():
     assert result["description"] == "A test publishing organisation"
     assert result["publishertype"] == "ResearchInstitute"
     assert result["homepage"] == "https://example.com"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/org1")
+    uuid.UUID(result["id"])
 
 
 def test_parse_provenancestatement():
@@ -120,3 +133,5 @@ def test_parse_provenancestatement():
 
     assert result["uri"] == "http://example.com/prov1"
     assert result["label"] == "Data collected from hospital records"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/prov1")
+    uuid.UUID(result["id"])
