@@ -8,8 +8,6 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 import logging
-from typing import Union
-from urllib.parse import urlparse
 import uuid
 
 from rdflib import FOAF, RDF, RDFS, URIRef
@@ -60,7 +58,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         self,
         dataset_dict: dict,
         key: str,
-        expected_types: Union[list, URIRef],
+        expected_types: list | URIRef,
         extraction_fn,
     ) -> dict:
         """
@@ -189,7 +187,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         if dataset_dict.get("in_series"):
             original_value = URIRef(dataset_dict["in_series"])
             retrieved_class = self._object_value(original_value, RDF.type)
-            if any([val in [str(DCAT.DatasetSeries)] for val in retrieved_class]):
+            if any(val in [str(DCAT.DatasetSeries)] for val in retrieved_class):
                 dataset_dict["in_series"] = str(
                     self._object_value(original_value, DCT.identifier)
                 )
@@ -282,10 +280,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("publishertype", HEALTHDCATAP.publishertype),
             ("homepage", FOAF.homepage),
         )
-        dataset_dict = self._extract_concept_dict(
+        return self._extract_concept_dict(
             dataset_ref, dataset_dict, key_predicate_tuple
         )
-        return dataset_dict
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -308,10 +305,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (("label", RDFS.label),)
-        dataset_dict = self._extract_concept_dict(
+        return self._extract_concept_dict(
             dataset_ref, dataset_dict, key_predicate_tuple
         )
-        return dataset_dict
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
         raise NotImplementedError("FDP export is handled by MOLGENIS")

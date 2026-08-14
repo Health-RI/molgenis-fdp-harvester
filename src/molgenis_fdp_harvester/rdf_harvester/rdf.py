@@ -20,10 +20,10 @@ class DCATRDFHarvester(DCATHarvester):
 
     def __init__(
         self,
-        profiles: List,
-        concept_table_dict: Dict[str, str],
+        profiles: list,
+        concept_table_dict: dict[str, str],
         molgenis_client: Client,
-        harvester_config: Dict = None,
+        harvester_config: dict | None = None,
     ):
         super().__init__()
         self._profiles = profiles
@@ -118,7 +118,7 @@ class DCATRDFHarvester(DCATHarvester):
                                                   for x in existing_ids]
             except Exception as e:
                 log.error(
-                    f"fetch_stage: Error getting list of uids {str(entity_name)}: {repr(e)} / {str(traceback.format_exc())}"
+                    f"fetch_stage: Error getting list of uids {entity_name!s}: {e!r} / {traceback.format_exc()!s}"
                 )
                 self.guids_in_db[concept_type] = []
 
@@ -140,9 +140,7 @@ class DCATRDFHarvester(DCATHarvester):
         guid = self._get_guid(concept_dict, source_url=concept_dict["uri"])
         if not guid:
             self._save_gather_error(
-                "Could not get a unique identifier for {0}: {1}".format(
-                    concept_type, concept_dict
-                ),
+                f"Could not get a unique identifier for {concept_type}: {concept_dict}",
             )
         else:
             self.guids_in_harvest[concept_type].append(guid)
@@ -160,7 +158,8 @@ class DCATRDFHarvester(DCATHarvester):
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
-        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name attached to the ontologyTermURI
+        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name
+        # attached to the ontologyTermURI
         # The table to query is configured in the configuration.
         uri_lookup_table = self.harvester_config.get("uri_lookup_config", {}).get(
             concept_type
@@ -177,7 +176,8 @@ class DCATRDFHarvester(DCATHarvester):
                             concept_dict[property] = new_property_value
                     except Exception as exc:
                         log.warning(
-                            f"Exception when resolving ontology URI or label: table {molgenis_table}; URI {value}; {str(exc)}"
+                            f"Exception when resolving ontology URI or label: table {molgenis_table}; "
+                            f"URI {value}; {exc!s}"
                         )
 
         harvest_object.content = json.dumps(concept_dict)
@@ -381,7 +381,7 @@ class DCATRDFHarvester(DCATHarvester):
             return (existing_records[0].get("id"), existing_agency == agency)
         except Exception as e:
             log.exception(
-                f"Error checking previous import for dataset {dataset.get('title')}: {repr(e)}"
+                f"Error checking previous import for dataset {dataset.get('title')}: {e!r}"
             )
             return (None, False)
 
