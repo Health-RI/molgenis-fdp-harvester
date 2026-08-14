@@ -153,10 +153,7 @@ class RDFParser(RDFProcessor):
         """
         Returns a list of all formats supported by this processor.
         """
-        return sorted(
-            [plugin.name for plugin in rdflib.plugin.plugins(
-                kind=rdflib.parser.Parser)]
-        )
+        return sorted([plugin.name for plugin in rdflib.plugin.plugins(kind=rdflib.parser.Parser)])
 
     def datasets(self):
         """
@@ -174,7 +171,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_dataset(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'dataset'
+            dataset_dict["concept_type"] = "dataset"
 
             yield dataset_dict
 
@@ -194,7 +191,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_datasetseries(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'datasetseries'
+            dataset_dict["concept_type"] = "datasetseries"
 
             yield dataset_dict
 
@@ -214,7 +211,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_publisher(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'publisher'
+            dataset_dict["concept_type"] = "publisher"
 
             yield dataset_dict
 
@@ -234,7 +231,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_kind(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'kind'
+            dataset_dict["concept_type"] = "kind"
 
             yield dataset_dict
 
@@ -254,7 +251,7 @@ class RDFParser(RDFProcessor):
                 profile = profile_class(self.g)
                 profile.parse_provenancestatement(dataset_dict, dataset_ref)
 
-            dataset_dict['concept_type'] = 'provenancestatement'
+            dataset_dict["concept_type"] = "provenancestatement"
 
             yield dataset_dict
 
@@ -262,15 +259,15 @@ class RDFParser(RDFProcessor):
         concept_dict = {}
         for profile_class in self._profiles:
             profile = profile_class(self.g)
-            if concept_type == 'publisher':
+            if concept_type == "publisher":
                 profile.parse_publisher(concept_dict, uri_ref)
-            elif concept_type == 'kind':
+            elif concept_type == "kind":
                 profile.parse_kind(concept_dict, uri_ref)
-            elif concept_type == 'dataset':
+            elif concept_type == "dataset":
                 profile.parse_dataset(concept_dict, uri_ref)
-            elif concept_type == 'datasetseries':
+            elif concept_type == "datasetseries":
                 profile.parse_datasetseries(concept_dict, uri_ref)
-            elif concept_type == 'provenancestatement':
+            elif concept_type == "provenancestatement":
                 profile.parse_provenancestatement(concept_dict, uri_ref)
 
         return concept_dict

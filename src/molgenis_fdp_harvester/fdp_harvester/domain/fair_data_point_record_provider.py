@@ -19,11 +19,10 @@ log = logging.getLogger(__name__)
 
 
 class FairDataPointRecordProvider:
-
     def __init__(self, fdp_end_point: str):
         self.fair_data_point = FairDataPoint(fdp_end_point)
 
-    def get_record_ids(self, concept_type: str = 'all') -> dict.keys:
+    def get_record_ids(self, concept_type: str = "all") -> dict.keys:
         log.debug(f"FAIR Data Point get_records from {self.fair_data_point.fdp_end_point}")
         result = {}
         for fdp_record in self._breadth_first_search_records(self.fair_data_point.fdp_end_point):
@@ -39,9 +38,7 @@ class FairDataPointRecordProvider:
         """
         Get additional information for FDP record.
         """
-        log.debug(
-            f"FAIR data point get_record_by_id from {self.fair_data_point.fdp_end_point} for {guid}"
-        )
+        log.debug(f"FAIR data point get_record_by_id from {self.fair_data_point.fdp_end_point} for {guid}")
 
         identifier = Identifier(guid)
 

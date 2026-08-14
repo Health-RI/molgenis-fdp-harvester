@@ -43,11 +43,9 @@ class FDPHarvester(DCATRDFHarvester):
                 log.info(f"Got identifier {identifier!s} from RecordProvider")
 
                 try:
-                    self.guids_in_harvest[concept_type].append(
-                        Identifier(identifier).get_id_value())
+                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
                 except Exception as e:
-                    log.exception(
-                        f"Error for identifier {identifier!s} in gather phase: {e!s}")
+                    log.exception(f"Error for identifier {identifier!s} in gather phase: {e!s}")
                     continue
 
                 record = self.record_provider.get_record_by_id(identifier)
@@ -56,12 +54,9 @@ class FDPHarvester(DCATRDFHarvester):
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
                     except Exception as e:
-                        log.error(
-                            f"Error saving harvest object for identifier [{identifier}] [{e!r}]")
+                        log.error(f"Error saving harvest object for identifier [{identifier}] [{e!r}]")
                 else:
-                    log.error(
-                        f"Empty record for identifier {identifier}"
-                    )
+                    log.error(f"Empty record for identifier {identifier}")
 
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config

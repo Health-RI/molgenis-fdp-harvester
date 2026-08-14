@@ -167,9 +167,7 @@ class HarvesterBase:
         """
         log.warning("_create_harvest_objects: stubbed")
 
-    def _create_or_update_package(
-        self, package_dict, harvest_object, package_dict_form="rest"
-    ):
+    def _create_or_update_package(self, package_dict, harvest_object, package_dict_form="rest"):
         """
         Creates a new package or updates an existing one according to the
         package dictionary provided.
@@ -226,11 +224,7 @@ class HarvesterBase:
                 return tag_dict
 
             # assume it's in the package_show form
-            tags = [
-                _update_tag(t, "name", munge_tag(t["name"]))
-                for t in tags
-                if munge_tag(t["name"]) != ""
-            ]
+            tags = [_update_tag(t, "name", munge_tag(t["name"])) for t in tags if munge_tag(t["name"]) != ""]
 
         except TypeError:  # a TypeError is raised if `t` above is a string
             # REST format: 'tags' is a list of strings

@@ -15,11 +15,13 @@ def mock_client():
     client.get.return_value = []
     return client
 
-TEST_HARVESTER_CONFIG = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+
+TEST_HARVESTER_CONFIG = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
 
 
 class _ConfiguredProfile(MolgenisEUCAIMDCATAPProfile):
     """Profile subclass with test PID config pre-set."""
+
     def __init__(self, graph):
         super().__init__(graph)
         self.config = TEST_HARVESTER_CONFIG
@@ -33,11 +35,11 @@ def profiles():
 @pytest.fixture
 def concept_table_dict():
     return {
-        'dataset': 'datasets',
-        'datasetseries': 'datasetseries',
-        'kind': 'kind',
-        'publisher': 'publisher',
-        'provenancestatement': 'provenancestatement'
+        "dataset": "datasets",
+        "datasetseries": "datasetseries",
+        "kind": "kind",
+        "publisher": "publisher",
+        "provenancestatement": "provenancestatement",
     }
 
 
@@ -47,7 +49,7 @@ def harvester(profiles, concept_table_dict, mock_client):
         profiles=profiles,
         concept_table_dict=concept_table_dict,
         molgenis_client=mock_client,
-        harvester_config=TEST_HARVESTER_CONFIG
+        harvester_config=TEST_HARVESTER_CONFIG,
     )
 
 
@@ -58,11 +60,7 @@ def catalog_url():
 
 @pytest.fixture
 def empty_harvestobject_dataset():
-    return HarvestObject(
-        guid="http://example.com/dataset1",
-        content=None,
-        concept_type="dataset"
-    )
+    return HarvestObject(guid="http://example.com/dataset1", content=None, concept_type="dataset")
 
 
 @pytest.fixture
