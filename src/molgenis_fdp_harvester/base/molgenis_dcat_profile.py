@@ -242,9 +242,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_provenancestatement_label(
             dataset_dict, "provenance"
         )
-        dataset_dict = self._extract_datasetseries_id(dataset_dict)
+        return self._extract_datasetseries_id(dataset_dict)
 
-        return dataset_dict
 
     def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
