@@ -19,7 +19,7 @@ jobs:
         uses: astral-sh/setup-uv@v10.0.1
 
       - name: Install dependencies
-        run: uv sync --dev 
+        run: uv sync --lint
 
       - name: Lint
-        run: ruff check .  
+        run: uv run ruff check .
