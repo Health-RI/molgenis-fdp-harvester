@@ -75,7 +75,8 @@ class RDFParser(RDFProcessor):
         called, i.e. before any of datasets()/kind()/publisher()/etc. are used
         - both DCATRDFHarvester and FDPHarvester satisfy this. Calling parse()
         again afterwards would leave the cached instances pointing at a stale
-        graph.
+        graph. Harvesting is single-threaded; this cache is not safe for
+        concurrent access.
         """
         if self._profile_instances is None:
             self._profile_instances = [profile_class(self.g) for profile_class in self._profiles]

@@ -32,6 +32,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         # created with a UUIDv4 internal ID. The same RDF resource can be referenced by
         # multiple datasets, so this cache ensures it resolves to the same ID everywhere
         # it's referenced, for as long as this profile instance lives (one harvest run).
+        # Harvesting is single-threaded; this cache is not safe for concurrent access.
         self._reference_ids: dict[str, str] = {}
 
     def _get_or_create_reference_id(self, uri: str) -> str:
@@ -39,7 +40,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             self._reference_ids[uri] = str(uuid.uuid4())
         return self._reference_ids[uri]
 
-    def _resolve_reference_id(self, uri_ref, _):
+    def _resolve_reference_id(self, uri_ref):
         return self._get_or_create_reference_id(str(uri_ref))
 
     def _extract_concept_dict(self, concept_ref, concept_dict: dict, field_mappings: tuple) -> dict:
@@ -69,7 +70,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             key: Key to look up and modify in the dictionary
             expected_types: List of RDF types to check against
             extraction_fn: Function to extract and transform the value
-                          Takes (self, uri_ref, dataset_dict) and returns the transformed value
+                          Takes (uri_ref) and returns the transformed value
 
         Returns:
             Modified dataset_dict
@@ -89,7 +90,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         # Simple membership check
         if any(t in expected_types for t in rdf_type):
-            dataset_dict[key] = extraction_fn(uri_ref, dataset_dict)
+            dataset_dict[key] = extraction_fn(uri_ref)
 
         return dataset_dict
 
