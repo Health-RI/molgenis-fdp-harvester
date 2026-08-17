@@ -5,8 +5,8 @@
 
 
 import logging
-from typing import Dict, Iterable, Union
 from collections import deque
+from collections.abc import Iterable
 
 from rdflib import DCTERMS, Graph, URIRef
 from rdflib.term import Node
@@ -15,16 +15,14 @@ from .fair_data_point import FairDataPoint
 from .graph_to_fdp_record_mapper import GraphToFdpRecordMapper
 from .identifier import Identifier
 
-
 log = logging.getLogger(__name__)
 
 
 class FairDataPointRecordProvider:
-
     def __init__(self, fdp_end_point: str):
         self.fair_data_point = FairDataPoint(fdp_end_point)
 
-    def get_record_ids(self, concept_type: str = 'all') -> Dict.keys:
+    def get_record_ids(self, concept_type: str = "all") -> dict.keys:
         log.debug(f"FAIR Data Point get_records from {self.fair_data_point.fdp_end_point}")
         result = {}
         for fdp_record in self._breadth_first_search_records(self.fair_data_point.fdp_end_point):
@@ -40,9 +38,7 @@ class FairDataPointRecordProvider:
         """
         Get additional information for FDP record.
         """
-        log.debug(
-            f"FAIR data point get_record_by_id from {self.fair_data_point.fdp_end_point} for {guid}"
-        )
+        log.debug(f"FAIR data point get_record_by_id from {self.fair_data_point.fdp_end_point} for {guid}")
 
         identifier = Identifier(guid)
 
@@ -59,8 +55,8 @@ class FairDataPointRecordProvider:
     @staticmethod
     def get_values(
         graph: Graph,
-        subject: Union[str, URIRef, Node],
-        predicate: Union[str, URIRef, Node],
+        subject: str | URIRef | Node,
+        predicate: str | URIRef | Node,
     ) -> Iterable[Node]:
         subject_uri = URIRef(subject)
         predicate_uri = URIRef(predicate)
@@ -87,7 +83,7 @@ class FairDataPointRecordProvider:
 
     @staticmethod
     def _remove_fdp_defaults(g, subject_uri):
-        for s, p, o in g.triples((subject_uri, DCTERMS.accessRights, None)):
+        for _s, _p, o in g.triples((subject_uri, DCTERMS.accessRights, None)):
             access_rights_default = URIRef(f"{subject_uri}#accessRights")
             if o == access_rights_default:
                 g.remove((subject_uri, DCTERMS.accessRights, o))

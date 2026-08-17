@@ -1,0 +1,212 @@
+services:
+    # Fair Data Point #1
+    fdp-1.test:
+        image: fairdata/fairdatapoint:1.18.1
+        depends_on:
+            - mongo-1
+            - graphdb-1
+            - graphdb-import-1
+        volumes:
+            - ./fdp/application-1.yml:/fdp/application.yml:ro
+
+    fdp-client-1:
+        image: healthri/fdp-client:1.0.16
+        depends_on:
+            - fdp-1.test
+        ports:
+            - 8081:80
+        environment:
+            - FDP_HOST=fdp-1.test
+
+    mongo-1:
+        image: mongo:4.0.12
+        volumes:
+            - mongo-data-1:/data/db
+
+    graphdb-1:
+        image: ontotext/graphdb:10.8.2
+        ports:
+            - 7201:7200
+        volumes:
+            - graphdb-data-1:/opt/graphdb/home
+
+    graphdb-import-1:
+        image: ontotext/graphdb:10.8.2
+        depends_on:
+            - graphdb-1
+        volumes:
+            - graphdb-data-1:/opt/graphdb/home
+            - ./graphdb/import:/var/graphdb/import:ro
+        entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
+        command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
+    schema-tool-1:
+        image: healthri/fdp-schema-update-tool:1.0.4
+        depends_on:
+            - fdp-1.test
+        volumes:
+            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+        environment:
+            - FDP_HOST=http://fdp-1.test
+            - FDP_USER=albert.einstein@example.com
+            - FDP_PWD=password
+            - PROPERTIES_LOCATION=/opt/app/Properties.yaml
+            - SHACL_LOCATION=/opt/app/SHACLs
+        command: [ "-h", "http://fdp-1.test", "-u", "albert.einstein@example.com", "-p", "password" ]
+
+    # Fair Data Point #2
+    fdp-2.test:
+        image: fairdata/fairdatapoint:1.18.1
+        depends_on:
+            - mongo-2
+            - graphdb-2
+            - graphdb-import-2
+        volumes:
+            - ./fdp/application-2.yml:/fdp/application.yml:ro
+
+    fdp-client-2:
+        image: healthri/fdp-client:1.0.16
+        depends_on:
+            - fdp-2.test
+        ports:
+            - 8082:80
+        environment:
+            - FDP_HOST=fdp-2.test
+
+    mongo-2:
+        image: mongo:4.0.12
+        volumes:
+            - mongo-data-2:/data/db
+
+    graphdb-2:
+        image: ontotext/graphdb:10.8.2
+        ports:
+            - 7202:7200
+        volumes:
+            - graphdb-data-2:/opt/graphdb/home
+
+    graphdb-import-2:
+        image: ontotext/graphdb:10.8.2
+        depends_on:
+            - graphdb-2
+        volumes:
+            - graphdb-data-2:/opt/graphdb/home
+            - ./graphdb/import:/var/graphdb/import:ro
+        entrypoint: [ "/opt/graphdb/dist/bin/importrdf" ]
+        command: [ "preload", "-Dgraphdb.home=/opt/graphdb/home", "-f", "-c", "/var/graphdb/import/fdp/repo-config.ttl", "/var/graphdb/import/fdp/data.ttl" ]
+
+    schema-tool-2:
+        image: healthri/fdp-schema-update-tool:1.0.4
+        depends_on:
+            - fdp-2.test
+        volumes:
+            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+        environment:
+            - FDP_HOST=http://fdp-2.test
+            - FDP_USER=albert.einstein@example.com
+            - FDP_PWD=password
+            - PROPERTIES_LOCATION=/opt/app/Properties.yaml
+            - SHACL_LOCATION=/opt/app/SHACLs
+        command: [ "-h", "http://fdp-2.test", "-u", "albert.einstein@example.com", "-p", "password" ]
+
+    # Uploads the test catalog and dataset to both FDPs
+    fdp-init:
+        image: python:3.12-slim
+        depends_on:
+            schema-tool-1:
+                condition: service_completed_successfully
+            schema-tool-2:
+                condition: service_completed_successfully
+        volumes:
+            # Local development: install fairclient from a checkout of its repository.
+            # Override the host path with FAIRCLIENT_PATH if your checkout lives elsewhere.
+            - ..:/workspace
+            - ${FAIRCLIENT_PATH:-~/Documents/Repositories/fairclient}:/fairclient
+        working_dir: /fairclient
+        environment:
+            - SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
+        entrypoint: [ "sh", "-c" ]
+        # The checkout is mounted read-only and git cannot read its .git in the container,
+        # so copy it out and drop hatch-vcs before installing. requests is a fairclient
+        # dependency that it does not declare itself.
+        command: [ "pip install -e .[dev] && python /workspace/dev/fdp/upload_data.py" ]
+        # Production: install fairclient from PyPI instead of a local checkout.
+        # Remove the fairclient and patch script volume mounts above and use the command below.
+        # command: [ "pip install --no-cache-dir fairclient && python upload_data.py" ]
+
+    # Molgenis setup
+    molgenis:
+        image: registry.gitlab.com/radiology/infrastructure/studies/eucaim/molgenis-emx2-eucaim/molgenis-emx2-eucaim:11.36.0-1.1.0
+        platform: linux/amd64
+        environment:
+            - MOLGENIS_POSTGRES_URI=jdbc:postgresql://postgres/molgenis
+            - MOLGENIS_POSTGRES_USER=molgenis
+            - MOLGENIS_POSTGRES_PASS=molgenis
+        ports:
+            - "8080:8080"
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    postgres:
+        image: postgres:15-alpine
+        environment:
+            - POSTGRES_USER=molgenis
+            - POSTGRES_PASSWORD=molgenis
+            - POSTGRES_DB=molgenis
+        ports:
+            - "5432:5432"
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+            # - ./.docker/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql
+        command: -c 'shared_buffers=256MB' -c 'max_locks_per_transaction=1024'
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+            interval: 5s
+            timeout: 60s
+            retries: 5
+
+    molgenis-init:
+        image: curlimages/curl
+        depends_on:
+            - molgenis
+        environment:
+            - GRAPHQL_URL=http://molgenis:8080/api/graphql
+            - GRAPHQL_USERNAME=admin
+            - GRAPHQL_PASSWORD=admin
+        volumes:
+            - ./molgenis/initialize.sh:/workspace/initialize.sh:ro
+        entrypoint: [ "sh", "/workspace/initialize.sh" ]
+
+    ssr-catalogue:
+        image: molgenis/ssr-catalogue
+        ports:
+            - "3000:3000"
+
+    # Harvester
+    harvester:
+        image: molgenis-fdp-harvester
+        depends_on:
+            - molgenis
+            - fdp-1.test
+            - schema-tool-1
+            - fdp-2.test
+            - schema-tool-2
+        environment:
+            - MOLGENIS_TOKEN=${MOLGENIS_TOKEN:-}
+            - MOLGENIS_HOST=http://molgenis:8080
+            - INPUT_TYPE=fdp
+            - HARVEST_CONFIG=/app/config.toml
+            - FDP_LIST_PATH=/app/fdps.yml
+        volumes:
+            - ../config.toml:/app/config.toml:ro
+            - ./harvester/fdps.yml:/app/fdps.yml:ro
+
+volumes:
+    mongo-data-1:
+    mongo-data-2:
+    graphdb-data-1:
+    graphdb-data-2:
+    pgdata:

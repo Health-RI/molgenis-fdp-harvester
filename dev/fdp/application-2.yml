@@ -1,0 +1,14 @@
+instance:
+    clientUrl: http://localhost:8082
+    persistentUrl: http://fdp-2.test
+
+spring:
+    data:
+        mongodb:
+            uri: mongodb://mongo-2:27017/fdp
+
+repository:
+    type: 4
+    graphDb:
+        url: http://graphdb-2:7200
+        repository: fdp

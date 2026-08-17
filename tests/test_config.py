@@ -3,17 +3,19 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import pytest
-from molgenis_fdp_harvester.config import validate_config, ConceptTableLink, HarvesterConfig
+
+from molgenis_fdp_harvester.config import HarvesterConfig, validate_config
+
 
 @pytest.fixture
 def valid_config_data():
     return {
-        'concept_table_link': {
-            'dataset': 'datasets',
-            'datasetseries': 'datasetseries',
-            'kind': 'kind',
-            'publisher': 'publisher',
-            'provenancestatement': 'provenancestatement'
+        "concept_table_link": {
+            "dataset": "datasets",
+            "datasetseries": "datasetseries",
+            "kind": "kind",
+            "publisher": "publisher",
+            "provenancestatement": "provenancestatement",
         }
     }
 
@@ -36,8 +38,8 @@ def test_validate_config_missing_section():
 def test_validate_config_missing_concept(valid_config_data, missing_concept):
     """Test validation fails when a concept field is missing."""
     invalid_config_data = valid_config_data.copy()
-    invalid_config_data['concept_table_link'] = valid_config_data['concept_table_link'].copy()
-    del invalid_config_data['concept_table_link'][missing_concept]
+    invalid_config_data["concept_table_link"] = valid_config_data["concept_table_link"].copy()
+    del invalid_config_data["concept_table_link"][missing_concept]
 
     with pytest.raises(ValueError, match="Invalid configuration:"):
         validate_config(invalid_config_data)
@@ -46,8 +48,8 @@ def test_validate_config_missing_concept(valid_config_data, missing_concept):
 def test_validate_config_with_pid_service_url(valid_config_data):
     """Test validation with pid_service_url in harvester_config."""
     config_data = dict(valid_config_data)
-    config_data['harvester_config'] = {
-        'pid_service_url': 'https://pid.example.com',
+    config_data["harvester_config"] = {
+        "pid_service_url": "https://pid.example.com",
     }
     validate_config(config_data)
 
