@@ -44,80 +44,58 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve Docker image tag
-        id: resolve_tag
+      - name: Prepare Variables for Docker image building and scan
+        id: prep
         run: |
-          # Sanitize and lowercase strings for Docker compatibility
-          sanitize_docker_string() {
-            echo "$1" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]'
-          }
-           
-          REF="${{ github.event.inputs.ref }}"
-          CUSTOM_TAG="${{ github.event.inputs.tag }}"
-              
-          # If manual trigger, use inputs; if push trigger, use branch name
-          if [ -z "$REF" ]; then
-            REF="${{ github.ref_name }}"
-          fi
-            
-          # Sanitize ref characters and convert to lowercase
-          REF_CLEAN=$(sanitize_docker_string "$REF")
-          echo "ref=$REF_CLEAN" >> $GITHUB_OUTPUT
-             
-          # Extract short git SHA (first 7 characters) - as primary tag
-          SHA_HASH=${{ github.sha }}
-          SHORT_SHA_VALUE="${SHA_HASH:0:7}"
-          echo "short_sha=$SHORT_SHA_VALUE" >> $GITHUB_OUTPUT
-             
-          # Primary tag: ref-hash (always used)
-          PRIMARY_TAG="${REF_CLEAN}-${SHORT_SHA_VALUE}"
-          echo "primary_tag=$PRIMARY_TAG" >> $GITHUB_OUTPUT
-            
-          # Optional extra tag: if user supplies custom version tag
-          if [ -n "$CUSTOM_TAG" ]; then
-            CUSTOM_TAG_CLEAN=$(sanitize_docker_string "$CUSTOM_TAG")
-            echo "custom_tag=$CUSTOM_TAG_CLEAN" >> $GITHUB_OUTPUT
-            echo "has_custom_tag=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_custom_tag=false" >> $GITHUB_OUTPUT
-          fi
-            
-          echo "tag_dev_latest=dev-latest" >> $GITHUB_OUTPUT
-              
-          # Extract repo name from IMAGE_NAME (remove org prefix) and sanitize
-          REPO_NAME=$(echo "${{ env.IMAGE_NAME }}" | sed 's|.*/||' | tr '[:upper:]' '[:lower:]')
-          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
-           
-          # Sanitize full image name to lowercase for registry (removes org prefix, lowercases)
-          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          echo "image_name_lower=$IMAGE_NAME_LOWER" >> $GITHUB_OUTPUT
+          # Determine the active ref (Input overrides default branch)
+          REF="${{ inputs.ref || github.ref_name }}"
+          
+          # Sanitize ref for Docker tags (lowercase, replace invalid chars)
+          CLEAN_REF=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]')
+          echo "clean_ref=$CLEAN_REF" >> "$GITHUB_OUTPUT"
+          
+          # Sanitize image name
+          IMAGE_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=$IMAGE_LOWER" >> "$GITHUB_OUTPUT"
+          
+          # Current Date for OCI Labels
+          echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_name }}
           tags: |
-            type=raw,value=${{ steps.resolve_tag.outputs.primary_tag }}
+            # RELEASE MODE (When 'tag' input is provided)
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=raw,value=latest,enable=${{ inputs.tag != '' }}
+            
+            # DEV/PR MODE (When 'tag' is empty)
+            type=raw,value=${{ steps.prep.outputs.clean_ref }}-latest,enable=${{ inputs.tag == '' }}
+            type=sha,prefix=${{ steps.prep.outputs.clean_ref }}-,format=short,enable=${{ inputs.tag == '' }}
 
-      # Step updated to build but NOT push immediately, allowing Trivy to test the image locally first
-      - name: Build Docker image locally
+      # Phase 1: Build to local daemon for scanning
+      - name: Build Docker image locally (for testing)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
-          load: true # Exports the built image directly to the local Docker daemon for Trivy scanning
-          tags: |
-            ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
-            ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
-            ${{ steps.resolve_tag.outputs.has_custom_tag == 'true' && format('{0}:{1}', steps.resolve_tag.outputs.repo_name, steps.resolve_tag.outputs.custom_tag) || '' }}
+          load: true
+          tags: localbuild:test
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ inputs.tag || steps.prep.outputs.clean_ref }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.prep.outputs.build_date }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'image'
-          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          image-ref: 'localbuild:test'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -125,19 +103,15 @@ jobs:
           hide-progress: 'true'
 
       - name: Summarize SARIF into step summary
-        env:
-          PRIMARY_TAG: ${{ steps.resolve_tag.outputs.primary_tag }}
         run: |
           echo "Checking for SARIF file..."
           if [ -f trivy-results.sarif ]; then
-            # Try to build a compact JSON summary via jq; fall back to raw SARIF if jq missing
             if command -v jq >/dev/null 2>&1; then
-              jq -r --arg primary "$PRIMARY_TAG" '
+              jq -r '
                 def sev: (.properties.severity // .level // .baselineSeverity // "UNKNOWN");
                 {
-                  primary_tag: $primary,
                   counts: ([.runs[].results[]? | sev] | group_by(.) | map({severity: .[0], count: length})),
-                  findings: ([.runs[].results[]? | {ruleId: ((.ruleId)//(.ruleIndex|tostring)//"n/a"), message: (.message.text // ""), severity: sev, location: (.locations[0].physicalLocation.artifactLocation.uri // "unknown")} ] | .[0:10])
+                  findings: ([.runs[].results[]? | {ruleId: ((.ruleId)//(.ruleIndex|tostring)//"n/a"), message: (.message.text // ""), severity: sev} ] | .[0:10])
                 }' trivy-results.sarif > sarif-summary.json
 
               echo "### Trivy SARIF summary" >> $GITHUB_STEP_SUMMARY
@@ -151,13 +125,11 @@ jobs:
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "❌ SARIF file NOT found - Trivy may have found no issues or Trivy failed to write it"
-            echo "Files in workspace:" >> $GITHUB_STEP_SUMMARY
-            ls -lah >> $GITHUB_STEP_SUMMARY
+            echo "❌ SARIF file NOT found" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -166,31 +138,23 @@ jobs:
       - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }}
+          image-ref: 'localbuild:test'
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: 'true'
 
-      - name: Push Docker image to Registry
-        run: |
-          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.primary_tag }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}
-          docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.tag_dev_latest }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
-          docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}
-          docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}
-           
-          # Push custom tag if provided
-          if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
-            docker tag ${{ steps.resolve_tag.outputs.repo_name }}:${{ steps.resolve_tag.outputs.custom_tag }} ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}
-            docker push ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}
-            echo "custom_tag_pushed=true" >> $GITHUB_ENV
-          fi
-
-      - name: Image pushed successfully
-        run: |
-          echo "✅ Image pushed:"
-          echo "   Primary: ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.primary_tag }}"
-          echo "   Latest:  ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.tag_dev_latest }}"
-          if [ "${{ steps.resolve_tag.outputs.has_custom_tag }}" = "true" ]; then
-            echo "   Version: ${{ env.REGISTRY }}/${{ steps.resolve_tag.outputs.image_name_lower }}:${{ steps.resolve_tag.outputs.custom_tag }}"
-          fi
+      # Phase 2: Push to Registry (Uses Docker Cache from Phase 1, takes seconds)
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ inputs.tag || steps.prep.outputs.clean_ref }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.prep.outputs.build_date }}
