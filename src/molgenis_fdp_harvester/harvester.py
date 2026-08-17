@@ -12,25 +12,18 @@ The user creating this token requires editing permissions on the host schema.
 import logging
 from pathlib import Path
 
-import yaml
-
-from .fdp_harvester.fdp import FDPHarvester
-
-# Python < 3.11 does not have tomllib, but tomli provides same functionality
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib
-
 import click
+import yaml
 from dotenv import find_dotenv, load_dotenv
 from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+
 from .base.molgenis_dcat_profile import (
     MolgenisEUCAIMDCATAPProfile,
 )
 from .config import load_config
+from .fdp_harvester.fdp import FDPHarvester
 from .logging_config import configure_logging
 
 # See .env.example for every variable this reads.
@@ -49,23 +42,21 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     ``fdp_url`` and optional ``fdp_id_prefix`` values. Blank or missing prefixes
     are normalized to ``None``.
     """
-    with open(yaml_path, encoding='utf-8') as f:
+    with Path(yaml_path).open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
 
     entries = []
-    raw_entries = data.get('fdps', []) if isinstance(data, dict) else []
+    raw_entries = data.get("fdps", []) if isinstance(data, dict) else []
     fdp_entries = raw_entries if isinstance(raw_entries, list) else []
     for entry in fdp_entries:
         if not isinstance(entry, dict):
             continue
-        fdp_url = str(entry.get('fdp_url', '')).strip()
+        fdp_url = str(entry.get("fdp_url", "")).strip()
         if not fdp_url:
             continue
-        fdp_id_prefix = entry.get('fdp_id_prefix')
-        if fdp_id_prefix is None:
-            prefix_value = None
-        else:
-            prefix_value = str(fdp_id_prefix).strip() or None
+        fdp_id_prefix = entry.get("fdp_id_prefix")
+        prefix_value = None if fdp_id_prefix is None else str(
+            fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
     return entries
 
@@ -78,31 +69,36 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
     help="Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)",
     required=False,
     default=None,
-    type=click.Path(exists=True, path_type=Path, readable=True)
+    type=click.Path(exists=True, path_type=Path, readable=True),
 )
 @click.option("--host", envvar="MOLGENIS_HOST", help="MOLGENIS host to harvest to", required=False, default=None)
-@click.option("--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to",
-              required=False, default="Eucaim")
+@click.option(
+    "--schema", envvar="MOLGENIS_SCHEMA", help="Schema on MOLGENIS host to harvest to", required=False, default="Eucaim"
+)
 @click.option(
     "--config",
     envvar="HARVEST_CONFIG",
     help="Configuration.",
     required=False,
     default=None,
-    type=click.Path(exists=True, path_type=Path, readable=True)
+    type=click.Path(exists=True, path_type=Path, readable=True),
 )
 @click.option(
-    "--token", envvar="MOLGENIS_TOKEN", help="Authentication token of the user harvesting data.",
-    required=False, default=None
+    "--token",
+    envvar="MOLGENIS_TOKEN",
+    help="Authentication token of the user harvesting data.",
+    required=False,
+    default=None,
 )
-@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(['rdf', 'fdp']), required=False, default=None)
+@click.option("--input_type", envvar="INPUT_TYPE", type=click.Choice(["rdf", "fdp"]), required=False, default=None)
 @click.option(
     "--fdp-id-prefix",
     envvar="FDP_ID_PREFIX",
     help="FDP ID prefix used for PID construction. Only used with --fdp.",
     required=False,
-    default=None
+    default=None,
 )
+# ruff: noqa: PLR0913, PLR0917
 def cli(
     fdp: str,
     fdp_list: Path,
@@ -111,7 +107,7 @@ def cli(
     config: click.Path,
     token: str,
     input_type: str,
-    fdp_id_prefix: str
+    fdp_id_prefix: str,
 ):
     """Run the harvester with the specified configuration."""
     # Not at import time: importing this module must not take over logging for its importer.
@@ -121,8 +117,8 @@ def cli(
 
     # Load configuration
     config_data = load_config(config)
-    concept_table_dict = config_data['concept_table_link']
-    harvester_config = config_data.get('harvester_config', {})
+    concept_table_dict = config_data["concept_table_link"]
+    harvester_config = config_data.get("harvester_config", {})
 
     # Build uniform list of (fdp_url, fdp_id_prefix) entries
     if fdp:
@@ -130,15 +126,16 @@ def cli(
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
-            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
+            raise click.ClickException(
+                f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
-    CONCEPT_TYPE_ORDER = {
-        'provenancestatement': 0,
-        'kind': 1,
-        'publisher': 2,
-        'datasetseries': 3,
-        'dataset': 4
+    concept_type_order = {
+        "provenancestatement": 0,
+        "kind": 1,
+        "publisher": 2,
+        "datasetseries": 3,
+        "dataset": 4,
     }
 
     # An unreachable MOLGENIS is an expected operational failure, so it gets a logged
@@ -156,11 +153,11 @@ def cli(
         for entry_fdp_url, entry_fdp_id_prefix in fdp_entries:
             entry_config = dict(harvester_config)
             if entry_fdp_id_prefix is not None:
-                entry_config['fdp_id_prefix'] = entry_fdp_id_prefix
+                entry_config["fdp_id_prefix"] = entry_fdp_id_prefix
 
             harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
             try:
-                success = execute_harvest(harvester, entry_fdp_url, CONCEPT_TYPE_ORDER)
+                success = execute_harvest(harvester, entry_fdp_url, concept_type_order)
             except Exception as exc:
                 # One failing FDP must not abort the rest of the list.
                 log.exception("Unexpected error while harvesting %s: %s", entry_fdp_url, exc)
@@ -201,12 +198,12 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
     for profile in profiles:
         profile.config = harvester_config
 
-    if input_type == 'rdf':
+    if input_type == "rdf":
         return DCATRDFHarvester(profiles, concept_table_dict, client, harvester_config)
-    elif input_type == 'fdp':
+    if input_type == "fdp":
         return FDPHarvester(profiles, concept_table_dict, client, harvester_config)
-    else:
-        raise ValueError(f"Unknown input_type: {input_type}")
+    raise ValueError(f"Unknown input_type: {input_type}")
+
 
 def execute_harvest(harvester, source_url, concept_type_order):
     """Execute the complete harvesting process for a single FDP.
@@ -227,8 +224,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
 
     # Sort by dependency order (now including auto-generated datasetseries)
     harvester._harvest_objects.sort(
-        key=lambda obj: concept_type_order[obj.concept_type]
-    )
+        key=lambda obj: concept_type_order[obj.concept_type])
 
     # Import all objects in dependency order. A failing object never stops the rest.
     for harvest_object in harvester._harvest_objects:
@@ -252,6 +248,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
 
     log.info("Harvest for %s completed successfully: %d object(s) processed", source_url, total_objects)
     return True
+
 
 if __name__ == "__main__":
     cli()

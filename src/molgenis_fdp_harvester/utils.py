@@ -1,6 +1,8 @@
-class HarvesterException(Exception):
+class HarvesterError(Exception):
     pass
 
+
+HarvesterException = HarvesterError
 
 # Each concept type identifies itself with a different field: a Publisher (Agent) has no
 # 'title' at all, so logging must not assume any single field is present.

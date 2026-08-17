@@ -11,28 +11,21 @@ def test_import_stage_success(harvester, mock_client):
         guid="http://example.com/dataset1",
         content=json.dumps({"name": "Test Dataset"}),
         concept_type="dataset",
-        status="new"
+        status="new",
     )
 
     # Call method
     result = harvester.import_stage(harvest_object)
 
     # Verify
-    mock_client.save_table.assert_called_once_with(
-        table="datasets",
-        data=[{"name": "Test Dataset"}]
-    )
+    mock_client.save_table.assert_called_once_with(table="datasets", data=[{"name": "Test Dataset"}])
     assert result
 
 
 def test_import_stage_empty_content(harvester, caplog):
     """Test import_stage with empty content"""
     # Setup test data
-    harvest_object = HarvestObject(
-        guid="http://example.com/dataset1",
-        content=None,
-        status="new"
-    )
+    harvest_object = HarvestObject(guid="http://example.com/dataset1", content=None, status="new")
 
     # Call method
     with caplog.at_level(logging.ERROR):
@@ -52,7 +45,7 @@ def test_import_stage_client_error(harvester, mock_client, caplog):
         guid="http://example.com/dataset1",
         content=json.dumps({"name": "Test Dataset"}),
         concept_type="dataset",
-        status="new"
+        status="new",
     )
     # Setup mock
     mock_client.save_table.side_effect = Exception("Database error")
@@ -75,7 +68,7 @@ def test_import_stage_change_status(harvester, mock_client, caplog):
         guid="http://example.com/dataset1",
         content=json.dumps({"name": "Updated Dataset"}),
         concept_type="dataset",
-        status="change"
+        status="change",
     )
 
     # Call method
@@ -97,7 +90,7 @@ def test_import_stage_logs_adding_for_new(harvester, mock_client, caplog):
         guid="http://example.com/dataset1",
         content=json.dumps({"title": "New Dataset"}),
         concept_type="dataset",
-        status="new"
+        status="new",
     )
 
     with caplog.at_level(logging.INFO):

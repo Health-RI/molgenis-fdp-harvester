@@ -6,7 +6,6 @@
 import encodings
 import logging
 import xml.sax
-from typing import Union
 
 import requests
 import rdflib.plugin
@@ -36,7 +35,7 @@ class FairDataPoint:
         log.error("%s", message, exc_info=exc_info)
         self.errors.append(message)
 
-    def get_graph(self, path: Union[str, URIRef]) -> Graph:
+    def get_graph(self, path: str | URIRef) -> Graph:
         """
         Get graph from FDP at specified path. Not using function to load graph from endpoint directly since this
         function fails because of a certificate error. The library it uses probably has no certificates which would
@@ -66,10 +65,10 @@ class FairDataPoint:
                 )
         return graph
 
-    def _get_data(self, path: Union[str, URIRef]) -> Union[str, None]:
+    def _get_data(self, path: str | URIRef) -> str | None:
         headers = {"Accept": "text/turtle"}
         try:
-            response = requests.request("GET", path, headers=headers)
+            response = requests.request("GET", path, headers=headers, timeout=30)
             response.encoding = encodings.utf_8.getregentry().name
             response.raise_for_status()
             return response.text

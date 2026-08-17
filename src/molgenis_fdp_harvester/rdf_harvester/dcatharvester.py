@@ -1,22 +1,21 @@
-import os
 import logging
+from pathlib import Path
 
-import requests
 import rdflib
+import requests
 
-from ..base.baseharvester import HarvesterBase
-
+from molgenis_fdp_harvester.base.baseharvester import HarvesterBase
 
 log = logging.getLogger(__name__)
 
 
 class DCATHarvester(HarvesterBase):
-
     DEFAULT_MAX_FILE_SIZE_MB = 50
     CHUNK_SIZE = 1024 * 512
 
     force_import = False
 
+    # ruff: noqa: PLR0911, PLR0912
     def _get_content_and_type(self, url, page=1, content_type=None):
         """
         Gets the content and type of the given url.
@@ -30,20 +29,19 @@ class DCATHarvester(HarvesterBase):
 
         if not url.lower().startswith("http"):
             # Check local file
-            if os.path.exists(url):
-                with open(url, "r") as f:
+            path = Path(url)
+            if path.exists():
+                with path.open() as f:
                     content = f.read()
                 content_type = content_type or rdflib.util.guess_format(url)
                 return content, content_type
-            else:
-                self._save_gather_error(f"Could not get content for url {url}")
-                return None, None
+            self._save_gather_error(f"Could not get content for url {url}")
+            return None, None
 
         try:
-
             if page > 1:
                 url = url + "&" if "?" in url else url + "?"
-                url = url + "page={0}".format(page)
+                url = url + f"page={page}"
 
             log.debug("Getting file %s", url)
 
@@ -56,7 +54,7 @@ class DCATHarvester(HarvesterBase):
                 did_get = False
                 r = session.head(url)
 
-                if r.status_code == 405 or r.status_code == 400:
+                if r.status_code in {405, 400}:
                     r = session.get(url, stream=True)
                     did_get = True
                 r.raise_for_status()
@@ -65,10 +63,8 @@ class DCATHarvester(HarvesterBase):
 
                 cl = r.headers.get("content-length")
                 if cl and int(cl) > max_file_size:
-                    msg = """Remote file is too big. Allowed
-                        file size: {allowed}, Content-Length: {actual}.""".format(
-                        allowed=max_file_size, actual=cl
-                    )
+                    msg = f"""Remote file is too big. Allowed
+                        file size: {max_file_size}, Content-Length: {cl}."""
                     self._save_gather_error(msg)
                     return None, None
 
@@ -98,26 +94,19 @@ class DCATHarvester(HarvesterBase):
                 # We want to catch these ones later on
                 raise
 
-            msg = "Could not get content from %s. Server responded with %s %s" % (
-                url,
-                error.response.status_code,
-                error.response.reason,
+            msg = (
+                f"Could not get content from {url}. Server responded with "
+                f"{error.response.status_code} {error.response.reason}"
             )
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.ConnectionError as error:
-            msg = """Could not get content from %s because a
-                                connection error occurred. %s""" % (
-                url,
-                error,
-            )
+            msg = f"""Could not get content from {url} because a
+                                connection error occurred. {error}"""
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.Timeout:
-            msg = (
-                "Could not get content from %s because the connection timed"
-                " out." % url
-            )
+            msg = f"Could not get content from {url} because the connection timed out."
             self._save_gather_error(msg)
             return None, None
 
@@ -127,7 +116,6 @@ class DCATHarvester(HarvesterBase):
         given the key
         """
         log.warning("_get_object_extra: stubbed")
-        return None
 
     def _get_package_name(self, harvest_object, title):
 
@@ -136,8 +124,7 @@ class DCATHarvester(HarvesterBase):
             name = self._gen_new_name(title)
             if not name:
                 raise Exception(
-                    "Could not generate a unique name from the title or the "
-                    "GUID. Please choose a more unique title."
+                    "Could not generate a unique name from the title or the GUID. Please choose a more unique title."
                 )
         else:
             name = package.name

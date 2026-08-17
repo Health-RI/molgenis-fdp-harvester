@@ -1,20 +1,27 @@
 import logging
-from typing import Dict, List
 
 from molgenis_emx2_pyclient import Client
 
+from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .domain.fair_data_point_record_provider import FairDataPointRecordProvider
 from .domain.identifier import Identifier
-from ..rdf_harvester.rdf import DCATRDFHarvester
-from ..utils import HarvesterException
 
 log = logging.getLogger(__name__)
+
 
 class FDPHarvester(DCATRDFHarvester):
     # Assigned by setup_record_provider, which gather_stage always calls first.
     record_provider: FairDataPointRecordProvider
 
-    def __init__(self, profiles: List, concept_table_dict: Dict[str, str], molgenis_client: Client, harvester_config: Dict = None):
+    def __init__(
+        self,
+        profiles: list,
+        concept_table_dict: dict[str, str],
+        molgenis_client: Client,
+        harvester_config: dict | None = None,
+    ):
         super().__init__(profiles, concept_table_dict, molgenis_client, harvester_config)
 
     def gather_stage(self, harvest_root_uri):
@@ -37,7 +44,8 @@ class FDPHarvester(DCATRDFHarvester):
                 log.info("Got identifier %s from RecordProvider", identifier)
 
                 try:
-                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
+                    self.guids_in_harvest[concept_type].append(
+                        Identifier(identifier).get_id_value())
                 except Exception as e:
                     self._save_gather_error(
                         f"Error for identifier {identifier} in gather phase: {e}",

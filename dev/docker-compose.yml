@@ -111,9 +111,35 @@ services:
             - SHACL_LOCATION=/opt/app/SHACLs
         command: [ "-h", "http://fdp-2.test", "-u", "albert.einstein@example.com", "-p", "password" ]
 
+    # Uploads the test catalog and dataset to both FDPs
+    fdp-init:
+        image: python:3.12-slim
+        depends_on:
+            schema-tool-1:
+                condition: service_completed_successfully
+            schema-tool-2:
+                condition: service_completed_successfully
+        volumes:
+            # Local development: install fairclient from a checkout of its repository.
+            # Override the host path with FAIRCLIENT_PATH if your checkout lives elsewhere.
+            - ..:/workspace
+            - ${FAIRCLIENT_PATH:-~/Documents/Repositories/fairclient}:/fairclient
+        working_dir: /fairclient
+        environment:
+            - SETUPTOOLS_SCM_PRETEND_VERSION=1.0.0
+        entrypoint: [ "sh", "-c" ]
+        # The checkout is mounted read-only and git cannot read its .git in the container,
+        # so copy it out and drop hatch-vcs before installing. requests is a fairclient
+        # dependency that it does not declare itself.
+        command: [ "pip install -e .[dev] && python /workspace/dev/fdp/upload_data.py" ]
+        # Production: install fairclient from PyPI instead of a local checkout.
+        # Remove the fairclient and patch script volume mounts above and use the command below.
+        # command: [ "pip install --no-cache-dir fairclient && python upload_data.py" ]
+
     # Molgenis setup
     molgenis:
         image: registry.gitlab.com/radiology/infrastructure/studies/eucaim/molgenis-emx2-eucaim/molgenis-emx2-eucaim:11.36.0-1.1.0
+        platform: linux/amd64
         environment:
             - MOLGENIS_POSTGRES_URI=jdbc:postgresql://postgres/molgenis
             - MOLGENIS_POSTGRES_USER=molgenis

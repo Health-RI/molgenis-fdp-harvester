@@ -4,18 +4,21 @@
 """
 Configuration module for the Molgenis FDP Harvester.
 """
+
 try:
     import tomllib
 except ModuleNotFoundError:
     import tomli as tomllib
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any
 
 
 @dataclass
 class ConceptTableLink:
     """Schema for concept_table_link section."""
+
     # person: str
     dataset: str
     datasetseries: str
@@ -25,7 +28,7 @@ class ConceptTableLink:
 
     def __post_init__(self):
         """Validate that all fields are strings."""
-        for field_name in ['kind', 'publisher', 'dataset', 'datasetseries', 'provenancestatement']:
+        for field_name in ["kind", "publisher", "dataset", "datasetseries", "provenancestatement"]:
             field_value = getattr(self, field_name)
             if not isinstance(field_value, str):
                 raise TypeError(
@@ -37,19 +40,21 @@ class ConceptTableLink:
 @dataclass
 class HarvesterConfig:
     """Schema for harvester_config section."""
+
     auto_create_datasetseries: bool = True
-    uri_lookup_config: Dict[str, Dict[str, str]] | None = None
+    uri_lookup_config: dict[str, dict[str, str]] | None = None
     pid_service_url: str = None
 
 
 @dataclass
 class HarvesterConfigSchema:
     """Schema for the complete harvester configuration."""
+
     concept_table_link: ConceptTableLink
     harvester_config: HarvesterConfig | None = None
 
 
-def validate_config(config_data: Dict[str, Any]) -> None:
+def validate_config(config_data: dict[str, Any]) -> None:
     """Validate that the configuration contains all required sections and fields.
 
     Args:
@@ -61,20 +66,17 @@ def validate_config(config_data: Dict[str, Any]) -> None:
     """
     try:
         # Validate concept_table_link
-        if 'concept_table_link' not in config_data:
+        if "concept_table_link" not in config_data:
             raise ValueError("Configuration must contain a 'concept_table_link' section")
-        concept_table_link = ConceptTableLink(**config_data['concept_table_link'])
+        concept_table_link = ConceptTableLink(**config_data["concept_table_link"])
 
         # Validate harvester_config if present
         harvester_config = None
-        if 'harvester_config' in config_data:
-            harvester_config = HarvesterConfig(**config_data['harvester_config'])
+        if "harvester_config" in config_data:
+            harvester_config = HarvesterConfig(**config_data["harvester_config"])
 
         # Validate complete schema
-        HarvesterConfigSchema(
-            concept_table_link=concept_table_link,
-            harvester_config=harvester_config
-        )
+        HarvesterConfigSchema(concept_table_link=concept_table_link, harvester_config=harvester_config)
 
     except TypeError as e:
         raise ValueError(f"Invalid configuration: {e}") from e
@@ -82,7 +84,7 @@ def validate_config(config_data: Dict[str, Any]) -> None:
 
 def load_config(config_path):
     """Load and parse the configuration file."""
-    with open(config_path, "rb") as f:
+    with Path(config_path).open("rb") as f:
         config_data = tomllib.load(f)
     validate_config(config_data)
     return config_data

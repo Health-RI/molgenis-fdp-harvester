@@ -161,12 +161,62 @@ Its full text may be found at:
 
 ## Development setup
 
+### Python environment
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. After installing uv, set up the
+project and its dev dependencies (test, lint, and type-checking tools) with:
+
+```console
+uv sync
+```
+
+Run the tests:
+
+```console
+uv run pytest
+```
+
+Run the tests with coverage:
+
+```console
+uv run coverage run -m pytest
+uv run coverage report
+```
+
+Lint the code:
+
+```console
+uv run ruff check .
+```
+
+Format the code:
+
+```console
+uv run ruff format .
+```
+
+Type-check the code:
+
+```console
+uv run mypy src
+```
+
+### Local FDP/Molgenis stack
+
 In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
 The default URLs are:
 - Molgenis: `http://localhost:8080`
 - FDP 1: `http://localhost:8081`
 - FDP 2: `http://localhost:8082`
- 
+
+Start the services by running in order:
+```
+cd dev
+docker compose up -d fdp-client-1 fdp-client-2
+docker compose up schema-tool-1 schema-tool-2
+docker compose up fdp-init
+docker compose up -d molgenis
+```
 
 Before starting the harvester, initialize the local Molgenis setup:
 
