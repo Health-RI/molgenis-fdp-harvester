@@ -1,6 +1,6 @@
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -52,7 +52,7 @@ def test_configure_logging_defaults_to_info():
     assert logging.getLogger().level == logging.INFO
 
 
-@pytest.mark.parametrize("level_name,expected", [
+@pytest.mark.parametrize(("level_name", "expected"), [
     ("WARNING", logging.WARNING),
     ("ERROR", logging.ERROR),
     ("info", logging.INFO),
@@ -141,7 +141,7 @@ def test_old_run_logs_beyond_retention_are_deleted(monkeypatch, tmp_path):
     monkeypatch.setenv("LOG_FILE", str(log_file))
     monkeypatch.setenv("LOG_FILE_RETENTION", "3")
 
-    start = datetime(2024, 1, 1, 2, 0, 0)
+    start = datetime(2024, 1, 1, 2, 0, 0, tzinfo=timezone.utc)
     for offset in range(5):
         run_log_path(str(log_file), start + timedelta(days=offset)).write_text("old run")
 
@@ -159,7 +159,7 @@ def test_run_logs_default_to_keeping_ten(monkeypatch, tmp_path):
     log_file = tmp_path / "harvester.log"
     monkeypatch.setenv("LOG_FILE", str(log_file))
 
-    start = datetime(2024, 1, 1, 2, 0, 0)
+    start = datetime(2024, 1, 1, 2, 0, 0, tzinfo=timezone.utc)
     for offset in range(15):
         run_log_path(str(log_file), start + timedelta(days=offset)).write_text("old run")
 
@@ -174,7 +174,7 @@ def test_invalid_retention_falls_back_to_default(monkeypatch, tmp_path, capsys, 
     monkeypatch.setenv("LOG_FILE", str(log_file))
     monkeypatch.setenv("LOG_FILE_RETENTION", raw_retention)
 
-    start = datetime(2024, 1, 1, 2, 0, 0)
+    start = datetime(2024, 1, 1, 2, 0, 0, tzinfo=timezone.utc)
     for offset in range(12):
         run_log_path(str(log_file), start + timedelta(days=offset)).write_text("old run")
 
@@ -186,7 +186,7 @@ def test_invalid_retention_falls_back_to_default(monkeypatch, tmp_path, capsys, 
 
 def test_pruning_leaves_unrelated_files_alone(tmp_path):
     log_file = tmp_path / "harvester.log"
-    start = datetime(2024, 1, 1, 2, 0, 0)
+    start = datetime(2024, 1, 1, 2, 0, 0, tzinfo=timezone.utc)
     for offset in range(3):
         run_log_path(str(log_file), start + timedelta(days=offset)).write_text("old run")
 

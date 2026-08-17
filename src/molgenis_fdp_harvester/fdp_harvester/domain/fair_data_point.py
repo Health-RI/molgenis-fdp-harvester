@@ -7,8 +7,8 @@ import encodings
 import logging
 import xml.sax
 
-import requests
 import rdflib.plugin
+import requests
 from rdflib import Graph, URIRef
 from rdflib.exceptions import ParserError
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout

@@ -24,7 +24,7 @@ import glob
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_LOG_LEVEL = "INFO"
@@ -39,7 +39,7 @@ _RUN_TIMESTAMP_GLOB = "_" + "[0-9]" * 8 + "-" + "[0-9]" * 6
 def run_log_path(log_file: str, timestamp: datetime | None = None) -> Path:
     """Return the per-run log path derived from the LOG_FILE base path."""
     base = Path(log_file)
-    stamp = (timestamp or datetime.now()).strftime(RUN_TIMESTAMP_FORMAT)
+    stamp = (timestamp or datetime.now(tz=timezone.utc)).strftime(RUN_TIMESTAMP_FORMAT)
     return base.with_name(f"{base.stem}_{stamp}{base.suffix}")
 
 
@@ -59,11 +59,19 @@ def prune_old_run_logs(log_file: str, retention: int) -> list[str]:
 
     problems = []
     for stale_log in run_logs[:-retention]:
-        try:
-            stale_log.unlink()
-        except OSError as exc:
-            problems.append(f"Could not delete old run log '{stale_log}': {exc}")
+        problem = _unlink(stale_log)
+        if problem:
+            problems.append(problem)
     return problems
+
+
+def _unlink(path: Path) -> str | None:
+    """Delete a single stale log file. Returns a description of the failure, if any."""
+    try:
+        path.unlink()
+    except OSError as exc:
+        return f"Could not delete old run log '{path}': {exc}"
+    return None
 
 
 def _resolve_log_level(problems: list[str]) -> str:
