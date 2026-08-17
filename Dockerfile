@@ -4,7 +4,7 @@
 # ==========================================
 # STAGE 1: Builder Phase
 # ==========================================
-FROM python:3.12-alpine3.22 AS builder
+FROM python:3.12-alpine3.23 AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ==========================================
 # STAGE 2: Runtime Production Phase
 # ==========================================
-FROM python:3.12-alpine3.22 AS runner
+FROM python:3.12-alpine3.23 AS runner
 
 WORKDIR /app
 
