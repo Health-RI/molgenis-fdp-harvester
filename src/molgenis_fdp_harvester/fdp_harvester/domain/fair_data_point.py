@@ -30,9 +30,7 @@ class FairDataPoint:
         graph = Graph()
         data = self._get_data(path)
         if data is None:
-            log.warning(
-                f"No data was received from FDP {self.fdp_end_point} request {path}"
-            )
+            log.warning(f"No data was received from FDP {self.fdp_end_point} request {path}")
         else:
             try:
                 graph.parse(data=data)
@@ -44,8 +42,7 @@ class FairDataPoint:
     def _get_data(path: str | URIRef) -> str | None:
         headers = {"Accept": "text/turtle"}
         try:
-            response = requests.request(
-                "GET", path, headers=headers, timeout=30)
+            response = requests.request("GET", path, headers=headers, timeout=30)
             response.encoding = encodings.utf_8.getregentry().name
             response.raise_for_status()
             return response.text

@@ -92,11 +92,11 @@ class DCATRDFHarvester(DCATHarvester):
         """Extract all concept types from the parsed RDF."""
         try:
             extraction_methods = [
-                ('provenancestatement', self.parser.provenancestatement),
-                ('kind', self.parser.kind),
-                ('publisher', self.parser.publisher),
-                ('datasetseries', self.parser.datasetseries),
-                ('dataset', self.parser.datasets)
+                ("provenancestatement", self.parser.provenancestatement),
+                ("kind", self.parser.kind),
+                ("publisher", self.parser.publisher),
+                ("datasetseries", self.parser.datasetseries),
+                ("dataset", self.parser.datasets),
             ]
 
             for concept_type, extraction_method in extraction_methods:
@@ -149,7 +149,7 @@ class DCATRDFHarvester(DCATHarvester):
 
         # Ensure required fields
         if not concept_dict.get("name"):
-            concept_dict['name'] = concept_dict.get("title")
+            concept_dict["name"] = concept_dict.get("title")
 
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
@@ -159,7 +159,7 @@ class DCATRDFHarvester(DCATHarvester):
         # ontologyTermURI. The table to query is configured in the
         # configuration.
         uri_lookup_table = self.harvester_config.get(
-            'uri_lookup_config', {}).get(concept_type)
+            "uri_lookup_config", {}).get(concept_type)
         if uri_lookup_table:
             for property, value in concept_dict.items():
                 molgenis_table = uri_lookup_table.get(property)
@@ -178,26 +178,28 @@ class DCATRDFHarvester(DCATHarvester):
         harvest_object.content = json.dumps(concept_dict)
 
         # Check if this is a dataset without a datasetseries and auto_create is enabled
-        if (concept_type == 'dataset'
-                and self.harvester_config.get('auto_create_datasetseries', False)
-                and ('in_series' not in concept_dict or not concept_dict['in_series'])):
+        if (
+            concept_type == "dataset"
+            and self.harvester_config.get("auto_create_datasetseries", False)
+            and ("in_series" not in concept_dict or not concept_dict["in_series"])
+        ):
             # Track this dataset for later datasetseries creation
-            self._datasets_without_datasetseries.append({
-                'dataset_name': concept_dict.get('title'),
-                'dataset_id': concept_dict.get('id'),
-                'dataset_description': concept_dict.get('description', ''),
-                'dataset_guid': harvest_object.guid
-            })
+            self._datasets_without_datasetseries.append(
+                {
+                    "dataset_name": concept_dict.get("title"),
+                    "dataset_id": concept_dict.get("id"),
+                    "dataset_description": concept_dict.get("description", ""),
+                    "dataset_guid": harvest_object.guid,
+                }
+            )
 
         return harvest_object
 
     def _resolve_uri(self, value, molgenis_table):
-        return self.molgenis_client.get(table=molgenis_table,
-                                        query_filter=f"ontologyTermURI == '{quote(value)}'")
+        return self.molgenis_client.get(table=molgenis_table, query_filter=f"ontologyTermURI == '{quote(value)}'")
 
     def _resolve_label(self, value, molgenis_table):
-        return self.molgenis_client.get(table=molgenis_table,
-                                        query_filter=f"label == '{quote(value)}'")
+        return self.molgenis_client.get(table=molgenis_table, query_filter=f"label == '{quote(value)}'")
 
     def _resolve_uris_and_labels(self, value, molgenis_table):
         new_property_value = None
@@ -209,29 +211,29 @@ class DCATRDFHarvester(DCATHarvester):
                     returned_value = self._resolve_label(val, molgenis_table)
                     if not returned_value:
                         continue
-                returned_value_list.append(returned_value[0]['name'])
+                returned_value_list.append(returned_value[0]["name"])
             if returned_value_list:
-                new_property_value = ','.join(returned_value_list)
+                new_property_value = ",".join(returned_value_list)
         else:
             returned_value = self._resolve_uri(value, molgenis_table)
             if not returned_value:
                 returned_value = self._resolve_label(value, molgenis_table)
             if returned_value:
-                new_property_value = returned_value[0]['name']
+                new_property_value = returned_value[0]["name"]
         return new_property_value
 
     def _create_datasetseries_for_dataset(self, dataset_info):
         """Create a datasetseries (biobank) HarvestObject for a dataset."""
         # Use the same name as the dataset
-        datasetseries_name = dataset_info['dataset_name']
-        datasetseries_id = dataset_info['dataset_id']
+        datasetseries_name = dataset_info["dataset_name"]
+        datasetseries_id = dataset_info["dataset_id"]
 
         # Create minimal datasetseries content
         datasetseries_dict = {
-            'id': datasetseries_id,
-            'title': datasetseries_name,
-            'description': dataset_info.get(
-                'dataset_description',
+            "id": datasetseries_id,
+            "title": datasetseries_name,
+            "description": dataset_info.get(
+                "dataset_description",
                 f"Auto-generated datasetseries for {datasetseries_name}",
             ),
         }
@@ -241,10 +243,7 @@ class DCATRDFHarvester(DCATHarvester):
         datasetseries_guid = f"{dataset_info['dataset_guid']}_datasetseries"
 
         datasetseries_object = HarvestObject(
-            guid=datasetseries_guid,
-            status="new",
-            concept_type="datasetseries"
-        )
+            guid=datasetseries_guid, status="new", concept_type="datasetseries")
         datasetseries_object.content = json.dumps(datasetseries_dict)
 
         return datasetseries_object, datasetseries_id
@@ -268,10 +267,10 @@ class DCATRDFHarvester(DCATHarvester):
 
             # Update the corresponding dataset to reference this datasetseries
             for harvest_obj in self._harvest_objects:
-                if harvest_obj.concept_type == 'dataset' and harvest_obj.guid == dataset_info['dataset_guid']:
+                if harvest_obj.concept_type == "dataset" and harvest_obj.guid == dataset_info["dataset_guid"]:
                     # Update the dataset's content to include the biobank reference
                     dataset_dict = json.loads(harvest_obj.content)
-                    dataset_dict['in_series'] = datasetseries_id
+                    dataset_dict["in_series"] = datasetseries_id
                     harvest_obj.content = json.dumps(dataset_dict)
                     break
 
@@ -304,7 +303,7 @@ class DCATRDFHarvester(DCATHarvester):
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
 
-        dataset_name = dataset.get('title')
+        dataset_name = dataset.get("title")
 
         try:
             if harvest_object.status == "new":
@@ -315,8 +314,7 @@ class DCATRDFHarvester(DCATHarvester):
             return True
         except Exception as e:
             log.error(
-                f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}"
-            )
+                f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}")
             return False
 
     def _get_rdf(self, harvest_root_uri):
@@ -324,15 +322,13 @@ class DCATRDFHarvester(DCATHarvester):
         rdf_format = None
 
         content, rdf_format = self._get_content_and_type(
-            next_page_url, 1, content_type=rdf_format
-        )
+            next_page_url, 1, content_type=rdf_format)
 
         try:
             self.parser.parse(content, _format=rdf_format)
         except HarvesterException as e:
             self._save_gather_error(
-                f"Error parsing the RDF file: {e}", next_page_url
-            )
+                f"Error parsing the RDF file: {e}", next_page_url)
 
     def _get_dict_value(self, _dict, key, default=None):
         """

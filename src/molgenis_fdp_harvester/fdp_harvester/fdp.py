@@ -59,9 +59,7 @@ class FDPHarvester(DCATRDFHarvester):
                         log.error(
                             f"Error saving harvest object for identifier [{identifier}] [{e!r}]")
                 else:
-                    log.error(
-                        f"Empty record for identifier {identifier}"
-                    )
+                    log.error(f"Empty record for identifier {identifier}")
 
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config

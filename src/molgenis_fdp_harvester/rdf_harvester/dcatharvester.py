@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 
 
 class DCATHarvester(HarvesterBase):
-
     DEFAULT_MAX_FILE_SIZE_MB = 50
     CHUNK_SIZE = 1024 * 512
 
@@ -40,7 +39,6 @@ class DCATHarvester(HarvesterBase):
             return None, None
 
         try:
-
             if page > 1:
                 url = url + "&" if "?" in url else url + "?"
                 url = url + f"page={page}"
@@ -87,8 +85,7 @@ class DCATHarvester(HarvesterBase):
                 content = content.decode("utf-8")
 
                 if content_type is None and r.headers.get("content-type"):
-                    content_type = r.headers.get(
-                        "content-type").split(";", 1)[0]
+                    content_type = r.headers.get("content-type").split(";", 1)[0]
 
                 return content, content_type
 
@@ -109,10 +106,7 @@ class DCATHarvester(HarvesterBase):
             self._save_gather_error(msg)
             return None, None
         except requests.exceptions.Timeout:
-            msg = (
-                f"Could not get content from {url} because the connection timed"
-                " out."
-            )
+            msg = f"Could not get content from {url} because the connection timed out."
             self._save_gather_error(msg)
             return None, None
 
@@ -130,8 +124,7 @@ class DCATHarvester(HarvesterBase):
             name = self._gen_new_name(title)
             if not name:
                 raise Exception(
-                    "Could not generate a unique name from the title or the "
-                    "GUID. Please choose a more unique title."
+                    "Could not generate a unique name from the title or the GUID. Please choose a more unique title."
                 )
         else:
             name = package.name
