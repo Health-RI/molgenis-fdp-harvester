@@ -35,9 +35,9 @@ FROM python:3.12-alpine3.22 AS runner
 WORKDIR /app
 
 # Build-time args for CI metadata
-ARG VERSION="v0.2.0"
-ARG VCS_REF="581d075"
-ARG BUILD_DATE=""
+ARG VERSION="local"
+ARG VCS_REF="dirty"
+ARG BUILD_DATE="unknown"
 
 # OCI-compliant labels
 LABEL org.opencontainers.image.title="molgenis-fdp-harvester" \
