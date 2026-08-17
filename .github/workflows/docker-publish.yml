@@ -66,6 +66,21 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_name }}
+          # Customize standard OCI manifest annotation
+          labels: |
+            org.opencontainers.image.title=molgenis-fdp-harvester
+            org.opencontainers.image.description=Harvests metadata and datasets from FAIR Data Points (FDP) and imports them into a MOLGENIS catalog.
+            org.opencontainers.image.authors=Health-RI
+            org.opencontainers.image.url=https://www.health-ri.nl
+            org.opencontainers.image.documentation=https://github.com/Health-RI/molgenis-fdp-harvester#readme
+            org.opencontainers.image.licenses=Apache-2.0
+          annotations: |
+            org.opencontainers.image.title=molgenis-fdp-harvester
+            org.opencontainers.image.description=Harvests metadata and datasets from FAIR Data Points (FDP) and imports them into a MOLGENIS catalog.
+            org.opencontainers.image.authors=Health-RI
+            org.opencontainers.image.url=https://www.health-ri.nl
+            org.opencontainers.image.documentation=https://github.com/Health-RI/molgenis-fdp-harvester#readme
+            org.opencontainers.image.licenses=Apache-2.0
           tags: |
             # RELEASE MODE (When 'tag' input is provided)
             type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
@@ -84,6 +99,7 @@ jobs:
           load: true
           tags: localbuild:test
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -129,7 +145,7 @@ jobs:
           fi
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -152,6 +168,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
