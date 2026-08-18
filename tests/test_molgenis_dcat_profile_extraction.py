@@ -610,6 +610,19 @@ def test_extract_policy_valid():
     assert result["hasPolicy"]["permission"]["action"] == "http://www.w3.org/ns/odrl/2/use"
 
 
+def test_extract_policy_wrong_type_left_as_iri():
+    """hasPolicy pointing to a resource that is not an odrl:Policy should remain a plain IRI
+    string."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_policy_wrong_type.ttl", format="turtle")
+    profile = MolgenisEUCAIMDCATAPProfile(g)
+
+    dataset_dict = {"hasPolicy": "http://example.com/policy_wrong"}
+    result = profile._extract_policy(dataset_dict, "hasPolicy")
+
+    assert result["hasPolicy"] == "http://example.com/policy_wrong"
+
+
 def test_parse_policy_nested_permission_prohibition_obligation():
     """parse_policy should resolve permission/prohibition/obligation into parsed dicts when
     their resources are typed odrl:Permission/Prohibition/Duty respectively."""
