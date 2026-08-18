@@ -1,2 +1,5 @@
-class HarvesterException(Exception):
+class HarvesterError(Exception):
     pass
+
+
+HarvesterException = HarvesterError

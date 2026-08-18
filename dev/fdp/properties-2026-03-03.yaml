@@ -1,0 +1,76 @@
+---
+schemas:
+  #The FDP shape files are constructed using the files in the PiecesShape folder.
+  Catalog:
+    - "eucaim-catalogue.ttl"
+    - "eucaim-agent.ttl"
+    - "eucaim-periodoftime.ttl"
+    - "eucaim-publisher.ttl"
+  Dataset:
+    - "eucaim-dataset.ttl"
+    - "eucaim-agent.ttl"
+    - "eucaim-kind.ttl"
+    - "eucaim-periodoftime.ttl"
+    - "eucaim-attribution.ttl"
+    - "eucaim-adms_identifier.ttl"
+    - "eucaim-provenancestatement.ttl"
+    - "eucaim-purpose.ttl"
+    - "eucaim-publisher.ttl"
+    - "eucaim-qualitycertificate.ttl"
+  Dataset Series:
+    - "eucaim-datasetseries.ttl"
+    - "eucaim-periodoftime.ttl"
+    - "eucaim-kind.ttl"
+    - "eucaim-publisher.ttl"
+  Resource:
+    - "eucaim-resource.ttl"
+  Distribution:
+    - "eucaim-distribution.ttl"
+    - "eucaim-periodoftime.ttl"
+    - "eucaim-checksum.ttl"
+    - "eucaim-rightsstatement.ttl"
+    - "eucaim-permission.ttl"
+    - "eucaim-duty.ttl"
+    - "eucaim-prohibition.ttl"
+  Data Service:
+    - "eucaim-dataservice.ttl"
+    - "eucaim-kind.ttl"
+    - "eucaim-publisher.ttl"
+# Some schemas are extending the Resource schema.
+parentChild:
+  Resource:
+    - "Dataset"
+    - "Catalog"
+    - "Data Service"
+#the resources for the FDP, note we are using Parent relation instead of Childeren (as the FDP does)
+resources:
+  Sample Distribution:
+    parentResource: "Dataset"
+    parentRelationIri: "http://www.w3.org/ns/adms#sample"
+    schema: "Distribution"
+  Dataset Series:
+    parentResource: "Dataset"
+    parentRelationIri: "http://www.w3.org/ns/dcat#inSeries"
+    schema: "Dataset Series"
+  Analytics Distribution:
+    parentResource: "Dataset"
+    parentRelationIri: "http://healthdataportal.eu/ns/health#analytics"
+    schema: "Distribution"
+schemasToPublish:
+  - "Resource"
+  - "Catalog"
+  - "Dataset"
+  - "Dataset Series"
+  - "Distribution"
+  - "Data Service"
+schemaVersion: "2.0.2"
+#Location of the shapes files used for uploading to FDP.
+inputDir: "file:///opt/app/SHACLs/"
+#for use with the template option, uses Excel template to generate shapes files (Health-ri use only!)
+templateDir: "C:\\Users\\PatrickDekker(Health\\templates\\"
+outputRoot: "C:\\Users\\PatrickDekker(Health\\IdeaProjects\\health-ri-metadata\\Formalisation(shacl)\\\
+  Core\\"
+piecesDir: "PiecesShape"
+fairDataPointDir: "FairDataPointShape"
+validationDir: "ValidationShape"
+

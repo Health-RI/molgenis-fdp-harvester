@@ -25,7 +25,7 @@ Usage: harvest [OPTIONS]
 
 Options:
   --fdp TEXT            FAIR Data Point catalog URL to harvest
-  --fdp-list PATH       Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)
+  --fdp-list PATH       Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)
   --host TEXT           MOLGENIS host to harvest to
   --schema TEXT         Schema on MOLGENIS host to harvest to
   --config PATH         Configuration.
@@ -35,10 +35,9 @@ Options:
   --help                Show this message and exit.
 ```
 
-Either `--fdp` (single URL) or `--fdp-list` (CSV file) must be provided; they are mutually exclusive.
+Either `--fdp` (single URL) or `--fdp-list` (YML file) must be provided; they are mutually exclusive.
 
-The `--fdp-list` CSV file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). Whether the
-file has a header row is controlled by `fdp_list_has_header` in the TOML configuration (default: `true`).
+The `--fdp-list` YML file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). 
 
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
@@ -84,27 +83,28 @@ docker run --rm \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-### Running with a CSV list of FDPs
+### Running with a YML list of FDPs
 
 ```console
 docker run --rm \
   -e MOLGENIS_TOKEN=<your-token> \
   -e MOLGENIS_HOST=https://your-molgenis-host \
   -e INPUT_TYPE=fdp \
-  -e FDP_LIST_PATH=/app/fdps.csv \
+  -e FDP_LIST_PATH=/app/fdps.yml \
   -e HARVEST_CONFIG=/app/config.toml \
   -v /path/to/your/config.toml:/app/config.toml \
-  -v /path/to/your/fdps.csv:/app/fdps.csv \
+  -v /path/to/your/fdps.yml:/app/fdps.yml \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-The CSV file format:
+The YML file format:
 
-```csv
-fdp_url,fdp_id_prefix
-https://fdp1.example.com,prefix1
-https://fdp2.example.com,prefix2
-https://fdp3.example.com,
+```yml
+fdps:
+  - fdp_url: http://fdp-1.test
+    fdp_id_prefix: prefix1
+  - fdp_url: http://fdp-2.test
+    fdp_id_prefix: prefix2
 ```
 
 ### Building the image locally
@@ -120,6 +120,113 @@ This program is open and licensed under the GNU Affero General Public License (A
 Its full text may be found at:
 
 <http://www.fsf.org/licensing/licenses/agpl-3.0.html>
+
+## Development setup
+
+### Python environment
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. After installing uv, set up the
+project and its dev dependencies (test, lint, and type-checking tools) with:
+
+```console
+uv sync
+```
+
+Run the tests:
+
+```console
+uv run pytest
+```
+
+Run the tests with coverage:
+
+```console
+uv run coverage run -m pytest
+uv run coverage report
+```
+
+Lint the code:
+
+```console
+uv run ruff check .
+```
+
+Format the code:
+
+```console
+uv run ruff format .
+```
+
+Type-check the code:
+
+```console
+uv run mypy src
+```
+
+### Local FDP/Molgenis stack
+
+In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
+The default URLs are:
+- Molgenis: `http://localhost:8080`
+- FDP 1: `http://localhost:8081`
+- FDP 2: `http://localhost:8082`
+
+Start the services by running in order:
+```
+cd dev
+docker compose up -d fdp-client-1 fdp-client-2
+docker compose up schema-tool-1 schema-tool-2
+docker compose up fdp-init
+docker compose up -d molgenis
+```
+
+Before starting the harvester, initialize the local Molgenis setup:
+
+```console
+cd dev
+docker compose up molgenis-init
+```
+
+This will produce output like:
+```
+molgenis-init-1  | Login succeeded.
+molgenis-init-1  |       "message" : "Transaction failed: schema \"Eucaim\" already exists. "
+molgenis-init-1  | Schema 'Eucaim' already exists; continuing.
+molgenis-init-1  | Token created successfully.
+molgenis-init-1  | 
+molgenis-init-1  | MOLGENIS_TOKEN=...
+molgenis-init-1  | 
+molgenis-init-1  | NOTE: Please upload the Molgenis metadata model in the browser
+molgenis-init-1  | 
+molgenis-init-1  | Initialization completed successfully.
+molgenis-init-1 exited with code 0
+```
+Note that you still have to manually upload the Molgenis metadata model in the browser. You will need the token to spin up the harvester. 
+
+
+To configure the Molgenis catalogue:
+- Log in to the Molgenis catalogue with the default credentials (username: `admin`, password: `admin`).
+- Click on (or create) a database (preferred name 'Eucaim'), and click `Upload files`.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xlsx` to configure the metadata model.
+
+You may also manually create a Molgenis token:
+To retrieve a Molgenis token:
+- Log in to the Molgenis catalogue. 
+- In the upper right corner, click on 'Hi admin' and create a new token with whatever name you would like.
+
+To test the harvester, create a file `.env`:
+```
+MOLGENIS_TOKEN=-your molgenis token-
+```
+
+Running the harvester can be done by first building the docker image of the source files and then running it:
+```
+cd [root_of_repo]
+docker compose build . -t molgenis-fdp-harvester
+cd dev
+docker compose up harvester
+```
+
 
 ## Process documentation
 
