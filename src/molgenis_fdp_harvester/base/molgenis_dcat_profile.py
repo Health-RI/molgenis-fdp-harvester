@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 from rdflib import FOAF, PROV, RDF, RDFS, URIRef
 
+from molgenis_fdp_harvester.utils import HarvesterException
+
 from .baseharvester import munge_title_to_name
 from .baseparser import ADMS, DCAT, DCATAP, DCT, DPV, EUCAIM, HEALTHDCATAP, ODRL, SKOS, SPDX, VCARD, RDFProfile
 
@@ -560,7 +562,20 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("endDate", DCAT.endDate),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = f"{dataset_dict.get('startDate')}/{dataset_dict.get('endDate')}"
+
+        start_date = dataset_dict.get("startDate")
+        if start_date is None:
+            raise HarvesterException(
+                f"No start date provided for {dataset_dict}"
+            )
+
+        end_date = dataset_dict.get("endDate")
+        if end_date is None:
+            raise HarvesterException(
+                f"No end date provided for {dataset_dict}"
+            )
+
+        dataset_dict["id"] = f"{start_date}/{end_date}"
         return dataset_dict
 
     def parse_attribution(self, dataset_dict: dict, dataset_ref: URIRef):
