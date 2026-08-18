@@ -45,7 +45,7 @@ jobs:
         id: prep
         run: |
           # Determine the active ref (Input overrides default branch)
-          REF="${{ inputs.ref || github.ref_name }}"
+          REF="${{ github.event.inputs.ref || github.ref_name }}"
           
           # Sanitize ref for Docker tags (lowercase, replace invalid chars)
           CLEAN_REF=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]')
