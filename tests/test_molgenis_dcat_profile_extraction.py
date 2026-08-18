@@ -122,7 +122,6 @@ def test_parse_provenancestatement():
     assert result["label"] == "Data collected from hospital records"
 
 
-
 def test_extract_purpose_resolves_nested_purpose_object():
     """hasPurpose_obj pointing to a dpv:Purpose resource should be parsed via parse_purpose,
     and hasPurpose_IRI should be dropped."""
@@ -196,6 +195,7 @@ def test_extract_purpose_resolves_multiple_mixed_values():
 # Fixtures needed: tests/test_data/extraction_creator_foaf_agent.ttl,
 #                  reuses graph_foaf_person / graph_foaf_wrong_type for the wrong-type case
 # ---------------------------------------------------------------------------
+
 
 def test_extract_creator_valid_agent_is_parsed():
     """creator pointing to a foaf:Agent resource should be replaced with a parsed dict."""
@@ -273,6 +273,7 @@ def test_extract_creator_multiple_values_resolved_independently():
 # Fixtures: reuses graph_date_range / graph_date_range_missing from conftest.py
 # ---------------------------------------------------------------------------
 
+
 def test_extract_periodoftime_temporal_valid(graph_date_range):
     """temporal pointing to a dct:PeriodOfTime resource should be replaced with a parsed dict."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_date_range)
@@ -327,6 +328,7 @@ def test_extract_periodoftime_missing_key_is_noop(graph_date_range_missing):
 # Fixtures needed: tests/test_data/extraction_attribution.ttl,
 #                  tests/test_data/extraction_attribution_wrong_type.ttl
 # ---------------------------------------------------------------------------
+
 
 def test_extract_attribution_valid():
     """qualifiedAttribution pointing to a prov:Attribution resource should be replaced with a
@@ -388,6 +390,7 @@ def test_parse_attribution_agent_fields():
     assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
     assert result["mbox"] == "agent@example.com"
     assert result["homepage"] == "https://agent.example.com"
+
 
 def test_extract_other_identifier_valid():
     """other_identifier pointing to an adms:Identifier resource should be replaced with a
@@ -677,7 +680,6 @@ def test_parse_checksum_fields():
     assert result["checksumValue"] == "abc123def456"
 
 
-
 def test_extract_rightsstatement_valid():
     """rights pointing to a dct:RightsStatement resource should be replaced with a parsed dict."""
     g = rdflib.Dataset()
@@ -702,7 +704,6 @@ def test_parse_rightsstatement_fields():
 
     assert result["uri"] == "http://example.com/distribution1/rights"
     assert result["label"] == "Access restricted to authorised researchers"
-
 
 
 def test_extract_dataservice_valid():
@@ -782,7 +783,6 @@ def test_parse_legal_basis_fields():
     assert result["description"] == "GDPR Art. 9(2)(j)"
 
 
-
 def test_parse_kind_hasemail_as_list_not_stripped():
     """When hasEmail resolves to a list (multiple vcard:hasEmail values), the mailto: prefix
     stripping should be skipped rather than raising AttributeError."""
@@ -810,8 +810,6 @@ def test_parse_publisher_mbox_and_phone_fields():
     assert result["name"] == "Test Publisher Org"
     assert result["mbox"] == "org1@example.com"
     assert result["phone"] == "tel:+31201234567"
-
-
 
 
 def test_parse_datasetseries_pid_field_from_identifier():
@@ -869,12 +867,11 @@ def test_parse_datasetseries_default_id_fallback_to_title(graph_datasetseries_no
     assert result["id"] == "biobank-without-id"
 
 
-
 def _parse_wired_dataset():
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataset_wired_fields.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
-    profile.config = {'pid_service_url': 'https://pid.example.com', 'fdp_id_prefix': 'testorg'}
+    profile.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
     dataset_ref = URIRef("http://example.com/dataset_wired")
     return profile.parse_dataset({}, dataset_ref)
 
