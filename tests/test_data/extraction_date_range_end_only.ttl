@@ -7,4 +7,4 @@
     dct:temporal <http://example.com/period_end_only> .
 
 <http://example.com/period_end_only> a dct:PeriodOfTime ;
-    dcat:endDate "2023-12-31"^^xsd:date .
+    dcat:endDate "2023-12-31"^^xsd:dateTime .
