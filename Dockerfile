@@ -68,7 +68,7 @@ LABEL name="molgenis-fdp-harvester" \
 RUN addgroup -g 1000 -S ds && \
     adduser -u 1000 -S -G ds -h /home/ds -s /sbin/nologin ds && \
     mkdir -p /home/ds/datasets /home/ds/persistent-home /home/ds/persistent-shared-folder && \
-    chown -R ds:ds /home/ds /app
+    chown -R ds:ds /home/ds/datasets /home/ds/persistent-home /home/ds/persistent-shared-folder
 
 # Copy built virtual environment and application from stage 1
 COPY --from=builder --chown=ds:ds /app /app
