@@ -189,7 +189,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         if dataset_dict.get('in_series'):
             original_value = URIRef(dataset_dict['in_series'])
             retrieved_class = self._object_value(original_value, RDF.type)
-            if any([val in [str(DCAT.DatasetSeries)] for val in retrieved_class]):
+            if any(val in [str(DCAT.DatasetSeries)] for val in retrieved_class):
                 dataset_dict['in_series'] = str(self._object_value(original_value, DCT.identifier))
                 if dataset_dict['in_series'] == '':
                     dataset_dict['in_series'] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
@@ -383,9 +383,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_attribution(dataset_dict, 'qualifiedAttribution')
         dataset_dict = self._extract_other_identifier(dataset_dict, 'other_identifier')
         dataset_dict = self._extract_distribution(dataset_dict, 'sample')
-        dataset_dict = self._extract_distribution(dataset_dict, 'analytics')
+        return self._extract_distribution(dataset_dict, 'analytics')
 
-        return dataset_dict
 
     def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -499,8 +498,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_policy(dataset_dict, 'hasPolicy')
         dataset_dict = self._extract_checksum(dataset_dict, 'checksum')
         dataset_dict = self._extract_rightsstatement(dataset_dict, 'rights')
-        dataset_dict = self._extract_dataservice(dataset_dict, 'accessService')
-        return dataset_dict
+        return self._extract_dataservice(dataset_dict, 'accessService')
 
     def parse_dataservice(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -523,8 +521,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_name_vcard(dataset_dict, 'contactPoint')
-        dataset_dict = self._extract_name_publisher(dataset_dict, 'publisher')
-        return dataset_dict
+        return self._extract_name_publisher(dataset_dict, 'publisher')
 
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -550,8 +547,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("notation", SKOS.notation),
             ("schemaAgency", ADMS.schemaAgency),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        return dataset_dict
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_periodoftime(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -571,8 +567,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
-        dataset_dict = self._extract_attribution_agent(dataset_dict, 'agent')
-        return dataset_dict
+        return self._extract_attribution_agent(dataset_dict, 'agent')
 
     def parse_attribution_agent(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -595,8 +590,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("algorithm", SPDX.algorithm),
             ("checksumValue", SPDX.checksumValue),
         )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        return dataset_dict
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_rightsstatement(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -618,8 +612,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_permission(dataset_dict, 'permission')
         dataset_dict = self._extract_prohibition(dataset_dict, 'prohibition')
-        dataset_dict = self._extract_obligation(dataset_dict, 'obligation')
-        return dataset_dict
+        return self._extract_obligation(dataset_dict, 'obligation')
 
     def parse_permission(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
