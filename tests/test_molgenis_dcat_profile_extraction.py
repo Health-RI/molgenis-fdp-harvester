@@ -4,10 +4,12 @@
 
 """Tests for MOLGENIS DCAT profile extraction helper methods."""
 
+import pytest
 import rdflib
 from rdflib import URIRef
 
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
+from molgenis_fdp_harvester.utils import HarvesterException
 
 
 def test_extract_name_vcard_valid_contact(graph_vcard_contact):
@@ -310,6 +312,35 @@ def test_parse_periodoftime_id_is_start_end_range(graph_date_range):
     assert result["startDate"] == "2020-01-01T00:00:00"
     assert result["endDate"] == "2023-12-31T00:00:00"
     assert result["id"] == "2020-01-01T00:00:00/2023-12-31T00:00:00"
+
+
+def test_parse_periodoftime_missing_end_date_raises(graph_date_range_start_only):
+    """parse_periodoftime should raise when startDate is set but endDate is missing, since the
+    composed id would otherwise silently become '<startDate>/None'."""
+    profile = MolgenisEUCAIMDCATAPProfile(graph_date_range_start_only)
+    period_ref = URIRef("http://example.com/period_start_only")
+
+    with pytest.raises(HarvesterException, match="No end date"):
+        profile.parse_periodoftime({}, period_ref)
+
+
+def test_parse_periodoftime_missing_start_date_raises(graph_date_range_end_only):
+    """parse_periodoftime should raise when endDate is set but startDate is missing, since the
+    composed id would otherwise silently become 'None/<endDate>'."""
+    profile = MolgenisEUCAIMDCATAPProfile(graph_date_range_end_only)
+    period_ref = URIRef("http://example.com/period_end_only")
+
+    with pytest.raises(HarvesterException, match="No start date"):
+        profile.parse_periodoftime({}, period_ref)
+
+
+def test_parse_periodoftime_both_dates_missing_raises(graph_date_range_missing):
+    """parse_periodoftime should raise when neither startDate nor endDate is present at all."""
+    profile = MolgenisEUCAIMDCATAPProfile(graph_date_range_missing)
+    period_ref = URIRef("http://example.com/dataset6")
+
+    with pytest.raises(HarvesterException, match="No start date"):
+        profile.parse_periodoftime({}, period_ref)
 
 
 def test_extract_periodoftime_missing_key_is_noop(graph_date_range_missing):
