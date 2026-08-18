@@ -3,8 +3,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from molgenis_fdp_harvester.base.baseparser import LDP
+
 from .fdp_record import FdpRecord
-from ...base.baseparser import LDP
 
 
 class GraphToFdpRecordMapper:
@@ -17,7 +18,7 @@ class GraphToFdpRecordMapper:
 
         record = FdpRecord(self.url, rdf_graph)
 
-        for subject, predicate, obj in rdf_graph:
+        for _subject, predicate, obj in rdf_graph:
             if predicate == LDP.contains:
                 record.add_children(str(obj))
 

@@ -25,7 +25,7 @@ Usage: harvest [OPTIONS]
 
 Options:
   --fdp TEXT            FAIR Data Point catalog URL to harvest
-  --fdp-list PATH       Path to CSV file with columns fdp_url and fdp_id_prefix (one FDP per row)
+  --fdp-list PATH       Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)
   --host TEXT           MOLGENIS host to harvest to
   --schema TEXT         Schema on MOLGENIS host to harvest to
   --config PATH         Configuration.
@@ -35,10 +35,9 @@ Options:
   --help                Show this message and exit.
 ```
 
-Either `--fdp` (single URL) or `--fdp-list` (CSV file) must be provided; they are mutually exclusive.
+Either `--fdp` (single URL) or `--fdp-list` (YML file) must be provided; they are mutually exclusive.
 
-The `--fdp-list` CSV file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). Whether the
-file has a header row is controlled by `fdp_list_has_header` in the TOML configuration (default: `true`).
+The `--fdp-list` YML file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). 
 
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
@@ -84,27 +83,28 @@ docker run --rm \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-### Running with a CSV list of FDPs
+### Running with a YML list of FDPs
 
 ```console
 docker run --rm \
   -e MOLGENIS_TOKEN=<your-token> \
   -e MOLGENIS_HOST=https://your-molgenis-host \
   -e INPUT_TYPE=fdp \
-  -e FDP_LIST_PATH=/app/fdps.csv \
+  -e FDP_LIST_PATH=/app/fdps.yml \
   -e HARVEST_CONFIG=/app/config.toml \
   -v /path/to/your/config.toml:/app/config.toml \
-  -v /path/to/your/fdps.csv:/app/fdps.csv \
+  -v /path/to/your/fdps.yml:/app/fdps.yml \
   ghcr.io/health-ri/molgenis-fdp-harvester:<tag>
 ```
 
-The CSV file format:
+The YML file format:
 
-```csv
-fdp_url,fdp_id_prefix
-https://fdp1.example.com,prefix1
-https://fdp2.example.com,prefix2
-https://fdp3.example.com,
+```yml
+fdps:
+  - fdp_url: http://fdp-1.test
+    fdp_id_prefix: prefix1
+  - fdp_url: http://fdp-2.test
+    fdp_id_prefix: prefix2
 ```
 
 ### Building the image locally
@@ -123,12 +123,62 @@ Its full text may be found at:
 
 ## Development setup
 
+### Python environment
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. After installing uv, set up the
+project and its dev dependencies (test, lint, and type-checking tools) with:
+
+```console
+uv sync
+```
+
+Run the tests:
+
+```console
+uv run pytest
+```
+
+Run the tests with coverage:
+
+```console
+uv run coverage run -m pytest
+uv run coverage report
+```
+
+Lint the code:
+
+```console
+uv run ruff check .
+```
+
+Format the code:
+
+```console
+uv run ruff format .
+```
+
+Type-check the code:
+
+```console
+uv run mypy src
+```
+
+### Local FDP/Molgenis stack
+
 In the folder `./dev` there is a Docker Compose deployment to start a local development environment with two FAIR Data Points and a Molgenis catalogue. 
 The default URLs are:
 - Molgenis: `http://localhost:8080`
 - FDP 1: `http://localhost:8081`
 - FDP 2: `http://localhost:8082`
- 
+
+Start the services by running in order:
+```
+cd dev
+docker compose up -d fdp-client-1 fdp-client-2
+docker compose up schema-tool-1 schema-tool-2
+docker compose up fdp-init
+docker compose up -d molgenis
+```
 
 Before starting the harvester, initialize the local Molgenis setup:
 
@@ -169,11 +219,11 @@ To test the harvester, create a file `.env`:
 MOLGENIS_TOKEN=-your molgenis token-
 ```
 
-Running the harvester can be done by running:
+Running the harvester can be done by first building the docker image of the source files and then running it:
 ```
-docker compose up -d fdp-client-1
-docker compose up -d fdp-client-2
-docker compose up -d molgenis
+cd [root_of_repo]
+docker compose build . -t molgenis-fdp-harvester
+cd dev
 docker compose up harvester
 ```
 

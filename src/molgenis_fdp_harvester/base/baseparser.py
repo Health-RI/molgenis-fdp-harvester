@@ -9,12 +9,12 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 
-from urllib.parse import quote
-import re
 import logging
+import re
+from urllib.parse import quote
 
-from rdflib import URIRef, Literal
-from rdflib.namespace import Namespace, RDF, SKOS, DCAT, FOAF, TIME, OWL
+from rdflib import Literal, URIRef
+from rdflib.namespace import DCAT, FOAF, OWL, RDF, SKOS, TIME, Namespace
 from rdflib.namespace import DCTERMS as DCT
 from unidecode import unidecode
 
@@ -51,7 +51,7 @@ namespaces = {
     "ldp": LDP,
     "dpv": DPV,
     "hydra": HYDRA,
-    "odrl": ODRL
+    "odrl": ODRL,
 }
 
 PREFIX_MAILTO = "mailto:"
@@ -78,11 +78,10 @@ def munge_tag(tag: str) -> str:
     tag = unidecode(tag)
     tag = tag.lower().strip()
     tag = re.sub(r"[^a-zA-Z0-9\- ]", "", tag).replace(" ", "-")
-    tag = _munge_to_length(tag, MIN_TAG_LENGTH, MAX_TAG_LENGTH)
-    return tag
+    return _munge_to_length(tag, MIN_TAG_LENGTH, MAX_TAG_LENGTH)
 
 
-class URIRefOrLiteral(object):
+class URIRefOrLiteral:
     """Helper which creates an URIRef if the value appears to be an http URL,
     or a Literal otherwise. URIRefs are also cleaned using CleanedURIRef.
 
@@ -93,8 +92,7 @@ class URIRefOrLiteral(object):
         try:
             stripped_value = value.strip()
             if isinstance(value, str) and (
-                stripped_value.startswith("http://")
-                or stripped_value.startswith("https://")
+                stripped_value.startswith("http://") or stripped_value.startswith("https://")
             ):
                 uri_obj = CleanedURIRef(value)
                 # although all invalid chars checked by rdflib should have been quoted, try to serialize
@@ -102,14 +100,13 @@ class URIRefOrLiteral(object):
                 uri_obj.n3()
                 # URI is fine, return the object
                 return uri_obj
-            else:
-                return Literal(value)
+            return Literal(value)
         except Exception:
             # In case something goes wrong: use Literal
             return Literal(value)
 
 
-class CleanedURIRef(object):
+class CleanedURIRef:
     """Performs some basic URL encoding on value before creating an URIRef object.
 
     This is a factory for URIRef objects, which allows usage as type in graph.add()
@@ -134,7 +131,7 @@ class CleanedURIRef(object):
         return URIRef(value)
 
 
-class RDFProfile(object):
+class RDFProfile:
     """Base class with helper methods for implementing RDF parsing profiles
 
     This class should not be used directly, but rather extended to create
@@ -172,8 +169,7 @@ class RDFProfile(object):
         Yields term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for dataset in self.g.subjects(RDF.type, DCAT.Dataset):
-            yield dataset
+        yield from self.g.subjects(RDF.type, DCAT.Dataset)
 
     def _distributions(self, dataset):
         """
@@ -182,8 +178,7 @@ class RDFProfile(object):
         Yields term.URIRef objects that can be used on graph lookups
         and queries
         """
-        for distribution in self.g.objects(dataset, DCAT.distribution):
-            yield distribution
+        yield from self.g.objects(dataset, DCAT.distribution)
 
     def _object(self, subject, predicate):
         """
@@ -214,7 +209,7 @@ class RDFProfile(object):
                 if o.language and o.language == default_lang:
                     return str(o)
                 # Use first object as fallback if no object with the default language is available
-                elif fallback == "":
+                if fallback == "":
                     fallback = str(o)
                     break
             else:

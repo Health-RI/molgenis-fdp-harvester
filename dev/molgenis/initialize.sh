@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -euo pipefail
+set -eu
 
 GRAPHQL_URL="${GRAPHQL_URL:-http://localhost:8080/api/graphql}"
 USERNAME="${GRAPHQL_USERNAME:-admin}"
@@ -48,7 +48,7 @@ fi
 echo "Token created successfully."
 TOKEN_VALUE=$(printf '%s' "$TOKEN_RESPONSE" | grep -o '"token"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed -E 's/.*"token"[[:space:]]*:[[:space:]]*"([^"]*)"/\1/')
 
-if [[ -n "$TOKEN_VALUE" ]]; then
+if [ -n "$TOKEN_VALUE" ]; then
     echo
     echo "MOLGENIS_TOKEN=$TOKEN_VALUE"
     echo

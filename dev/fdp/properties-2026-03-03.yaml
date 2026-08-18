@@ -12,10 +12,11 @@ schemas:
     - "eucaim-kind.ttl"
     - "eucaim-periodoftime.ttl"
     - "eucaim-attribution.ttl"
-    - "eucaim-identifier.ttl"
+    - "eucaim-adms_identifier.ttl"
     - "eucaim-provenancestatement.ttl"
     - "eucaim-purpose.ttl"
     - "eucaim-publisher.ttl"
+    - "eucaim-qualitycertificate.ttl"
   Dataset Series:
     - "eucaim-datasetseries.ttl"
     - "eucaim-periodoftime.ttl"
@@ -34,7 +35,7 @@ schemas:
   Data Service:
     - "eucaim-dataservice.ttl"
     - "eucaim-kind.ttl"
-    - "eucaim-organization.ttl"
+    - "eucaim-publisher.ttl"
 # Some schemas are extending the Resource schema.
 parentChild:
   Resource:
