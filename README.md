@@ -170,7 +170,15 @@ The default URLs are:
 - Molgenis: `http://localhost:8080`
 - FDP 1: `http://localhost:8081`
 - FDP 2: `http://localhost:8082`
- 
+
+Start the services by running in order:
+```
+cd dev
+docker compose up -d fdp-client-1 fdp-client-2
+docker compose up schema-tool-1 schema-tool-2
+docker compose up fdp-init
+docker compose up -d molgenis
+```
 
 Before starting the harvester, initialize the local Molgenis setup:
 
