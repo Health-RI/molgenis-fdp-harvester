@@ -105,7 +105,7 @@ jobs:
             BUILD_DATE=${{ steps.prep.outputs.build_date }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'image'
           image-ref: 'localbuild:test'
