@@ -119,9 +119,9 @@ def test_gather_stage_rdf_load_failure(mock_get_rdf, harvester, catalog_url):
     assert "Failed to gather objects" in str(exc_info.value)
 
 
-@patch.object(DCATRDFHarvester, "_get_rdf")
+@pytest.mark.usefixtures("_mock_get_rdf")
 @patch.object(DCATRDFHarvester, "_extract_concepts_from_rdf")
-def test_gather_stage_extraction_failure(mock_extract, mock_get_rdf, harvester, catalog_url):
+def test_gather_stage_extraction_failure(mock_extract, harvester, catalog_url):
     """Test gather_stage handles concept extraction errors"""
 
     # Setup mock to raise exception
