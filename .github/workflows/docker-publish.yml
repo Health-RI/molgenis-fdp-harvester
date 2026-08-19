@@ -115,6 +115,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: 'true'
           hide-progress: 'true'
+          exit-code: '0'
 
       - name: Summarize SARIF into step summary
         run: |
@@ -144,13 +145,12 @@ jobs:
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy'
 
       - name: Fail on critical vulnerabilities
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.LOCAL_IMAGE_TAG }}
           format: 'table'
