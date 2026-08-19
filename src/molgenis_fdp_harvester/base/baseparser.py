@@ -91,6 +91,8 @@ class URIRefOrLiteral:
             stripped_value = value.strip()
             if isinstance(value, str) and (
                 stripped_value.startswith(
+
+                    # NOSONAR
                     "http://") or stripped_value.startswith("https://")
             ):
                 uri_obj = CleanedURIRef(value)

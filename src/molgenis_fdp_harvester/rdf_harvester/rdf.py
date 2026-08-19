@@ -116,7 +116,7 @@ class DCATRDFHarvester(DCATHarvester):
                 self.guids_in_db[concept_type] = [x["id"]
                                                   for x in existing_ids]
             except Exception as e:
-                log.error(
+                log.exception(
                     f"fetch_stage: Error getting list of uids {entity_name!s}: {e!r} / {traceback.format_exc()!s}"
                 )
                 self.guids_in_db[concept_type] = []
