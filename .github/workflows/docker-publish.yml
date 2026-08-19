@@ -16,6 +16,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  LOCAL_IMAGE_TAG: "localbuild:test"
 
 jobs:
   build-and-push:
@@ -94,7 +95,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: localbuild:test
+          tags: ${{ env.LOCAL_IMAGE_TAG }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
@@ -108,7 +109,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'image'
-          image-ref: 'localbuild:test'
+          image-ref: ${{ env.LOCAL_IMAGE_TAG }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
@@ -151,7 +152,7 @@ jobs:
       - name: Fail on critical vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'localbuild:test'
+          image-ref: ${{ env.LOCAL_IMAGE_TAG }}
           format: 'table'
           exit-code: '1'
           severity: 'CRITICAL'
