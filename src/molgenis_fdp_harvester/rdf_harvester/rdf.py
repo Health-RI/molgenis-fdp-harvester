@@ -297,8 +297,8 @@ class DCATRDFHarvester(DCATHarvester):
                 log.info(f"Updating dataset {dataset_name}")
             self.molgenis_client.save_table(table=entity_name, data=[dataset])
             return True
-        except Exception as e:
-            log.error(f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}")
+        except Exception:
+            log.exception(f"import_stage: Error importing dataset {dataset_name}")
             return False
 
     def _get_rdf(self, harvest_root_uri):

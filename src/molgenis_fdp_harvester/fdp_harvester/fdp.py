@@ -53,8 +53,8 @@ class FDPHarvester(DCATRDFHarvester):
                     try:
                         # Save the fetch contents in the HarvestObject
                         self.parser.parse(record, _format="ttl")
-                    except Exception as e:
-                        log.error(f"Error saving harvest object for identifier [{identifier}] [{e!r}]")
+                    except Exception:
+                        log.exception(f"Error saving harvest object for identifier [{identifier}]")
                 else:
                     log.error(f"Empty record for identifier {identifier}")
 

@@ -297,7 +297,14 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             return dataset_dict
 
         purpose_values = purpose_value if isinstance(purpose_value, list) else [purpose_value]
+        purpose_objects, purpose_iris = self._split_purpose_values(purpose_values)
 
+        self._set_or_pop_value(dataset_dict, "hasPurpose_obj", purpose_objects)
+        self._set_or_pop_value(dataset_dict, "hasPurpose_IRI", purpose_iris)
+        return dataset_dict
+
+    def _split_purpose_values(self, purpose_values: list) -> tuple[list, list]:
+        """Split hasPurpose values into resolved dpv:Purpose objects and plain vocabulary IRIs."""
         purpose_objects = []
         purpose_iris = []
         for value in purpose_values:
@@ -310,18 +317,15 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                 purpose_objects.append(self.parse_purpose({}, purpose_ref))
             else:
                 purpose_iris.append(value)
+        return purpose_objects, purpose_iris
 
-        if purpose_objects:
-            dataset_dict["hasPurpose_obj"] = purpose_objects[0] if len(purpose_objects) == 1 else purpose_objects
+    @staticmethod
+    def _set_or_pop_value(dataset_dict: dict, key: str, values: list) -> None:
+        """Set `key` to the single value or list of `values`, or drop `key` if empty."""
+        if values:
+            dataset_dict[key] = values[0] if len(values) == 1 else values
         else:
-            dataset_dict.pop("hasPurpose_obj", None)
-
-        if purpose_iris:
-            dataset_dict["hasPurpose_IRI"] = purpose_iris[0] if len(purpose_iris) == 1 else purpose_iris
-        else:
-            dataset_dict.pop("hasPurpose_IRI", None)
-
-        return dataset_dict
+            dataset_dict.pop(key, None)
 
     def _remove_default_language(self, dataset_dict: dict):
         if dataset_dict.get("language"):
@@ -329,7 +333,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             if not isinstance(language_list, list):
                 language_list = [language_list]
             try:
-                language_list.remove("http://id.loc.gov/vocabulary/iso639-1/en")
+                language_list.remove("http://id.loc.gov/vocabulary/iso639-1/en")  # NOSONAR
                 if not language_list:
                     # If removing the default language makes language_list empty, remove the dictionary entry.
                     del dataset_dict["language"]
@@ -440,7 +444,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
-    def parse_creator(self, dataset_dict: dict, dataset_ref: URIRef):
+    def _parse_agent_like(self, dataset_dict: dict, dataset_ref: URIRef):
+        """Shared body for FOAF.Agent-shaped concepts (name/description/type/mbox/homepage)."""
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = (
             ("name", FOAF.name),
@@ -455,12 +460,19 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
-    def parse_legal_basis(self, dataset_dict: dict, dataset_ref: URIRef):
+    def _parse_single_field_concept(self, dataset_dict: dict, dataset_ref: URIRef, field_name: str, predicate):
+        """Shared body for concepts with a single field plus a generated id."""
         dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("description", DCT.description),)
+        key_predicate_tuple = ((field_name, predicate),)
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
+
+    def parse_creator(self, dataset_dict: dict, dataset_ref: URIRef):
+        return self._parse_agent_like(dataset_dict, dataset_ref)
+
+    def parse_legal_basis(self, dataset_dict: dict, dataset_ref: URIRef):
+        return self._parse_single_field_concept(dataset_dict, dataset_ref, "description", DCT.description)
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -534,18 +546,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_name_publisher(dataset_dict, "publisher")
 
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("label", RDFS.label),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
+        return self._parse_single_field_concept(dataset_dict, dataset_ref, "label", RDFS.label)
 
     def parse_purpose(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("description", DCT.description),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
+        return self._parse_single_field_concept(dataset_dict, dataset_ref, "description", DCT.description)
 
     def parse_other_identifier(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -565,15 +569,11 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         start_date = dataset_dict.get("startDate")
         if start_date is None:
-            raise HarvesterException(
-                f"No start date provided for {dataset_dict}"
-            )
+            raise HarvesterException(f"No start date provided for {dataset_dict}")
 
         end_date = dataset_dict.get("endDate")
         if end_date is None:
-            raise HarvesterException(
-                f"No end date provided for {dataset_dict}"
-            )
+            raise HarvesterException(f"No end date provided for {dataset_dict}")
 
         dataset_dict["id"] = f"{start_date}/{end_date}"
         return dataset_dict
@@ -589,19 +589,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_attribution_agent(dataset_dict, "agent")
 
     def parse_attribution_agent(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (
-            ("name", FOAF.name),
-            ("description", DCT.description),
-            ("type", DCT.type),
-            ("mbox", FOAF.mbox),
-            ("homepage", FOAF.homepage),
-        )
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        if "mbox" in dataset_dict:
-            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
-        return dataset_dict
+        return self._parse_agent_like(dataset_dict, dataset_ref)
 
     def parse_checksum(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -612,11 +600,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_rightsstatement(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("label", RDFS.label),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
+        return self._parse_single_field_concept(dataset_dict, dataset_ref, "label", RDFS.label)
 
     def parse_policy(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -632,25 +616,12 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_obligation(dataset_dict, "obligation")
 
     def parse_permission(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("action", ODRL.action),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
+        return self._parse_single_field_concept(dataset_dict, dataset_ref, "action", ODRL.action)
 
-    def parse_prohibition(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("action", ODRL.action),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
-
-    def parse_obligation(self, dataset_dict: dict, dataset_ref: URIRef):
-        dataset_dict["uri"] = str(dataset_ref)
-        key_predicate_tuple = (("action", ODRL.action),)
-        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
-        return dataset_dict
+    # ODRL's Permission, Prohibition and Obligation rules all carry a single odrl:action;
+    # parse_prohibition/parse_obligation alias parse_permission rather than redefine it.
+    parse_prohibition = parse_permission
+    parse_obligation = parse_permission
 
     def graph_from_dataset(self, dataset_dict, dataset_ref):
         raise NotImplementedError("FDP export is handled by MOLGENIS")

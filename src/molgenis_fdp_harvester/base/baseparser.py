@@ -227,7 +227,7 @@ class RDFProfile:
 
     # Public methods for profiles to implement
 
-    def parse_dataset(self, dataset_dict, dataset_ref):
+    def parse_dataset(self, dataset_dict):
         """
         Creates a CKAN dataset dict from the RDF graph
 
