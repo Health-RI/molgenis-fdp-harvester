@@ -45,8 +45,8 @@ services:
         depends_on:
             - fdp-1.test
         volumes:
-            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
-            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+            - ./fdp/properties-2026-08-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-08-03:/opt/app/SHACLs:ro
         environment:
             - FDP_HOST=http://fdp-1.test
             - FDP_USER=albert.einstein@example.com
@@ -101,8 +101,8 @@ services:
         depends_on:
             - fdp-2.test
         volumes:
-            - ./fdp/properties-2026-03-03.yaml:/opt/app/Properties.yaml:ro
-            - ./fdp/shacl-eucaim-2026-03-03:/opt/app/SHACLs:ro
+            - ./fdp/properties-2026-08-03.yaml:/opt/app/Properties.yaml:ro
+            - ./fdp/shacl-eucaim-2026-08-03:/opt/app/SHACLs:ro
         environment:
             - FDP_HOST=http://fdp-2.test
             - FDP_USER=albert.einstein@example.com

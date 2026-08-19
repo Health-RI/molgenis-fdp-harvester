@@ -8,4 +8,5 @@
     dcat:contactPoint <http://example.com/contact1> .
 
 <http://example.com/contact1> a vcard:Kind ;
-    vcard:fn "John Doe Contact" .
+    vcard:fn "John Doe Contact" ;
+    vcard:hasEmail <mailto:john.doe@example.com> .

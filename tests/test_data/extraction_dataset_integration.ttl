@@ -23,12 +23,13 @@
     foaf:name "Test Organization" .
 
 <http://example.com/contact_full> a vcard:Kind ;
-    vcard:fn "Dr Jane Smith" .
+    vcard:fn "Dr Jane Smith" ;
+    vcard:hasEmail <mailto:jane.smith@example.com> .
 
 <http://example.com/series_full> a dcat:DatasetSeries ;
     dct:identifier "biobank-full" ;
     dct:title "Full Test Biobank" .
 
 <http://example.com/period_full> a dct:PeriodOfTime ;
-    dcat:startDate "2018-06-15"^^xsd:date ;
-    dcat:endDate "2024-08-30"^^xsd:date .
+    dcat:startDate "2018-06-15T00:00:00"^^xsd:dateTime ;
+    dcat:endDate "2024-08-30T00:00:00"^^xsd:dateTime .
