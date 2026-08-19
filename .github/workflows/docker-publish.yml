@@ -89,7 +89,7 @@ jobs:
             type=sha,prefix=${{ steps.prep.outputs.clean_ref }}-,format=short,enable=${{ inputs.tag == '' }}
 
       # Phase 1: Build to local daemon for scanning
-      - name: Build Docker image locally (for testing)
+      - name: Build Docker image locally (trivy security scanner)
         uses: docker/build-push-action@v6
         with:
           context: .
