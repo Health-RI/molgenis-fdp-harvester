@@ -9,6 +9,8 @@ import uuid
 import pytest
 import rdflib
 from rdflib import URIRef
+from rdflib.namespace import DCTERMS as DCT
+from rdflib.namespace import FOAF
 
 from molgenis_fdp_harvester.base.baseparser import VCARD
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
@@ -110,6 +112,33 @@ def test_parse_kind(graph_vcard_contact):
     assert parsed.version == 4
 
 
+def test_resolve_contactpoint_without_fn_assigns_distinct_ids(graph_vcard_no_fn):
+    """Two datasets referencing different Kind resources that both lack vcard:fn must
+    resolve to distinct contactPoint ids.
+
+    Regression test: previously the contactPoint FK was derived from `vcard:fn` itself
+    (`fn.lower().replace(" ", "")`, replicating Molgenis's server-computed `kind.id`
+    formula), which yields the same "" for any Kind missing `fn` — so two different
+    nameless contacts collided onto the same (empty) contactPoint reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_no_fn)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"contactPoint": "http://example.com/contact_no_fn_1"},
+        "contactPoint",
+        VCARD.Kind,
+        profile._resolve_reference_id,
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"contactPoint": "http://example.com/contact_no_fn_2"},
+        "contactPoint",
+        VCARD.Kind,
+        profile._resolve_reference_id,
+    )
+
+    assert dataset1["contactPoint"] != dataset2["contactPoint"]
+
+
 def test_parse_publisher():
     """Test parsing a FOAF.Organization resource."""
     g = rdflib.Dataset()
@@ -129,6 +158,27 @@ def test_parse_publisher():
     assert parsed.version == 4
 
 
+def test_resolve_publisher_without_name_assigns_distinct_ids(graph_foaf_organization_no_name):
+    """Two datasets referencing different Organization resources that both lack foaf:name
+    must resolve to distinct publisher ids.
+
+    Regression test: previously the publisher FK was derived from `foaf:name` itself
+    (`name.lower().replace(" ", "")`, replicating Molgenis's server-computed `publisher.id`
+    formula), which yields the same "" for any Organization missing `name` — so two
+    different nameless publishers collided onto the same (empty) publisher reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_foaf_organization_no_name)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"publisher": "http://example.com/org_no_name_1"}, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"publisher": "http://example.com/org_no_name_2"}, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
+
+    assert dataset1["publisher"] != dataset2["publisher"]
+
+
 def test_parse_provenancestatement():
     """Test parsing a DCT.ProvenanceStatement resource."""
     g = rdflib.Dataset()
@@ -143,6 +193,34 @@ def test_parse_provenancestatement():
     assert result["id"] == profile._get_or_create_reference_id("http://example.com/prov1")
     parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
     assert parsed.version == 4
+
+
+def test_resolve_provenance_without_label_assigns_distinct_ids(graph_provenancestatement_no_label):
+    """Two datasets referencing different ProvenanceStatement resources that both lack
+    rdfs:label must resolve to distinct provenance ids.
+
+    Regression test: previously the provenance FK was derived from `rdfs:label` itself
+    (a djb2-style hash of sorted labels, replicating Molgenis's server-computed
+    `provenance_statement.id` formula), which hashes to the same value for any
+    ProvenanceStatement missing `label` — so two different labelless statements collided
+    onto the same provenance reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_provenancestatement_no_label)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"provenance": "http://example.com/prov_no_label_1"},
+        "provenance",
+        DCT.ProvenanceStatement,
+        profile._resolve_reference_id,
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"provenance": "http://example.com/prov_no_label_2"},
+        "provenance",
+        DCT.ProvenanceStatement,
+        profile._resolve_reference_id,
+    )
+
+    assert dataset1["provenance"] != dataset2["provenance"]
 
 
 def test_extract_purpose_resolves_nested_purpose_object():

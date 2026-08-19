@@ -1,0 +1,5 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+
+<http://example.com/prov_no_label_1> a dct:ProvenanceStatement .
+
+<http://example.com/prov_no_label_2> a dct:ProvenanceStatement .
