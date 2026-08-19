@@ -215,9 +215,16 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return dataset_dict
 
     def handle_pids(self, dataset_dict: dict):
-        original_identifier = str(dataset_dict["identifier"])
-        molgenis_id = str(uuid.uuid4())
+        original_identifier = dataset_dict.get("identifier")
+        if not original_identifier or not str(original_identifier).strip():
+            raise ValueError("dataset_dict is missing a non-empty 'identifier'")
+
         pid_service_url = self.config.get("pid_service_url")
+        if not pid_service_url or not str(pid_service_url).strip():
+            raise ValueError("pid_service_url is not configured")
+
+        original_identifier = str(original_identifier)
+        molgenis_id = str(uuid.uuid4())
 
         dataset_dict["id"] = molgenis_id
         dataset_dict["other_identifier"] = original_identifier

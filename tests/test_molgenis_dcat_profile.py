@@ -154,6 +154,20 @@ def test_handle_pids_generated_pid(profile):
     assert result['identifier'] == f"https://pid.example.com/{result['id']}"
 
 
+@pytest.mark.parametrize("identifier", [None, "", "   "])
+def test_handle_pids_rejects_empty_identifier(profile, identifier):
+    with pytest.raises(ValueError, match="dataset_dict is missing a non-empty 'identifier'"):
+        profile.handle_pids({'identifier': identifier})
+
+
+@pytest.mark.parametrize("pid_service_url", [None, "", "   "])
+def test_handle_pids_rejects_empty_pid_service_url(profile, pid_service_url):
+    profile.config = {'pid_service_url': pid_service_url}
+
+    with pytest.raises(ValueError, match="pid_service_url is not configured"):
+        profile.handle_pids({'identifier': 'mydata'})
+
+
 # --- _extract_name_publisher tests ---
 
 
