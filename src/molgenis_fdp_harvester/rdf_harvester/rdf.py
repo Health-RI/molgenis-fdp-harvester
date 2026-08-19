@@ -86,8 +86,7 @@ class DCATRDFHarvester(DCATHarvester):
             self._get_rdf(harvest_root_uri)
         except Exception as e:
             raise HarvesterException(
-                f"Failed to load RDF from {harvest_root_uri}: {e}"
-            ) from e
+                f"Failed to load RDF from {harvest_root_uri}: {e}") from e
 
     def _extract_concepts_from_rdf(self):
         """Extract all concept types from the parsed RDF."""
@@ -128,11 +127,8 @@ class DCATRDFHarvester(DCATHarvester):
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
             if guids_in_harvest:
                 for guid in guids_in_harvest:
-                    self._harvest_objects.append(
-                        HarvestObject(
-                            guid=guid, status="new", concept_type=concept_type
-                        )
-                    )
+                    self._harvest_objects.append(HarvestObject(
+                        guid=guid, status="new", concept_type=concept_type))
 
         return self._harvest_objects
 
@@ -148,8 +144,7 @@ class DCATRDFHarvester(DCATHarvester):
     def fetch_stage(self, harvest_object: HarvestObject):
         concept_type = harvest_object.concept_type
         concept_dict = self.parser.get_concept(
-            URIRef(harvest_object.guid), concept_type
-        )
+            URIRef(harvest_object.guid), concept_type)
 
         # Ensure required fields
         if not concept_dict.get("name"):
@@ -161,17 +156,15 @@ class DCATRDFHarvester(DCATHarvester):
         # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name
         # attached to the ontologyTermURI
         # The table to query is configured in the configuration.
-        uri_lookup_table = self.harvester_config.get("uri_lookup_config", {}).get(
-            concept_type
-        )
+        uri_lookup_table = self.harvester_config.get(
+            "uri_lookup_config", {}).get(concept_type)
         if uri_lookup_table:
             for property, value in concept_dict.items():
                 molgenis_table = uri_lookup_table.get(property)
                 if molgenis_table:
                     try:
                         new_property_value = self._resolve_uris_and_labels(
-                            value, molgenis_table
-                        )
+                            value, molgenis_table)
                         if new_property_value:
                             concept_dict[property] = new_property_value
                     except Exception as exc:
@@ -201,14 +194,10 @@ class DCATRDFHarvester(DCATHarvester):
         return harvest_object
 
     def _resolve_uri(self, value, molgenis_table):
-        return self.molgenis_client.get(
-            table=molgenis_table, query_filter=f"ontologyTermURI == '{quote(value)}'"
-        )
+        return self.molgenis_client.get(table=molgenis_table, query_filter=f"ontologyTermURI == '{quote(value)}'")
 
     def _resolve_label(self, value, molgenis_table):
-        return self.molgenis_client.get(
-            table=molgenis_table, query_filter=f"label == '{quote(value)}'"
-        )
+        return self.molgenis_client.get(table=molgenis_table, query_filter=f"label == '{quote(value)}'")
 
     def _resolve_uris_and_labels(self, value, molgenis_table):
         new_property_value = None
@@ -252,8 +241,7 @@ class DCATRDFHarvester(DCATHarvester):
         datasetseries_guid = f"{dataset_info['dataset_guid']}_datasetseries"
 
         datasetseries_object = HarvestObject(
-            guid=datasetseries_guid, status="new", concept_type="datasetseries"
-        )
+            guid=datasetseries_guid, status="new", concept_type="datasetseries")
         datasetseries_object.content = json.dumps(datasetseries_dict)
 
         return datasetseries_object, datasetseries_id
@@ -264,25 +252,20 @@ class DCATRDFHarvester(DCATHarvester):
             return
 
         log.info(
-            f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them"
-        )
+            f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them")
 
         # Create datasetseries objects and update corresponding datasets
         for dataset_info in self._datasets_without_datasetseries:
             # Create the datasetseries HarvestObject
-            datasetseries_object, datasetseries_id = (
-                self._create_datasetseries_for_dataset(dataset_info)
-            )
+            datasetseries_object, datasetseries_id = self._create_datasetseries_for_dataset(
+                dataset_info)
 
             # Add to harvest objects list
             self._harvest_objects.append(datasetseries_object)
 
             # Update the corresponding dataset to reference this datasetseries
             for harvest_obj in self._harvest_objects:
-                if (
-                    harvest_obj.concept_type == "dataset"
-                    and harvest_obj.guid == dataset_info["dataset_guid"]
-                ):
+                if harvest_obj.concept_type == "dataset" and harvest_obj.guid == dataset_info["dataset_guid"]:
                     # Update the dataset's content to include the biobank reference
                     dataset_dict = json.loads(harvest_obj.content)
                     dataset_dict["in_series"] = datasetseries_id
@@ -290,8 +273,7 @@ class DCATRDFHarvester(DCATHarvester):
                     break
 
         log.info(
-            f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries"
-        )
+            f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries")
 
     def import_stage(self, harvest_object: HarvestObject):
         """
@@ -314,8 +296,7 @@ class DCATRDFHarvester(DCATHarvester):
             dataset = json.loads(harvest_object.content)
         except ValueError:
             log.error(
-                f"import_stage: Could not parse content for object {harvest_object.guid}"
-            )
+                f"import_stage: Could not parse content for object {harvest_object.guid}")
             return False
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
@@ -372,6 +353,7 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             existing_records = self.molgenis_client.get(
                 table="collections",
+                # The client library is responsible for quoting the value, so we don't quote it here.
                 query_filter=f"other_identifier.notation == {other_identifier_notation}",
             )
             if not existing_records:
@@ -381,8 +363,7 @@ class DCATRDFHarvester(DCATHarvester):
             return (existing_records[0].get("id"), existing_agency == agency)
         except Exception as e:
             log.exception(
-                f"Error checking previous import for dataset {dataset.get('title')}: {e!r}"
-            )
+                f"Error checking previous import for dataset {dataset.get('title')}: {e!r}")
             return (None, False)
 
     def _upsert_collections(
@@ -393,8 +374,7 @@ class DCATRDFHarvester(DCATHarvester):
         other_identifier_notation: str,
     ) -> bool:
         (existing_id, same_agency) = self._check_previous_import(
-            dataset, agency, other_identifier_notation
-        )
+            dataset, agency, other_identifier_notation)
         if existing_id:
             if same_agency:
                 log.info(
@@ -403,8 +383,7 @@ class DCATRDFHarvester(DCATHarvester):
                 log.info(f"Updating dataset '{dataset_name}'")
             else:
                 log.warning(
-                    f"Dataset '{dataset_name}' already exists with a different agency. Skipping update."
-                )
+                    f"Dataset '{dataset_name}' already exists with a different agency. Skipping update.")
                 return False
         else:
             log.info(f"Adding dataset '{dataset_name}'")
@@ -413,9 +392,7 @@ class DCATRDFHarvester(DCATHarvester):
         self.molgenis_client.save_table(table="collections", data=[dataset])
         return True
 
-    def _upsert_table(
-        self, dataset: dict, status: str, entity_name: str, dataset_name: str
-    ) -> bool:
+    def _upsert_table(self, dataset: dict, status: str, entity_name: str, dataset_name: str) -> bool:
         if status == "new":
             log.info(f"Adding dataset '{dataset_name}'")
         else:  # status == "change"

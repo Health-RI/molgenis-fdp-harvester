@@ -217,7 +217,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def handle_pids(self, dataset_dict: dict):
         original_identifier = dataset_dict.get("identifier")
         if not original_identifier or not str(original_identifier).strip():
-            raise ValueError("dataset_dict is missing a non-empty 'identifier'")
+            raise ValueError(
+                "dataset_dict is missing a non-empty 'identifier'")
 
         pid_service_url = self.config.get("pid_service_url")
         if not pid_service_url or not str(pid_service_url).strip():
@@ -250,7 +251,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             dataset_dict, "provenance"
         )
         return self._extract_datasetseries_id(dataset_dict)
-
 
     def parse_datasetseries(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
