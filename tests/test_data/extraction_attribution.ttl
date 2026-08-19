@@ -1,0 +1,17 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix pubtype: <http://purl.org/adms/publishertype/> .
+@prefix cirole: <http://registry.it.csiro.au/def/isotc211/CI_RoleCode/> .
+
+<http://example.com/attribution1> a prov:Attribution ;
+    prov:agent <http://example.com/attribution_agent1> ;
+    dcat:hadRole cirole:author .
+
+<http://example.com/attribution_agent1> a foaf:Agent ;
+    foaf:name "Attribution Agent" ;
+    dct:description "An attributed agent" ;
+    dct:type pubtype:Academia-ScientificOrganisation ;
+    foaf:mbox <mailto:agent@example.com> ;
+    foaf:homepage <https://agent.example.com> .

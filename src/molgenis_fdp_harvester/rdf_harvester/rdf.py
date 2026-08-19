@@ -77,16 +77,14 @@ class DCATRDFHarvester(DCATHarvester):
         # Create harvest objects
         self._create_harvest_objects()
 
-        log.info(
-            f"Gathered {len(self._harvest_objects)} objects for harvesting")
+        log.info(f"Gathered {len(self._harvest_objects)} objects for harvesting")
 
     def _load_rdf_content(self, harvest_root_uri):
         """Load RDF content from the source URI."""
         try:
             self._get_rdf(harvest_root_uri)
         except Exception as e:
-            raise HarvesterException(
-                f"Failed to load RDF from {harvest_root_uri}: {e}") from e
+            raise HarvesterException(f"Failed to load RDF from {harvest_root_uri}: {e}") from e
 
     def _extract_concepts_from_rdf(self):
         """Extract all concept types from the parsed RDF."""
@@ -113,12 +111,10 @@ class DCATRDFHarvester(DCATHarvester):
             entity_name = self.concept_table_link[concept_type]
             try:
                 existing_ids = self.molgenis_client.get(entity_name)
-                self.guids_in_db[concept_type] = [x["id"]
-                                                  for x in existing_ids]
+                self.guids_in_db[concept_type] = [x["id"] for x in existing_ids]
             except Exception as e:
                 log.exception(
-                    "fetch_stage: Error getting list of uids "
-                    f"{entity_name!s}: {e!r} / {traceback.format_exc()!s}"
+                    f"fetch_stage: Error getting list of uids {entity_name!s}: {e!r} / {traceback.format_exc()!s}"
                 )
                 self.guids_in_db[concept_type] = []
 
@@ -128,8 +124,7 @@ class DCATRDFHarvester(DCATHarvester):
             guids_in_harvest = set(self.guids_in_harvest[concept_type])
             if guids_in_harvest:
                 for guid in guids_in_harvest:
-                    self._harvest_objects.append(HarvestObject(
-                        guid=guid, status="new", concept_type=concept_type))
+                    self._harvest_objects.append(HarvestObject(guid=guid, status="new", concept_type=concept_type))
 
         return self._harvest_objects
 
@@ -144,8 +139,7 @@ class DCATRDFHarvester(DCATHarvester):
 
     def fetch_stage(self, harvest_object: HarvestObject):
         concept_type = harvest_object.concept_type
-        concept_dict = self.parser.get_concept(
-            URIRef(harvest_object.guid), concept_type)
+        concept_dict = self.parser.get_concept(URIRef(harvest_object.guid), concept_type)
 
         # Ensure required fields
         if not concept_dict.get("name"):
@@ -158,15 +152,13 @@ class DCATRDFHarvester(DCATHarvester):
         # query, and query Molgenis to get the name attached to the
         # ontologyTermURI. The table to query is configured in the
         # configuration.
-        uri_lookup_table = self.harvester_config.get(
-            "uri_lookup_config", {}).get(concept_type)
+        uri_lookup_table = self.harvester_config.get("uri_lookup_config", {}).get(concept_type)
         if uri_lookup_table:
             for property, value in concept_dict.items():
                 molgenis_table = uri_lookup_table.get(property)
                 if molgenis_table:
                     try:
-                        new_property_value = self._resolve_uris_and_labels(
-                            value, molgenis_table)
+                        new_property_value = self._resolve_uris_and_labels(value, molgenis_table)
                         if new_property_value:
                             concept_dict[property] = new_property_value
                     except Exception as exc:
@@ -242,8 +234,7 @@ class DCATRDFHarvester(DCATHarvester):
         # Use a synthetic GUID based on the dataset GUID
         datasetseries_guid = f"{dataset_info['dataset_guid']}_datasetseries"
 
-        datasetseries_object = HarvestObject(
-            guid=datasetseries_guid, status="new", concept_type="datasetseries")
+        datasetseries_object = HarvestObject(guid=datasetseries_guid, status="new", concept_type="datasetseries")
         datasetseries_object.content = json.dumps(datasetseries_dict)
 
         return datasetseries_object, datasetseries_id
@@ -253,14 +244,12 @@ class DCATRDFHarvester(DCATHarvester):
         if not self._datasets_without_datasetseries:
             return
 
-        log.info(
-            f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them")
+        log.info(f"Auto-generating {len(self._datasets_without_datasetseries)} datasetseries for datasets without them")
 
         # Create datasetseries objects and update corresponding datasets
         for dataset_info in self._datasets_without_datasetseries:
             # Create the datasetseries HarvestObject
-            datasetseries_object, datasetseries_id = self._create_datasetseries_for_dataset(
-                dataset_info)
+            datasetseries_object, datasetseries_id = self._create_datasetseries_for_dataset(dataset_info)
 
             # Add to harvest objects list
             self._harvest_objects.append(datasetseries_object)
@@ -274,8 +263,7 @@ class DCATRDFHarvester(DCATHarvester):
                     harvest_obj.content = json.dumps(dataset_dict)
                     break
 
-        log.info(
-            f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries")
+        log.info(f"Successfully created {len(self._datasets_without_datasetseries)} auto-generated datasetseries")
 
     def import_stage(self, harvest_object: HarvestObject):
         """
@@ -285,20 +273,17 @@ class DCATRDFHarvester(DCATHarvester):
 
         status = harvest_object.status
         if status == "delete":
-            log.warning(
-                "import_stage: deleting datasets is currently not supported")
+            log.warning("import_stage: deleting datasets is currently not supported")
             return True
 
         if harvest_object.content is None:
-            log.error(
-                f"import_stage: Empty content for object {harvest_object.guid}")
+            log.error(f"import_stage: Empty content for object {harvest_object.guid}")
             return False
 
         try:
             dataset = json.loads(harvest_object.content)
         except ValueError:
-            log.error(
-                f"import_stage: Could not parse content for object {harvest_object.guid}")
+            log.error(f"import_stage: Could not parse content for object {harvest_object.guid}")
             return False
 
         entity_name = self.concept_table_link[harvest_object.concept_type]
@@ -312,23 +297,20 @@ class DCATRDFHarvester(DCATHarvester):
                 log.info(f"Updating dataset {dataset_name}")
             self.molgenis_client.save_table(table=entity_name, data=[dataset])
             return True
-        except Exception as e:
-            log.error(
-                f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}")
+        except Exception:
+            log.exception(f"import_stage: Error importing dataset {dataset_name}")
             return False
 
     def _get_rdf(self, harvest_root_uri):
         next_page_url = harvest_root_uri
         rdf_format = None
 
-        content, rdf_format = self._get_content_and_type(
-            next_page_url, 1, content_type=rdf_format)
+        content, rdf_format = self._get_content_and_type(next_page_url, 1, content_type=rdf_format)
 
         try:
             self.parser.parse(content, _format=rdf_format)
         except HarvesterException as e:
-            self._save_gather_error(
-                f"Error parsing the RDF file: {e}", next_page_url)
+            self._save_gather_error(f"Error parsing the RDF file: {e}", next_page_url)
 
     def _get_dict_value(self, _dict, key, default=None):
         """
