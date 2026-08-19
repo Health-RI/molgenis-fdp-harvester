@@ -14,7 +14,7 @@ from molgenis_fdp_harvester.fdp_harvester.domain.fair_data_point_record_provider
 TEST_DATA_DIRECTORY = Path("tests/test_data")
 
 
-def get_graph_by_id(*args, **kwargs):
+def get_graph_by_id(*args):
     file_id = args[0]
     file_id = "_".join(file_id.split("/")[-2:])
     path_to_file = Path(TEST_DATA_DIRECTORY, f"{file_id}.ttl")

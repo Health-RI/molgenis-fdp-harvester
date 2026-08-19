@@ -32,6 +32,7 @@ HEALTHDCATAP = Namespace("http://healthdataportal.eu/ns/health#")
 LDP = Namespace("http://www.w3.org/ns/ldp#")
 DPV = Namespace("https://w3id.org/dpv#")
 HYDRA = Namespace("http://www.w3.org/ns/hydra/core#")
+ODRL = Namespace("http://www.w3.org/ns/odrl/2/")
 
 namespaces = {
     "dct": DCT,
@@ -50,6 +51,7 @@ namespaces = {
     "ldp": LDP,
     "dpv": DPV,
     "hydra": HYDRA,
+    "odrl": ODRL,
 }
 
 PREFIX_MAILTO = "mailto:"
@@ -225,7 +227,7 @@ class RDFProfile:
 
     # Public methods for profiles to implement
 
-    def parse_dataset(self, dataset_dict, dataset_ref):
+    def parse_dataset(self, dataset_dict):
         """
         Creates a CKAN dataset dict from the RDF graph
 

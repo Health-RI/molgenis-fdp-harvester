@@ -1,0 +1,18 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.com/series_full2> a dcat:DatasetSeries ;
+    dct:identifier <https://pid.example.com/series-pid-001> ;
+    dct:title "Series With PID And Contact" ;
+    dcat:contactPoint <http://example.com/series_full2/contact> ;
+    dct:temporal <http://example.com/series_full2/temporal> .
+
+<http://example.com/series_full2/contact> a vcard:Kind ;
+    vcard:fn "Series Contact Person" ;
+    vcard:hasEmail <mailto:series.contact@example.com> .
+
+<http://example.com/series_full2/temporal> a dct:PeriodOfTime ;
+    dcat:startDate "2015-01-01T00:00:00"^^xsd:dateTime ;
+    dcat:endDate "2019-12-31T00:00:00"^^xsd:dateTime .

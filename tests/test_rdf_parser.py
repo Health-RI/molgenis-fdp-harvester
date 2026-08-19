@@ -91,13 +91,11 @@ def test_datasets_generator(parser, dataset1_data, dataset2_data):
         assert dataset["concept_type"] == "dataset"
 
     # Verify specific dataset content
-    gryffindor = next(
-        d for d in dataset_dicts if d["title"] == "Gryffindor research project")
+    gryffindor = next(d for d in dataset_dicts if d["title"] == "Gryffindor research project")
     assert gryffindor["uri"] == "http://example.com/dataset1"
     assert gryffindor["description"] == "Impact of muggle technical inventions on word's magic presense"
 
-    slytherin = next(
-        d for d in dataset_dicts if d["title"] == "Slytherin research project")
+    slytherin = next(d for d in dataset_dicts if d["title"] == "Slytherin research project")
     assert slytherin["uri"] == "http://example.com/dataset2"
     assert slytherin["description"] == "Comarative analysis of magic powers of muggle-born and blood wizards "
 

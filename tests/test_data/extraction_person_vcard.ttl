@@ -5,4 +5,4 @@
 <http://example.com/person_vcard> a vcard:Kind ;
     dct:identifier "person-vcard-001" ;
     vcard:fn "Dr. Sarah Johnson" ;
-    vcard:hasEmail "mailto:sarah.johnson@example.org" .
+    vcard:hasEmail <mailto:sarah.johnson@example.org> .

@@ -112,7 +112,7 @@ class RDFParser(RDFProcessor):
                 return str(o)
         return None
 
-    def parse(self, data=None, _format=None, source=None):
+    def parse(self, data=None, _format=None):
         """
         Parses and RDF graph serialization and into the class graph
 

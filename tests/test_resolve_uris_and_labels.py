@@ -28,7 +28,7 @@ def test_resolve_uris_and_labels_list_all_values_found(harvester):
         "http://publications.europa.eu/resource/authority/country/DEU",
     ]
 
-    def mock_resolve_uri(value, table):
+    def mock_resolve_uri(value, _table):
         uri_to_name = {
             "http://publications.europa.eu/resource/authority/country/NLD": [{"name": "NLD"}],
             "http://publications.europa.eu/resource/authority/country/ESP": [{"name": "ESP"}],
@@ -53,7 +53,7 @@ def test_resolve_uris_and_labels_list_some_values_found(harvester):
         "http://publications.europa.eu/resource/authority/country/DEU",
     ]
 
-    def mock_resolve_uri(value, table):
+    def mock_resolve_uri(value, _table):
         uri_to_name = {
             "http://publications.europa.eu/resource/authority/country/NLD": [{"name": "NLD"}],
             "http://publications.europa.eu/resource/authority/country/DEU": [{"name": "DEU"}],
