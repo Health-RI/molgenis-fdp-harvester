@@ -14,7 +14,7 @@ ENV UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=0
 
 # Bring in uv binary from official image
-COPY --from=ghcr.io/astral-sh/uv:0.11.32 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /uvx /bin/
 
 # Step A: Install dependencies FIRST (Layer Caching)
 COPY pyproject.toml uv.lock README.md ./
