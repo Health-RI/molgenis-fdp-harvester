@@ -347,7 +347,13 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         molgenis_id = str(uuid.uuid4())
 
         dataset_dict["id"] = molgenis_id
-        dataset_dict["other_identifier"] = original_identifier
+        other_identifier = dataset_dict.get("other_identifier")
+        if not other_identifier:
+            dataset_dict["other_identifier"] = original_identifier
+        elif isinstance(other_identifier, list):
+            dataset_dict["other_identifier"] = [*other_identifier, original_identifier]
+        else:
+            dataset_dict["other_identifier"] = [other_identifier, original_identifier]
         dataset_dict["identifier"] = f"{pid_service_url}/{molgenis_id}"
 
         return dataset_dict

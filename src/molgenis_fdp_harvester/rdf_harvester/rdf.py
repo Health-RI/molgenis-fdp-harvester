@@ -308,7 +308,7 @@ class DCATRDFHarvester(DCATHarvester):
                     dataset_name=dataset_name,
                 )
         except Exception as e:
-            log.error(f"import_stage: Error importing dataset {dataset_name}: {e!r} / {traceback.format_exc()}")
+            log.exception(f"import_stage: Error importing dataset {dataset_name}: {e!r}")
             return False
 
         return bool(success)

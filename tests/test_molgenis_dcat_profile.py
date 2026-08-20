@@ -132,6 +132,24 @@ def test_handle_pids_no_pid(profile):
     assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
+def test_handle_pids_appends_to_existing_other_identifier_list(profile):
+    """Append the original identifier to an existing other_identifier list."""
+    dataset_dict = {"identifier": "mydata", "other_identifier": ["existing-1", "existing-2"]}
+
+    result = profile.handle_pids(dataset_dict)
+
+    assert result["other_identifier"] == ["existing-1", "existing-2", "mydata"]
+
+
+def test_handle_pids_converts_existing_other_identifier_to_list(profile):
+    """Convert a scalar other_identifier to a list before appending the original identifier."""
+    dataset_dict = {"identifier": "mydata", "other_identifier": "existing-1"}
+
+    result = profile.handle_pids(dataset_dict)
+
+    assert result["other_identifier"] == ["existing-1", "mydata"]
+
+
 def test_handle_pids_external_pid(profile):
     """External URL identifier: original moves to other_identifier, id/identifier are generated."""
     dataset_dict = {"identifier": "https://other.pid/dataset/abc"}

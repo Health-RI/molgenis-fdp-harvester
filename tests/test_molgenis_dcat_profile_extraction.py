@@ -1018,7 +1018,7 @@ def _parse_wired_dataset():
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataset_wired_fields.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
-    profile.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
+    profile.config = {"pid_service_url": "https://pid.example.com"}
     dataset_ref = URIRef("http://example.com/dataset_wired")
     return profile.parse_dataset({}, dataset_ref)
 
@@ -1063,10 +1063,11 @@ def test_parse_dataset_qualifiedattribution_wired():
 
 
 def test_parse_dataset_other_identifier_wired():
-    """parse_dataset should resolve 'other_identifier' into a parsed adms:Identifier dict."""
+    """parse_dataset should preserve both the parsed and original identifiers."""
     result = _parse_wired_dataset()
 
-    assert result["other_identifier"]["notation"] == "WIRED-001"
+    assert result["other_identifier"][0]["notation"] == "WIRED-001"
+    assert result["other_identifier"][1] == "dataset-wired-001"
 
 
 def test_parse_dataset_legalbasis_wired_as_object():
