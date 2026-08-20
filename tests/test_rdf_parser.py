@@ -196,3 +196,20 @@ def test_get_concept_provenancestatement(parser):
 
     assert concept["uri"] == "http://example.com/prov1"
     assert concept["label"] == "Data collected from hospital records"
+
+
+def test_supplementary_class_reference_id_is_shared_across_calls(parser):
+    """A dataset's reference to supplementary classes (publisher, contactPoint, provenance)
+    resolves to the same internal UUID that the classes themselves are assigned, since all
+    are resolved through the same, parser-scoped profile instance."""
+    with Path("tests/test_data/extraction_dataset_integration.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    [publisher] = list(parser.publisher())
+    [kind] = list(parser.kind())
+    [provenancestatement] = list(parser.provenancestatement())
+    [dataset] = list(parser.datasets())
+
+    assert dataset["publisher"] == publisher["id"]
+    assert dataset["contactPoint"] == kind["id"]
+    assert dataset["provenance"] == provenancestatement["id"]
