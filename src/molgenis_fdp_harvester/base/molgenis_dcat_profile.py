@@ -7,13 +7,15 @@
 # Original location of file: https://raw.githubusercontent.com/ckan/ckanext-dcat/master/ckanext/dcat/profiles/euro_dcat_ap.py
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
-from .baseparser import ADMS, DCAT, DCATAP, DCT, DPV, EUCAIM, HEALTHDCATAP, ODRL, SKOS, SPDX, VCARD, RDFProfile
-from .baseharvester import munge_title_to_name
-from molgenis_fdp_harvester.utils import HarvesterException
-from rdflib import FOAF, PROV, RDF, RDFS, URIRef
-from urllib.parse import urlparse
 import logging
 import uuid
+
+from rdflib import FOAF, PROV, RDF, RDFS, URIRef
+
+from molgenis_fdp_harvester.utils import HarvesterException
+
+from .baseharvester import munge_title_to_name
+from .baseparser import ADMS, DCAT, DCATAP, DCT, DPV, EUCAIM, HEALTHDCATAP, ODRL, SKOS, SPDX, VCARD, RDFProfile
 
 log = logging.getLogger(__name__)
 
