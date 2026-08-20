@@ -44,8 +44,7 @@ class FDPHarvester(DCATRDFHarvester):
                 log.info("Got identifier %s from RecordProvider", identifier)
 
                 try:
-                    self.guids_in_harvest[concept_type].append(
-                        Identifier(identifier).get_id_value())
+                    self.guids_in_harvest[concept_type].append(Identifier(identifier).get_id_value())
                 except Exception as e:
                     self._save_gather_error(
                         f"Error for identifier {identifier} in gather phase: {e}",

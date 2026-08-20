@@ -110,7 +110,7 @@ class DCATHarvester(HarvesterBase):
             self._save_gather_error(msg)
             return None, None
 
-    def _get_object_extra(self, harvest_object, key):
+    def _get_object_extra(self):
         """
         Helper function for retrieving the value from a harvest object extra,
         given the key
@@ -151,7 +151,7 @@ class DCATHarvester(HarvesterBase):
 
     # Start hooks
 
-    def modify_package_dict(self, package_dict, dcat_dict, harvest_object):
+    def modify_package_dict(self, package_dict):
         """
         Allows custom harvesters to modify the package dict before
         creating or updating the actual package.

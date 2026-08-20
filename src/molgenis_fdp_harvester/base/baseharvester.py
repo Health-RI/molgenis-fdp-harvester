@@ -188,7 +188,7 @@ class HarvesterBase:
         """
         log.warning("_get_user_name: stubbed")
 
-    def _create_harvest_objects(self, remote_ids, harvest_job):
+    def _create_harvest_objects(self):
         """
         Given a list of remote ids and a Harvest Job, create as many Harvest Objects and
         return a list of their ids to be passed to the fetch stage.
@@ -197,7 +197,7 @@ class HarvesterBase:
         """
         log.warning("_create_harvest_objects: stubbed")
 
-    def _create_or_update_package(self, package_dict, harvest_object, package_dict_form="rest"):
+    def _create_or_update_package(self):
         """
         Creates a new package or updates an existing one according to the
         package dictionary provided.

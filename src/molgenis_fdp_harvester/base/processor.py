@@ -60,6 +60,27 @@ class RDFParser(RDFProcessor):
     def __init__(self, profiles: list):
         super().__init__()
         self._profiles = profiles
+        self._profile_instances = None
+
+    def _get_profile_instances(self):
+        """Build one instance per profile class and reuse it for the parser's lifetime.
+
+        Profiles are stateful for the duration of a harvest run: they cache the
+        UUIDv4s assigned to supplementary classes (e.g. Agents) so that the same
+        RDF resource resolves to the same internal ID everywhere it is referenced.
+        Instances are created lazily so they capture the graph after parsing
+        (self.g is replaced by its skolemized copy in parse()).
+
+        This assumes every parse() call happens before this method is first
+        called, i.e. before any of datasets()/kind()/publisher()/etc. are used
+        - both DCATRDFHarvester and FDPHarvester satisfy this. Calling parse()
+        again afterwards would leave the cached instances pointing at a stale
+        graph. Harvesting is single-threaded; this cache is not safe for
+        concurrent access.
+        """
+        if self._profile_instances is None:
+            self._profile_instances = [profile_class(self.g) for profile_class in self._profiles]
+        return self._profile_instances
 
     # FIXME The FDP harvester should do this from catalog root.
     def _datasets(self):
@@ -112,7 +133,7 @@ class RDFParser(RDFProcessor):
                 return str(o)
         return None
 
-    def parse(self, data=None, _format=None, source=None):
+    def parse(self, data=None, _format=None):
         """
         Parses and RDF graph serialization and into the class graph
 
@@ -167,8 +188,7 @@ class RDFParser(RDFProcessor):
         """
         for dataset_ref in self._datasets():
             dataset_dict = {}
-            for profile_class in self._profiles:
-                profile = profile_class(self.g)
+            for profile in self._get_profile_instances():
                 profile.parse_dataset(dataset_dict, dataset_ref)
 
             dataset_dict["concept_type"] = "dataset"
@@ -187,8 +207,7 @@ class RDFParser(RDFProcessor):
         """
         for dataset_ref in self._datasetseries():
             dataset_dict = {}
-            for profile_class in self._profiles:
-                profile = profile_class(self.g)
+            for profile in self._get_profile_instances():
                 profile.parse_datasetseries(dataset_dict, dataset_ref)
 
             dataset_dict["concept_type"] = "datasetseries"
@@ -207,8 +226,7 @@ class RDFParser(RDFProcessor):
         """
         for dataset_ref in self._publisher():
             dataset_dict = {}
-            for profile_class in self._profiles:
-                profile = profile_class(self.g)
+            for profile in self._get_profile_instances():
                 profile.parse_publisher(dataset_dict, dataset_ref)
 
             dataset_dict["concept_type"] = "publisher"
@@ -227,8 +245,7 @@ class RDFParser(RDFProcessor):
         """
         for dataset_ref in self._kind():
             dataset_dict = {}
-            for profile_class in self._profiles:
-                profile = profile_class(self.g)
+            for profile in self._get_profile_instances():
                 profile.parse_kind(dataset_dict, dataset_ref)
 
             dataset_dict["concept_type"] = "kind"
@@ -247,8 +264,7 @@ class RDFParser(RDFProcessor):
         """
         for dataset_ref in self._provenancestatement():
             dataset_dict = {}
-            for profile_class in self._profiles:
-                profile = profile_class(self.g)
+            for profile in self._get_profile_instances():
                 profile.parse_provenancestatement(dataset_dict, dataset_ref)
 
             dataset_dict["concept_type"] = "provenancestatement"
@@ -257,8 +273,7 @@ class RDFParser(RDFProcessor):
 
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
-        for profile_class in self._profiles:
-            profile = profile_class(self.g)
+        for profile in self._get_profile_instances():
             if concept_type == "publisher":
                 profile.parse_publisher(concept_dict, uri_ref)
             elif concept_type == "kind":

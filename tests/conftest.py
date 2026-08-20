@@ -80,6 +80,14 @@ def graph_vcard_missing():
 
 
 @pytest.fixture
+def graph_vcard_no_fn():
+    """Load RDF graph with two VCARD.Kind resources, both missing vcard:fn."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_vcard_no_fn.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
 def graph_foaf_person():
     """Load RDF graph with FOAF Person."""
     g = rdflib.Dataset()
@@ -96,6 +104,22 @@ def graph_foaf_wrong_type():
 
 
 @pytest.fixture
+def graph_foaf_organization_no_name():
+    """Load RDF graph with two FOAF.Organization resources, both missing foaf:name."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_foaf_organization_no_name.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
+def graph_provenancestatement_no_label():
+    """Load RDF graph with two ProvenanceStatement resources, both missing rdfs:label."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_provenancestatement_no_label.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
 def graph_date_range():
     """Load RDF graph with date range."""
     g = rdflib.Dataset()
@@ -108,6 +132,22 @@ def graph_date_range_missing():
     """Load RDF graph without date range."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_date_range_missing.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
+def graph_date_range_start_only():
+    """Load RDF graph with only startDate set on the PeriodOfTime."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_date_range_start_only.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
+def graph_date_range_end_only():
+    """Load RDF graph with only endDate set on the PeriodOfTime."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_date_range_end_only.ttl", format="turtle")
     return g
 
 

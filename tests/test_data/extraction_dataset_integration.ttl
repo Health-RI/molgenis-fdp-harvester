@@ -3,6 +3,7 @@
 @prefix foaf: <http://xmlns.com/foaf/0.1/> .
 @prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <http://example.com/dataset_full> a dcat:Dataset ;
@@ -12,18 +13,23 @@
     dct:publisher <http://example.com/provider_org> ;
     dcat:contactPoint <http://example.com/contact_full> ;
     dcat:inSeries <http://example.com/series_full> ;
+    dct:provenance <http://example.com/provenance_full> ;
     dct:temporal <http://example.com/period_full> .
+
+<http://example.com/provenance_full> a dct:ProvenanceStatement ;
+    rdfs:label "Collected for integration testing" .
 
 <http://example.com/provider_org> a foaf:Organization ;
     foaf:name "Test Organization" .
 
 <http://example.com/contact_full> a vcard:Kind ;
-    vcard:fn "Dr Jane Smith" .
+    vcard:fn "Dr Jane Smith" ;
+    vcard:hasEmail <mailto:jane.smith@example.com> .
 
 <http://example.com/series_full> a dcat:DatasetSeries ;
     dct:identifier "biobank-full" ;
     dct:title "Full Test Biobank" .
 
 <http://example.com/period_full> a dct:PeriodOfTime ;
-    dcat:startDate "2018-06-15"^^xsd:date ;
-    dcat:endDate "2024-08-30"^^xsd:date .
+    dcat:startDate "2018-06-15T00:00:00"^^xsd:dateTime ;
+    dcat:endDate "2024-08-30T00:00:00"^^xsd:dateTime .

@@ -1,0 +1,4 @@
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+
+<http://example.com/obligation_molgenis1> a odrl:Obligation ;
+    odrl:action odrl:attribute .

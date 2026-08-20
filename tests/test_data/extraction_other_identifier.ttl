@@ -1,0 +1,6 @@
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+
+<http://example.com/other_id1> a adms:Identifier ;
+    skos:notation "ABC-123" ;
+    adms:schemaAgency "Test Agency" .

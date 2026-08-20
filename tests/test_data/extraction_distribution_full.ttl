@@ -1,0 +1,62 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcatap: <http://data.europa.eu/r5r/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix spdx: <http://spdx.org/rdf/terms#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://example.com/distribution1> a dcat:Distribution ;
+    dct:title "Full Distribution" ;
+    dct:description "A comprehensive distribution for testing" ;
+    foaf:page <http://example.com/distribution1/docs> ;
+    dcat:accessURL <http://example.com/distribution1/access> ;
+    dcat:accessService <http://example.com/distribution1/service> ;
+    dcat:downloadURL <http://example.com/distribution1/download> ;
+    dcatap:availability <http://publications.europa.eu/resource/authority/planned-availability/AVAILABLE> ;
+    dcatap:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj> ;
+    dct:license <http://rdflicense.appspot.com/rdflicense/cc-by-nc-nd3.0> ;
+    dct:rights <http://example.com/distribution1/rights> ;
+    odrl:hasPolicy <http://example.com/distribution1/policy> ;
+    dct:format <http://publications.europa.eu/resource/authority/file-type/DICOM> ;
+    dcat:mediaType <https://www.iana.org/assignments/media-types/application/dicom> ;
+    dcat:compressFormat <https://www.iana.org/assignments/media-types/application/zip> ;
+    dcat:packageFormat <https://www.iana.org/assignments/media-types/application/x-tar> ;
+    dcat:byteSize "1024000"^^xsd:decimal ;
+    spdx:checksum <http://example.com/distribution1/checksum> ;
+    dcat:spatialResolutionInMeters "0.5"^^xsd:decimal ;
+    dcat:temporalResolution "P1D"^^xsd:duration ;
+    dct:conformsTo <http://example.com/standards/fhir> ;
+    dct:language <http://id.loc.gov/vocabulary/iso639-1/en> ;
+    adms:status <http://publications.europa.eu/resource/authority/distribution-status/COMPLETED> ;
+    dct:issued "2023-01-15T00:00:00"^^xsd:dateTime ;
+    dct:modified "2024-05-20T00:00:00"^^xsd:dateTime .
+
+<http://example.com/distribution1/rights> a dct:RightsStatement ;
+    rdfs:label "Access restricted to authorised researchers" .
+
+<http://example.com/distribution1/checksum> a spdx:Checksum ;
+    spdx:algorithm <http://spdx.org/rdf/terms#checksumAlgorithm_sha256> ;
+    spdx:checksumValue "abc123def456"^^xsd:hexBinary .
+
+<http://example.com/distribution1/policy> a odrl:Policy ;
+    odrl:permission <http://example.com/distribution1/policy/permission1> ;
+    odrl:prohibition <http://example.com/distribution1/policy/prohibition1> ;
+    odrl:obligation <http://example.com/distribution1/policy/obligation1> .
+
+<http://example.com/distribution1/policy/permission1> a odrl:Permission ;
+    odrl:action odrl:use .
+
+<http://example.com/distribution1/policy/prohibition1> a odrl:Prohibition ;
+    odrl:action odrl:distribute .
+
+<http://example.com/distribution1/policy/obligation1> a odrl:Duty ;
+    odrl:action odrl:attribute .
+
+<http://example.com/distribution1/service> a dcat:DataService ;
+    dct:title "Distribution Access Service" ;
+    dct:description "Data service providing programmatic access to the distribution" ;
+    dcat:endPointURL <http://example.com/distribution1/service/api> ;
+    dcat:endpointDescription <http://example.com/distribution1/service/openapi> .

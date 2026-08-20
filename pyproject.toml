@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 dependencies = [
-  "click~=8.3.1",
+  "click>=8.3.1,<8.5.0",
   "rdflib>=7.1.3,<7.7.0",
   "requests>=2.32.3,<2.35.0",
   "molgenis-emx2-pyclient>=11.57.0",
@@ -106,7 +106,7 @@ select = [
   "SLF", # flake8-self
   "RUF", # Ruff-specific rules
 ]
-ignore = ["SLF001", "G004", "PLR2004", "ERA001", "ARG002", "ARG001", "SIM117", "S105", "PT012"]
+ignore = ["SLF001", "G004", "PLR2004", "ERA001", "SIM117", "S105", "PT012"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [

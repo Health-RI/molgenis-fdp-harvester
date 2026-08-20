@@ -9,6 +9,7 @@ or by directly exporting the token to the working environment
 $ export MOLGENIS_TOKEN="..."
 The user creating this token requires editing permissions on the host schema.
 """
+
 import logging
 from pathlib import Path
 
@@ -55,8 +56,7 @@ def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
         if not fdp_url:
             continue
         fdp_id_prefix = entry.get("fdp_id_prefix")
-        prefix_value = None if fdp_id_prefix is None else str(
-            fdp_id_prefix).strip() or None
+        prefix_value = None if fdp_id_prefix is None else str(fdp_id_prefix).strip() or None
         entries.append((fdp_url, prefix_value))
     return entries
 
@@ -126,8 +126,7 @@ def cli(
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
-            raise click.ClickException(
-                f"FDP list file '{fdp_list}' contains no valid entries.")
+            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
     concept_type_order = {
@@ -223,8 +222,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
     harvester.generate_missing_datasetseries()
 
     # Sort by dependency order (now including auto-generated datasetseries)
-    harvester._harvest_objects.sort(
-        key=lambda obj: concept_type_order[obj.concept_type])
+    harvester._harvest_objects.sort(key=lambda obj: concept_type_order[obj.concept_type])
 
     # Import all objects in dependency order. A failing object never stops the rest.
     for harvest_object in harvester._harvest_objects:
