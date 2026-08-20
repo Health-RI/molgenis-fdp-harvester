@@ -16,6 +16,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  LOCAL_IMAGE_TAG: "localbuild:test"
 
 jobs:
   build-and-push:
@@ -23,12 +24,16 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write # Required to upload Trivy SARIF scan results to GitHub Security tab
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -37,27 +42,135 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve Docker image tag
-        id: resolve_tag
+      - name: Prepare Variables for Docker image building and scan
+        id: prep
         run: |
-          TAG="${{ github.event.inputs.tag }}"
-          if [ -z "$TAG" ]; then
-            TAG="${{ github.event.inputs.ref }}"
-          fi
-          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
+          # Determine the active ref (Input overrides default branch)
+          REF="${{ github.event.inputs.ref || github.ref_name }}"
+          
+          # Sanitize ref for Docker tags (lowercase, replace invalid chars)
+          CLEAN_REF=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]')
+          echo "clean_ref=$CLEAN_REF" >> "$GITHUB_OUTPUT"
+          
+          # Sanitize image name
+          IMAGE_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=$IMAGE_LOWER" >> "$GITHUB_OUTPUT"
+          
+          # Current Date for OCI Labels
+          echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_name }}
+          # Customize standard OCI manifest annotation
+          labels: |
+            org.opencontainers.image.title=molgenis-fdp-harvester
+            org.opencontainers.image.description=Harvests metadata and datasets from FAIR Data Points (FDP) and imports them into a MOLGENIS catalog.
+            org.opencontainers.image.authors=Health-RI
+            org.opencontainers.image.url=https://www.health-ri.nl
+            org.opencontainers.image.documentation=https://github.com/Health-RI/molgenis-fdp-harvester#readme
+            org.opencontainers.image.licenses=Apache-2.0
+          annotations: |
+            org.opencontainers.image.title=molgenis-fdp-harvester
+            org.opencontainers.image.description=Harvests metadata and datasets from FAIR Data Points (FDP) and imports them into a MOLGENIS catalog.
+            org.opencontainers.image.authors=Health-RI
+            org.opencontainers.image.url=https://www.health-ri.nl
+            org.opencontainers.image.documentation=https://github.com/Health-RI/molgenis-fdp-harvester#readme
+            org.opencontainers.image.licenses=Apache-2.0
           tags: |
-            type=raw,value=${{ steps.resolve_tag.outputs.image_tag }}
+            # RELEASE MODE (When 'tag' input is provided)
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+            type=raw,value=latest,enable=${{ inputs.tag != '' }}
+            
+            # DEV/PR MODE (When 'tag' is empty)
+            type=raw,value=${{ steps.prep.outputs.clean_ref }}-latest,enable=${{ inputs.tag == '' }}
+            type=sha,prefix=${{ steps.prep.outputs.clean_ref }}-,format=short,enable=${{ inputs.tag == '' }}
 
-      - name: Build and push Docker image
+      # Phase 1: Build to local daemon for scanning
+      - name: Build Docker image locally (trivy security scanner)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.LOCAL_IMAGE_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ inputs.tag || steps.prep.outputs.clean_ref }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.prep.outputs.build_date }}
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'image'
+          image-ref: ${{ env.LOCAL_IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: 'true'
+          hide-progress: 'true'
+          exit-code: '0'
+
+      - name: Summarize SARIF into step summary
+        run: |
+          echo "Checking for SARIF file..."
+          if [ -f trivy-results.sarif ]; then
+            if command -v jq >/dev/null 2>&1; then
+              jq -r '
+                def sev: (.properties.severity // .level // .baselineSeverity // "UNKNOWN");
+                {
+                  counts: ([.runs[].results[]? | sev] | group_by(.) | map({severity: .[0], count: length})),
+                  findings: ([.runs[].results[]? | {ruleId: ((.ruleId)//(.ruleIndex|tostring)//"n/a"), message: (.message.text // ""), severity: sev} ] | .[0:10])
+                }' trivy-results.sarif > sarif-summary.json
+
+              echo "### Trivy SARIF summary" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              cat sarif-summary.json >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            else
+              echo "jq not available; attaching raw SARIF (truncated)" >> $GITHUB_STEP_SUMMARY
+              echo '```json' >> $GITHUB_STEP_SUMMARY
+              head -c 2000 trivy-results.sarif >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ SARIF file NOT found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy'
+
+      - name: Fail on critical vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.LOCAL_IMAGE_TAG }}
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL'
+          ignore-unfixed: 'true'
+
+      # Phase 2: Push to Registry (Uses Docker Cache from Phase 1, takes seconds)
+      - name: Build and Push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ inputs.tag || steps.prep.outputs.clean_ref }}
+            VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ steps.prep.outputs.build_date }}
