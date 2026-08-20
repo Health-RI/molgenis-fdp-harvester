@@ -178,33 +178,6 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("in_series", DCAT.inSeries),
         )
 
-    def _extract_name_vcard(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self._object_value(uri_ref, VCARD.fn).lower().replace(" ", "")
-
-        return self._extract_and_transform_by_type(
-            dataset_dict, key, VCARD.Kind, extraction
-        )
-
-    def _extract_name_publisher(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self._object_value(uri_ref, FOAF.name).lower().replace(" ", "")
-
-        return self._extract_and_transform_by_type(
-            dataset_dict, key, FOAF.Organization, extraction
-        )
-
-    def _extract_provenancestatement_label(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            label_list = self._object_value(uri_ref, RDFS.label)
-            if not isinstance(label_list, list):
-                label_list = [label_list]
-            return generate_id(label_list)
-
-        return self._extract_and_transform_by_type(
-            dataset_dict, key, DCT.ProvenanceStatement, extraction
-        )
-
     def _extract_datasetseries_id(self, dataset_dict: dict):
         if dataset_dict.get("in_series"):
             original_value = URIRef(dataset_dict["in_series"])
