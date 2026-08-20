@@ -112,6 +112,22 @@ def graph_date_range_missing():
 
 
 @pytest.fixture
+def graph_date_range_start_only():
+    """Load RDF graph with only startDate set on the PeriodOfTime."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_date_range_start_only.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
+def graph_date_range_end_only():
+    """Load RDF graph with only endDate set on the PeriodOfTime."""
+    g = rdflib.Dataset()
+    g.parse("tests/test_data/extraction_date_range_end_only.ttl", format="turtle")
+    return g
+
+
+@pytest.fixture
 def graph_datasetseries_with_id():
     """Load RDF graph with DatasetSeries having identifier."""
     g = rdflib.Dataset()

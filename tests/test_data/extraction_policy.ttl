@@ -1,0 +1,15 @@
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+
+<http://example.com/policy1> a odrl:Policy ;
+    odrl:permission <http://example.com/policy1/permission1> ;
+    odrl:prohibition <http://example.com/policy1/prohibition1> ;
+    odrl:obligation <http://example.com/policy1/obligation1> .
+
+<http://example.com/policy1/permission1> a odrl:Permission ;
+    odrl:action odrl:use .
+
+<http://example.com/policy1/prohibition1> a odrl:Prohibition ;
+    odrl:action odrl:distribute .
+
+<http://example.com/policy1/obligation1> a odrl:Duty ;
+    odrl:action odrl:attribute .

@@ -1,0 +1,11 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+
+<http://example.com/creator_multi_1> a foaf:Agent ;
+    foaf:name "First Multi Creator" .
+
+<http://example.com/creator_multi_2> a foaf:Agent ;
+    foaf:name "Second Multi Creator" .
+
+<http://example.com/creator_multi_not_agent> a dct:ProvenanceStatement ;
+    dct:title "Not an Agent" .

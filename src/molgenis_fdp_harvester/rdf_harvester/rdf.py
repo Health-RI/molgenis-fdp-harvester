@@ -153,9 +153,10 @@ class DCATRDFHarvester(DCATHarvester):
         if not concept_dict.get("id"):
             concept_dict["id"] = munge_title_to_name(harvest_object.guid)
 
-        # In Concept dict, go through the properties, look up the table to query, query molgenis to get the name
-        # attached to the ontologyTermURI
-        # The table to query is configured in the configuration.
+        # In Concept dict, go through the properties, look up the table to
+        # query, and query Molgenis to get the name attached to the
+        # ontologyTermURI. The table to query is configured in the
+        # configuration.
         uri_lookup_table = self.harvester_config.get(
             "uri_lookup_config", {}).get(concept_type)
         if uri_lookup_table:

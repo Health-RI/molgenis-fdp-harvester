@@ -162,7 +162,7 @@ def test_import_stage_client_error(harvester, mock_client):
         result = harvester.import_stage(harvest_object)
 
         # Verify
-        mock_log.error.assert_called_once()
+        mock_log.exception.assert_called_once()
         assert not result
 
 
@@ -187,7 +187,7 @@ def test_import_stage_change_status(harvester, mock_client):
         assert result
 
 
-def test_import_stage_logs_adding_for_new(harvester, mock_client):
+def test_import_stage_logs_adding_for_new(harvester):
     """Test import_stage logs 'Adding dataset' for new status"""
     harvest_object = HarvestObject(
         guid="http://example.com/dataset1",
