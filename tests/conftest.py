@@ -16,7 +16,7 @@ def mock_client():
     return client
 
 
-TEST_HARVESTER_CONFIG = {'pid_service_url': 'https://pid.example.com'}
+TEST_HARVESTER_CONFIG = {"pid_service_url": "https://pid.example.com"}
 
 
 class _ConfiguredProfile(MolgenisEUCAIMDCATAPProfile):

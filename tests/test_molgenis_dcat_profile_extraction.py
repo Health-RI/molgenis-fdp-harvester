@@ -23,11 +23,9 @@ def test_resolve_reference_id_valid_vcard_contact(graph_vcard_contact):
     contact_uri = URIRef("http://example.com/contact1")
 
     dataset_dict = {"contact": str(contact_uri)}
-    result = profile._extract_and_transform_by_type(
-        dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
+    result = profile._extract_and_transform_by_type(dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
 
-    assert result["contact"] == profile._get_or_create_reference_id(
-        str(contact_uri))
+    assert result["contact"] == profile._get_or_create_reference_id(str(contact_uri))
 
 
 def test_resolve_reference_id_missing_key(graph_vcard_missing):
@@ -35,8 +33,7 @@ def test_resolve_reference_id_missing_key(graph_vcard_missing):
     profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_missing)
 
     dataset_dict = {}  # No contact key
-    result = profile._extract_and_transform_by_type(
-        dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
+    result = profile._extract_and_transform_by_type(dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
 
     # Should return unchanged dict without errors
     assert "contact" not in result
@@ -67,7 +64,7 @@ def test_extract_datasetseries_id_fallback_to_title(graph_datasetseries_no_id):
 def test_parse_dataset_integration(graph_dataset_integration):
     """Test full dataset parsing with multiple extraction functions."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_dataset_integration)
-    profile.config = {'pid_service_url': 'https://pid.example.com'}
+    profile.config = {"pid_service_url": "https://pid.example.com"}
     dataset_ref = URIRef("http://example.com/dataset_full")
 
     dataset_dict = {}
@@ -83,22 +80,19 @@ def test_parse_dataset_integration(graph_dataset_integration):
     assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
     # Verify the referenced VCARD contact was resolved to its assigned UUIDv4
-    assert result["contactPoint"] == profile._get_or_create_reference_id(
-        "http://example.com/contact_full")
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/contact_full")
     # raises ValueError if not a valid UUID
     parsed = uuid.UUID(result["contactPoint"])
     assert parsed.version == 4
 
     # Verify the referenced FOAF Organization publisher was resolved to its assigned UUIDv4
-    assert result["publisher"] == profile._get_or_create_reference_id(
-        "http://example.com/provider_org")
+    assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/provider_org")
     # raises ValueError if not a valid UUID
     parsed = uuid.UUID(result["publisher"])
     assert parsed.version == 4
 
     # Verify the referenced ProvenanceStatement was resolved to its assigned UUIDv4
-    assert result["provenance"] == profile._get_or_create_reference_id(
-        "http://example.com/provenance_full")
+    assert result["provenance"] == profile._get_or_create_reference_id("http://example.com/provenance_full")
     # raises ValueError if not a valid UUID
     parsed = uuid.UUID(result["provenance"])
     assert parsed.version == 4
@@ -116,8 +110,7 @@ def test_parse_kind(graph_vcard_contact):
 
     assert result["uri"] == "http://example.com/contact1"
     assert result["fn"] == "John Doe Contact"
-    assert result["id"] == profile._get_or_create_reference_id(
-        "http://example.com/contact1")
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/contact1")
     parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
     assert parsed.version == 4
 
@@ -163,8 +156,7 @@ def test_parse_publisher():
     assert result["description"] == "A test publishing organisation"
     assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
     assert result["homepage"] == "https://example.com"
-    assert result["id"] == profile._get_or_create_reference_id(
-        "http://example.com/org1")
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/org1")
     parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
     assert parsed.version == 4
 
@@ -201,8 +193,7 @@ def test_parse_provenancestatement():
 
     assert result["uri"] == "http://example.com/prov1"
     assert result["label"] == "Data collected from hospital records"
-    assert result["id"] == profile._get_or_create_reference_id(
-        "http://example.com/prov1")
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/prov1")
     parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
     assert parsed.version == 4
 
@@ -495,8 +486,7 @@ def test_extract_attribution_wrong_type_left_as_iri():
     g.parse("tests/test_data/extraction_attribution_wrong_type.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
 
-    dataset_dict = {
-        "qualifiedAttribution": "http://example.com/attribution_wrong"}
+    dataset_dict = {"qualifiedAttribution": "http://example.com/attribution_wrong"}
     result = profile._extract_attribution(dataset_dict, "qualifiedAttribution")
 
     assert result["qualifiedAttribution"] == "http://example.com/attribution_wrong"
@@ -543,8 +533,7 @@ def test_extract_other_identifier_valid():
     profile = MolgenisEUCAIMDCATAPProfile(g)
 
     dataset_dict = {"other_identifier": "http://example.com/other_id1"}
-    result = profile._extract_other_identifier(
-        dataset_dict, "other_identifier")
+    result = profile._extract_other_identifier(dataset_dict, "other_identifier")
 
     assert result["other_identifier"]["uri"] == "http://example.com/other_id1"
     assert result["other_identifier"]["notation"] == "ABC-123"
@@ -555,13 +544,11 @@ def test_extract_other_identifier_wrong_type_left_as_iri():
     """other_identifier pointing to a resource that is not an adms:Identifier should remain a
     plain IRI string."""
     g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_other_identifier_wrong_type.ttl",
-            format="turtle")
+    g.parse("tests/test_data/extraction_other_identifier_wrong_type.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
 
     dataset_dict = {"other_identifier": "http://example.com/other_id_wrong"}
-    result = profile._extract_other_identifier(
-        dataset_dict, "other_identifier")
+    result = profile._extract_other_identifier(dataset_dict, "other_identifier")
 
     assert result["other_identifier"] == "http://example.com/other_id_wrong"
 
@@ -802,8 +789,7 @@ def test_extract_obligation_accepts_molgenis_obligation_class():
     resolve resources typed either way, since we can't be sure which one Molgenis actually
     emits."""
     g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_obligation_molgenis_class.ttl",
-            format="turtle")
+    g.parse("tests/test_data/extraction_obligation_molgenis_class.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
 
     dataset_dict = {"obligation": "http://example.com/obligation_molgenis1"}
@@ -901,10 +887,8 @@ def test_parse_dataservice_fields():
     assert result["landingPage"] == "http://example.com/dataservice1/landing"
     assert result["conformsTo"] == "http://example.com/standards/fhir"
     assert result["keyword"] == "test"
-    assert result["contactPoint"] == profile._get_or_create_reference_id(
-        "http://example.com/dataservice1/contact")
-    assert result["publisher"] == profile._get_or_create_reference_id(
-        "http://example.com/dataservice1/publisher")
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/dataservice1/contact")
+    assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/dataservice1/publisher")
 
 
 def test_extract_legalbasis_valid():
@@ -1002,8 +986,7 @@ def test_parse_datasetseries_contactpoint_resolved_to_reference_id():
 
     result = profile.parse_datasetseries({}, series_ref)
 
-    assert result["contactPoint"] == profile._get_or_create_reference_id(
-        "http://example.com/series_full2/contact")
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/series_full2/contact")
 
 
 def test_parse_datasetseries_temporal_extracted_as_periodoftime():
@@ -1035,8 +1018,7 @@ def _parse_wired_dataset():
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataset_wired_fields.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
-    profile.config = {
-        "pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
+    profile.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
     dataset_ref = URIRef("http://example.com/dataset_wired")
     return profile.parse_dataset({}, dataset_ref)
 

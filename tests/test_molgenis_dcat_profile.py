@@ -28,7 +28,7 @@ def rdf_graph():
 @pytest.fixture
 def profile(rdf_graph):
     p = MolgenisEUCAIMDCATAPProfile(rdf_graph)
-    p.config = {'pid_service_url': 'https://pid.example.com'}
+    p.config = {"pid_service_url": "https://pid.example.com"}
     return p
 
 
@@ -63,11 +63,9 @@ def test_extract_concept_dict():
 
     # Test extraction
     concept_dict = {}
-    key_predicate_tuple = (("name", DCTERMS.title),
-                           ("description", DCTERMS.description), ("theme", DCAT.theme))
+    key_predicate_tuple = (("name", DCTERMS.title), ("description", DCTERMS.description), ("theme", DCAT.theme))
 
-    result = test_profile._extract_concept_dict(
-        test_uri, concept_dict, key_predicate_tuple)
+    result = test_profile._extract_concept_dict(test_uri, concept_dict, key_predicate_tuple)
 
     # Verify results
     assert result["name"] == "Test Title"
@@ -90,8 +88,7 @@ def test_extract_concept_dict_unwraps_single_item_list():
     concept_dict = {}
     key_predicate_tuple = (("name", DCTERMS.title),)
 
-    result = test_profile._extract_concept_dict(
-        test_uri, concept_dict, key_predicate_tuple)
+    result = test_profile._extract_concept_dict(test_uri, concept_dict, key_predicate_tuple)
 
     # Verify that the result is a string, not a list
     assert isinstance(result["name"], str)
@@ -106,8 +103,7 @@ def test_parse_datasetseries():
 
     series_g.add((series_uri, RDF.type, DCAT.DatasetSeries))
     series_g.add((series_uri, DCTERMS.title, Literal("Test Series")))
-    series_g.add((series_uri, DCTERMS.description,
-                 Literal("Series Description")))
+    series_g.add((series_uri, DCTERMS.description, Literal("Series Description")))
     series_g.add((series_uri, DCTERMS.publisher, Literal("Test Publisher")))
 
     # Create profile with series graph
@@ -129,44 +125,44 @@ def test_parse_datasetseries():
 
 def test_handle_pids_no_pid(profile):
     """Plain string identifier: original moves to other_identifier, id/identifier are generated."""
-    dataset_dict = {'identifier': 'mydata'}
+    dataset_dict = {"identifier": "mydata"}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['other_identifier'] == 'mydata'
-    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
+    assert result["other_identifier"] == "mydata"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
 def test_handle_pids_external_pid(profile):
     """External URL identifier: original moves to other_identifier, id/identifier are generated."""
-    dataset_dict = {'identifier': 'https://other.pid/dataset/abc'}
+    dataset_dict = {"identifier": "https://other.pid/dataset/abc"}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['other_identifier'] == 'https://other.pid/dataset/abc'
-    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
+    assert result["other_identifier"] == "https://other.pid/dataset/abc"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
 def test_handle_pids_generated_pid(profile):
     """Identifier is a previously-generated PID service URL: it still moves to other_identifier."""
-    pid_url = 'https://pid.example.com/testorg-mydata'
-    dataset_dict = {'identifier': pid_url}
+    pid_url = "https://pid.example.com/testorg-mydata"
+    dataset_dict = {"identifier": pid_url}
     result = profile.handle_pids(dataset_dict)
 
-    assert result['other_identifier'] == pid_url
-    assert result['identifier'] == f"https://pid.example.com/{result['id']}"
+    assert result["other_identifier"] == pid_url
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
 @pytest.mark.parametrize("identifier", [None, "", "   "])
 def test_handle_pids_rejects_empty_identifier(profile, identifier):
     with pytest.raises(ValueError, match="dataset_dict is missing a non-empty 'identifier'"):
-        profile.handle_pids({'identifier': identifier})
+        profile.handle_pids({"identifier": identifier})
 
 
 @pytest.mark.parametrize("pid_service_url", [None, "", "   "])
 def test_handle_pids_rejects_empty_pid_service_url(profile, pid_service_url):
-    profile.config = {'pid_service_url': pid_service_url}
+    profile.config = {"pid_service_url": pid_service_url}
 
     with pytest.raises(ValueError, match="pid_service_url is not configured"):
-        profile.handle_pids({'identifier': 'mydata'})
+        profile.handle_pids({"identifier": "mydata"})
 
 
 # --- reference id (UUID) tests ---

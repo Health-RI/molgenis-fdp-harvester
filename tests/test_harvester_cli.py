@@ -20,8 +20,13 @@ from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_lis
 def clean_cli_env(monkeypatch):
     """Ensure CLI-related env vars from the ambient shell/.env don't leak into tests."""
     for var in (
-        'MOLGENIS_TOKEN', 'MOLGENIS_HOST', 'MOLGENIS_SCHEMA', 'HARVEST_CONFIG',
-        'INPUT_TYPE', 'FDP_URL', 'FDP_LIST_PATH',
+        "MOLGENIS_TOKEN",
+        "MOLGENIS_HOST",
+        "MOLGENIS_SCHEMA",
+        "HARVEST_CONFIG",
+        "INPUT_TYPE",
+        "FDP_URL",
+        "FDP_LIST_PATH",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -144,8 +149,7 @@ def test_dotenv_token_explicit_override(base_cli_args, mock_harvester_patches, m
     monkeypatch.setenv("MOLGENIS_TOKEN", "test_token_from_env_file")
 
     # Invoke CLI with explicit --token parameter (should override environment)
-    result = runner.invoke(
-        cli, [*base_cli_args, "--schema", "Eucaim", "--token", "explicit_token_override"])
+    result = runner.invoke(cli, [*base_cli_args, "--schema", "Eucaim", "--token", "explicit_token_override"])
 
     # Verify command completed successfully
     assert result.exit_code == 0, f"CLI failed with: {result.output}"
@@ -254,11 +258,9 @@ def test_create_harvester_valid_types(input_type, expected_class, concept_table_
     """Test that create_harvester returns the correct harvester type for 'rdf' and 'fdp'"""
     mock_client = Mock(spec=Client)
 
-    harvester = create_harvester(
-        input_type, concept_table_dict, mock_client, harvester_config)
+    harvester = create_harvester(input_type, concept_table_dict, mock_client, harvester_config)
 
-    assert type(
-        harvester).__name__ == expected_class, f"Expected {expected_class}, got {type(harvester).__name__}"
+    assert type(harvester).__name__ == expected_class, f"Expected {expected_class}, got {type(harvester).__name__}"
 
 
 def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
@@ -266,8 +268,7 @@ def test_create_harvester_invalid_type(concept_table_dict, harvester_config):
     mock_client = Mock(spec=Client)
 
     with pytest.raises(ValueError, match="Unknown input_type"):
-        create_harvester("invalid", concept_table_dict,
-                         mock_client, harvester_config)
+        create_harvester("invalid", concept_table_dict, mock_client, harvester_config)
 
 
 # ---------------------------------------------------------------------------
@@ -384,44 +385,31 @@ def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monke
 def test_read_fdp_list(tmp_path):
     """read_fdp_list parses YAML entries and trims whitespace"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n"
-        "  - fdp_url: http://a.com\n"
-        "  - fdp_url: http://b.com\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: http://a.com\n  - fdp_url: http://b.com\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == ['http://a.com', 'http://b.com']
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_read_fdp_list_skips_blank_rows(tmp_path):
     """read_fdp_list skips entries without a URL"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n"
-        "  - fdp_url: http://a.com\n"
-        "  - fdp_url: ''\n"
-        "  - fdp_url: http://b.com\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: http://a.com\n  - fdp_url: ''\n  - fdp_url: http://b.com\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == ['http://a.com', 'http://b.com']
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_read_fdp_list_strips_whitespace(tmp_path):
     """read_fdp_list strips whitespace from URL values"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n"
-        "  - fdp_url: '  http://a.com  '\n"
-        "  - fdp_url: 'http://b.com'\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: '  http://a.com  '\n  - fdp_url: 'http://b.com'\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == ['http://a.com', 'http://b.com']
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
@@ -449,7 +437,6 @@ def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
         )
 
         assert result.exit_code != 0
-        assert "no valid entries" in result.output.lower(
-        ) or "no valid entries" in str(result.exception).lower()
+        assert "no valid entries" in result.output.lower() or "no valid entries" in str(result.exception).lower()
     finally:
         Path(yml_path).unlink()

@@ -183,11 +183,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             original_value = URIRef(dataset_dict["in_series"])
             retrieved_class = self._object_value(original_value, RDF.type)
             if any(val in [str(DCAT.DatasetSeries)] for val in retrieved_class):
-                dataset_dict["in_series"] = str(
-                    self._object_value(original_value, DCT.identifier))
+                dataset_dict["in_series"] = str(self._object_value(original_value, DCT.identifier))
                 if dataset_dict["in_series"] == "":
-                    dataset_dict["in_series"] = munge_title_to_name(
-                        str(self._object_value(original_value, DCT.title)))
+                    dataset_dict["in_series"] = munge_title_to_name(str(self._object_value(original_value, DCT.title)))
         return dataset_dict
 
     def _extract_creator(self, dataset_dict: dict, key: str):
@@ -289,10 +287,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             dataset_dict.pop("hasPurpose_obj", None)
             return dataset_dict
 
-        purpose_values = purpose_value if isinstance(
-            purpose_value, list) else [purpose_value]
-        purpose_objects, purpose_iris = self._split_purpose_values(
-            purpose_values)
+        purpose_values = purpose_value if isinstance(purpose_value, list) else [purpose_value]
+        purpose_objects, purpose_iris = self._split_purpose_values(purpose_values)
 
         self._set_or_pop_value(dataset_dict, "hasPurpose_obj", purpose_objects)
         self._set_or_pop_value(dataset_dict, "hasPurpose_IRI", purpose_iris)
@@ -341,8 +337,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     def handle_pids(self, dataset_dict: dict):
         original_identifier = dataset_dict.get("identifier")
         if not original_identifier or not str(original_identifier).strip():
-            raise ValueError(
-                "dataset_dict is missing a non-empty 'identifier'")
+            raise ValueError("dataset_dict is missing a non-empty 'identifier'")
 
         pid_service_url = self.config.get("pid_service_url")
         if not pid_service_url or not str(pid_service_url).strip():
@@ -363,8 +358,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         field_mappings = self._get_dataset_field_mappings()
 
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, field_mappings)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, field_mappings)
         dataset_dict = self.handle_pids(dataset_dict)
         dataset_dict = self._remove_default_language(dataset_dict)
         dataset_dict = self._extract_and_transform_by_type(
@@ -381,12 +375,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_legalbasis(dataset_dict, "hasLegalBasis")
         dataset_dict = self._extract_creator(dataset_dict, "creator")
         dataset_dict = self._extract_periodoftime(dataset_dict, "temporal")
-        dataset_dict = self._extract_periodoftime(
-            dataset_dict, "retentionPeriod")
-        dataset_dict = self._extract_attribution(
-            dataset_dict, "qualifiedAttribution")
-        dataset_dict = self._extract_other_identifier(
-            dataset_dict, "other_identifier")
+        dataset_dict = self._extract_periodoftime(dataset_dict, "retentionPeriod")
+        dataset_dict = self._extract_attribution(dataset_dict, "qualifiedAttribution")
+        dataset_dict = self._extract_other_identifier(dataset_dict, "other_identifier")
         dataset_dict = self._extract_distribution(dataset_dict, "sample")
         return self._extract_distribution(dataset_dict, "analytics")
 
@@ -405,8 +396,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("issued", DCT.issued),
             ("pid", DCT.identifier),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
         dataset_dict = self._extract_and_transform_by_type(
             dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
@@ -423,8 +413,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_publisher(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_dict["id"] = self._get_or_create_reference_id(
-            dataset_dict["uri"])
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         key_predicate_tuple = (
             ("name", FOAF.name),
             ("description", DCT.description),
@@ -433,11 +422,9 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("homepage", FOAF.homepage),
             ("phone", FOAF.phone),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         if "mbox" in dataset_dict:
-            dataset_dict["mbox"] = self._strip_mailto_prefix(
-                dataset_dict["mbox"])
+            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
     def _parse_agent_like(self, dataset_dict: dict, dataset_ref: URIRef):
@@ -450,20 +437,17 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("mbox", FOAF.mbox),
             ("homepage", FOAF.homepage),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         if "mbox" in dataset_dict:
-            dataset_dict["mbox"] = self._strip_mailto_prefix(
-                dataset_dict["mbox"])
+            dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
 
     def _parse_single_field_concept(self, dataset_dict: dict, dataset_ref: URIRef, field_name: str, predicate):
         """Shared body for concepts with a single field plus a generated id."""
         dataset_dict["uri"] = str(dataset_ref)
         key_predicate_tuple = ((field_name, predicate),)
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         return dataset_dict
 
@@ -475,18 +459,15 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_dict["id"] = self._get_or_create_reference_id(
-            dataset_dict["uri"])
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         key_predicate_tuple = (
             ("fn", VCARD.fn),
             ("hasEmail", VCARD.hasEmail),
             ("hasURL", VCARD.hasURL),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         if "hasEmail" in dataset_dict:
-            dataset_dict["hasEmail"] = self._strip_mailto_prefix(
-                dataset_dict["hasEmail"])
+            dataset_dict["hasEmail"] = self._strip_mailto_prefix(dataset_dict["hasEmail"])
         return dataset_dict
 
     def parse_distribution(self, dataset_dict: dict, dataset_ref: URIRef):
@@ -517,8 +498,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("hasPolicy", ODRL.hasPolicy),
             ("checksum", SPDX.checksum),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_policy(dataset_dict, "hasPolicy")
         dataset_dict = self._extract_checksum(dataset_dict, "checksum")
@@ -543,8 +523,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("theme", DCAT.theme),
             ("title", DCT.title),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_and_transform_by_type(
             dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
@@ -555,8 +534,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
-        dataset_dict["id"] = self._get_or_create_reference_id(
-            dataset_dict["uri"])
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         key_predicate_tuple = (("label", RDFS.label),)
         return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
@@ -577,18 +555,15 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("startDate", DCAT.startDate),
             ("endDate", DCAT.endDate),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
         start_date = dataset_dict.get("startDate")
         if start_date is None:
-            raise HarvesterException(
-                f"No start date provided for {dataset_dict}")
+            raise HarvesterException(f"No start date provided for {dataset_dict}")
 
         end_date = dataset_dict.get("endDate")
         if end_date is None:
-            raise HarvesterException(
-                f"No end date provided for {dataset_dict}")
+            raise HarvesterException(f"No end date provided for {dataset_dict}")
 
         dataset_dict["id"] = f"{start_date}/{end_date}"
         return dataset_dict
@@ -599,8 +574,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("agent", PROV.agent),
             ("hadRole", DCAT.hadRole),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         return self._extract_attribution_agent(dataset_dict, "agent")
 
@@ -625,8 +599,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("prohibition", ODRL.prohibition),
             ("obligation", ODRL.obligation),
         )
-        dataset_dict = self._extract_concept_dict(
-            dataset_ref, dataset_dict, key_predicate_tuple)
+        dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
         dataset_dict = self._extract_permission(dataset_dict, "permission")
         dataset_dict = self._extract_prohibition(dataset_dict, "prohibition")

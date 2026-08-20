@@ -93,7 +93,7 @@ class URIRefOrLiteral:
             stripped_value = value.strip()
             if isinstance(value, str) and (
                 stripped_value.startswith("http://")  # NOSONAR
-                    or stripped_value.startswith("https://")
+                or stripped_value.startswith("https://")
             ):
                 uri_obj = CleanedURIRef(value)
                 # although all invalid chars checked by rdflib should have been quoted, try to serialize

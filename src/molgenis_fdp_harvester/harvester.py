@@ -102,19 +102,15 @@ def cli(
             "variable or provide the --token option."
         )
     if not host:
-        raise click.ClickException(
-            "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host.")
+        raise click.ClickException("MOLGENIS host is required. Set MOLGENIS_HOST or provide --host.")
     if not config:
-        raise click.ClickException(
-            "Configuration file is required. Set HARVEST_CONFIG or provide --config.")
+        raise click.ClickException("Configuration file is required. Set HARVEST_CONFIG or provide --config.")
     if not input_type:
-        raise click.ClickException(
-            "Input type is required. Set INPUT_TYPE or provide --input_type.")
+        raise click.ClickException("Input type is required. Set INPUT_TYPE or provide --input_type.")
 
     # Validate mutual exclusivity of --fdp and --fdp-list
     if fdp and fdp_list:
-        raise click.UsageError(
-            "--fdp and --fdp-list are mutually exclusive. Provide only one.")
+        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
     if not fdp and not fdp_list:
         raise click.UsageError("One of --fdp or --fdp-list is required.")
 
@@ -129,8 +125,7 @@ def cli(
     else:
         fdp_entries = read_fdp_list(fdp_list)
         if not fdp_entries:
-            raise click.ClickException(
-                f"FDP list file '{fdp_list}' contains no valid entries.")
+            raise click.ClickException(f"FDP list file '{fdp_list}' contains no valid entries.")
 
     # Define processing order for concept types
     concept_type_order = {
@@ -146,8 +141,7 @@ def cli(
             entry_config = dict(harvester_config)
             entry_config["server_url"] = entry_fdp_url
 
-            harvester = create_harvester(
-                input_type, concept_table_dict, client, entry_config)
+            harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
             execute_harvest(harvester, entry_fdp_url, concept_type_order)
 
 
@@ -177,8 +171,7 @@ def execute_harvest(harvester, source_url, concept_type_order):
     harvester.generate_missing_datasetseries()
 
     # Sort by dependency order (now including auto-generated datasetseries)
-    harvester._harvest_objects.sort(
-        key=lambda obj: concept_type_order[obj.concept_type])
+    harvester._harvest_objects.sort(key=lambda obj: concept_type_order[obj.concept_type])
 
     # Import all objects in dependency order
     for harvest_object in harvester._harvest_objects:
