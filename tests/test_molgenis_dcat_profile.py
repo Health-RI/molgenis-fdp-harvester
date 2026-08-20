@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import uuid
 from pathlib import Path
 
 import pytest
@@ -168,28 +169,56 @@ def test_handle_pids_rejects_empty_pid_service_url(profile, pid_service_url):
         profile.handle_pids({'identifier': 'mydata'})
 
 
-# --- _extract_name_publisher tests ---
+# --- reference id (UUID) tests ---
 
 
-def test_extract_name_publisher_valid(profile):
-    """URI typed as FOAF.Organization: name is lowercased with spaces stripped."""
+def test_get_or_create_reference_id_returns_valid_uuid(profile):
+    """A fresh URI is assigned a UUIDv4."""
+    result = profile._get_or_create_reference_id("http://example.com/org1")
+
+    parsed = uuid.UUID(result)  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
+
+
+def test_get_or_create_reference_id_is_stable_for_same_uri(profile):
+    """The same URI resolves to the same id on repeated lookups."""
+    first = profile._get_or_create_reference_id("http://example.com/org1")
+    second = profile._get_or_create_reference_id("http://example.com/org1")
+
+    assert first == second
+
+
+def test_get_or_create_reference_id_differs_per_uri(profile):
+    """Different URIs get different ids."""
+    first = profile._get_or_create_reference_id("http://example.com/org1")
+    second = profile._get_or_create_reference_id("http://example.com/org2")
+
+    assert first != second
+
+
+def test_resolve_reference_id_valid_type(profile):
+    """URI typed as FOAF.Organization: field is replaced with its cached UUIDv4 reference id."""
     org_uri = URIRef("http://example.com/org1")
     profile.g.add((org_uri, RDF.type, FOAF.Organization))
     profile.g.add((org_uri, FOAF.name, Literal("Test Publisher Org")))
 
     dataset_dict = {"publisher": str(org_uri)}
-    result = profile._extract_name_publisher(dataset_dict, "publisher")
+    result = profile._extract_and_transform_by_type(
+        dataset_dict, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
 
-    assert result["publisher"] == "testpublisherorg"
+    assert result["publisher"] == profile._get_or_create_reference_id(str(org_uri))
 
 
-def test_extract_name_publisher_wrong_type(profile):
+def test_resolve_reference_id_wrong_type(profile):
     """URI with a different RDF type: field is left unchanged."""
     uri = URIRef("http://example.com/thing1")
     profile.g.add((uri, RDF.type, DCAT.Dataset))
 
     dataset_dict = {"publisher": str(uri)}
-    result = profile._extract_name_publisher(dataset_dict, "publisher")
+    result = profile._extract_and_transform_by_type(
+        dataset_dict, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
 
     assert result["publisher"] == str(uri)
 

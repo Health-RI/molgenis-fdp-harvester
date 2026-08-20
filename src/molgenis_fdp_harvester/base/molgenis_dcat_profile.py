@@ -14,26 +14,33 @@ from rdflib import FOAF, PROV, RDF, RDFS, URIRef
 from urllib.parse import urlparse
 import logging
 import uuid
-<< << << < HEAD
-== == == =
->>>>>> > main
-
 
 log = logging.getLogger(__name__)
 
-
-# To link any auxiliary classes to the properties the IDs of these classes need to be calculated in the same way
-# as is done on the Molgenis side. Currently this pseudo-hashing function is used.
-def generate_id(arr):
-    h = 5381
-    items = [str(x) for x in arr]
-    for c in "\0".join(sorted(items)):
-        h = (h * 33) ^ ord(c)
-    return h % (2**32)
+# This is an entry that needs to be removed from the language list. We're not using it so the http protocol unsafety can
+# be ignored.
+DEFAULT_LANGUAGE = "http://id.loc.gov/vocabulary/iso639-1/en"  # NOSONAR
 
 
 class MolgenisEUCAIMDCATAPProfile(RDFProfile):
     """RDF profile for EUCAIM DCAT-AP data mapping to Molgenis."""
+
+    def __init__(self, graph, compatibility_mode=False):
+        super().__init__(graph, compatibility_mode=compatibility_mode)
+        # Supplementary classes (Agents, contact Kinds, ProvenanceStatements, ...) are
+        # created with a UUIDv4 internal ID. The same RDF resource can be referenced by
+        # multiple datasets, so this cache ensures it resolves to the same ID everywhere
+        # it's referenced, for as long as this profile instance lives (one harvest run).
+        # Harvesting is single-threaded; this cache is not safe for concurrent access.
+        self._reference_ids: dict[str, str] = {}
+
+    def _get_or_create_reference_id(self, uri: str) -> str:
+        if uri not in self._reference_ids:
+            self._reference_ids[uri] = str(uuid.uuid4())
+        return self._reference_ids[uri]
+
+    def _resolve_reference_id(self, uri_ref, _dataset_dict=None):
+        return self._get_or_create_reference_id(str(uri_ref))
 
     @staticmethod
     def _strip_mailto_prefix(value):
@@ -77,7 +84,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             key: Key to look up and modify in the dictionary
             expected_types: List of RDF types to check against
             extraction_fn: Function to extract and transform the value
-                          Takes (self, uri_ref, dataset_dict) and returns the transformed value
+                          Takes (uri_ref, dataset_dict) and returns the transformed value
 
         Returns:
             Modified dataset_dict
@@ -348,8 +355,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             if not isinstance(language_list, list):
                 language_list = [language_list]
             try:
-                language_list.remove(
-                    "http://id.loc.gov/vocabulary/iso639-1/en")  # NOSONAR
+                language_list.remove(DEFAULT_LANGUAGE)
                 if not language_list:
                     # If removing the default language makes language_list empty, remove the dictionary entry.
                     del dataset_dict["language"]
@@ -397,16 +403,19 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
         field_mappings = self._get_dataset_field_mappings()
 
-        # Extract hasPurpose to hasPurpose_obj or hasPurpose_IRI
-
         dataset_dict = self._extract_concept_dict(
             dataset_ref, dataset_dict, field_mappings)
         dataset_dict = self.handle_pids(dataset_dict)
         dataset_dict = self._remove_default_language(dataset_dict)
-        dataset_dict = self._extract_name_vcard(dataset_dict, "contactPoint")
-        dataset_dict = self._extract_name_publisher(dataset_dict, "publisher")
-        dataset_dict = self._extract_provenancestatement_label(
-            dataset_dict, "provenance")
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
+        )
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "publisher", FOAF.Organization, self._resolve_reference_id
+        )
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "provenance", DCT.ProvenanceStatement, self._resolve_reference_id
+        )
         dataset_dict = self._extract_datasetseries_id(dataset_dict)
         dataset_dict = self._extract_purpose(dataset_dict)
         dataset_dict = self._extract_legalbasis(dataset_dict, "hasLegalBasis")
@@ -438,8 +447,13 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         )
         dataset_dict = self._extract_concept_dict(
             dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict = self._extract_name_vcard(dataset_dict, "contactPoint")
-        dataset_dict = self._extract_name_publisher(dataset_dict, "publisher")
+
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
+        )
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "publisher", FOAF.Organization, self._resolve_reference_id
+        )
         dataset_dict = self._extract_periodoftime(dataset_dict, "temporal")
 
         if not dataset_dict.get("id", False):
@@ -449,6 +463,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_publisher(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(
+            dataset_dict["uri"])
         key_predicate_tuple = (
             ("name", FOAF.name),
             ("description", DCT.description),
@@ -500,6 +516,8 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(
+            dataset_dict["uri"])
         key_predicate_tuple = (
             ("fn", VCARD.fn),
             ("hasEmail", VCARD.hasEmail),
@@ -570,11 +588,19 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         dataset_dict = self._extract_concept_dict(
             dataset_ref, dataset_dict, key_predicate_tuple)
         dataset_dict["id"] = str(uuid.uuid4())
-        dataset_dict = self._extract_name_vcard(dataset_dict, "contactPoint")
-        return self._extract_name_publisher(dataset_dict, "publisher")
+        dataset_dict = self._extract_and_transform_by_type(
+            dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
+        )
+        return self._extract_and_transform_by_type(
+            dataset_dict, "publisher", FOAF.Organization, self._resolve_reference_id
+        )
 
     def parse_provenancestatement(self, dataset_dict: dict, dataset_ref: URIRef):
-        return self._parse_single_field_concept(dataset_dict, dataset_ref, "label", RDFS.label)
+        dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(
+            dataset_dict["uri"])
+        key_predicate_tuple = (("label", RDFS.label),)
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_purpose(self, dataset_dict: dict, dataset_ref: URIRef):
         return self._parse_single_field_concept(dataset_dict, dataset_ref, "description", DCT.description)

@@ -4,31 +4,36 @@
 
 """Tests for MOLGENIS DCAT profile extraction helper methods."""
 
+import uuid
+
 import pytest
 import rdflib
 from rdflib import URIRef
+from rdflib.namespace import DCTERMS as DCT
+from rdflib.namespace import FOAF
 
+from molgenis_fdp_harvester.base.baseparser import VCARD
 from molgenis_fdp_harvester.base.molgenis_dcat_profile import MolgenisEUCAIMDCATAPProfile
 from molgenis_fdp_harvester.utils import HarvesterException
 
 
-def test_extract_name_vcard_valid_contact(graph_vcard_contact):
-    """Test extracting name from valid VCARD.Kind contact."""
+def test_resolve_reference_id_valid_vcard_contact(graph_vcard_contact):
+    """A valid VCARD.Kind contact is replaced by its assigned UUIDv4 reference id."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_contact)
+    contact_uri = URIRef("http://example.com/contact1")
 
-    dataset_dict = {"contact": "http://example.com/contact1"}
-    result = profile._extract_name_vcard(dataset_dict, "contact")
+    dataset_dict = {"contact": str(contact_uri)}
+    result = profile._extract_and_transform_by_type(dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
 
-    # Should extract and lowercase name with spaces stripped: "John Doe Contact" -> "johndoecontact"
-    assert result["contact"] == "johndoecontact"
+    assert result["contact"] == profile._get_or_create_reference_id(str(contact_uri))
 
 
-def test_extract_name_vcard_missing_key(graph_vcard_missing):
+def test_resolve_reference_id_missing_key(graph_vcard_missing):
     """Test that missing key doesn't cause errors."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_missing)
 
     dataset_dict = {}  # No contact key
-    result = profile._extract_name_vcard(dataset_dict, "contact")
+    result = profile._extract_and_transform_by_type(dataset_dict, "contact", VCARD.Kind, profile._resolve_reference_id)
 
     # Should return unchanged dict without errors
     assert "contact" not in result
@@ -74,11 +79,20 @@ def test_parse_dataset_integration(graph_dataset_integration):
     assert result["other_identifier"] == "dataset-full-001"
     assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
-    # Verify extracted name from VCARD contact
-    assert result["contactPoint"] == "drjanesmith"
+    # Verify the referenced VCARD contact was resolved to its assigned UUIDv4
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/contact_full")
+    parsed = uuid.UUID(result["contactPoint"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
-    # Verify extracted name from FOAF Organization publisher
-    assert result["publisher"] == "testorganization"
+    # Verify the referenced FOAF Organization publisher was resolved to its assigned UUIDv4
+    assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/provider_org")
+    parsed = uuid.UUID(result["publisher"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
+
+    # Verify the referenced ProvenanceStatement was resolved to its assigned UUIDv4
+    assert result["provenance"] == profile._get_or_create_reference_id("http://example.com/provenance_full")
+    parsed = uuid.UUID(result["provenance"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
 
     # Verify extracted DatasetSeries ID
     assert result["in_series"] == "biobank-full"
@@ -93,6 +107,36 @@ def test_parse_kind(graph_vcard_contact):
 
     assert result["uri"] == "http://example.com/contact1"
     assert result["fn"] == "John Doe Contact"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/contact1")
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
+
+
+def test_resolve_contactpoint_without_fn_assigns_distinct_ids(graph_vcard_no_fn):
+    """Two datasets referencing different Kind resources that both lack vcard:fn must
+    resolve to distinct contactPoint ids.
+
+    Regression test: previously the contactPoint FK was derived from `vcard:fn` itself
+    (`fn.lower().replace(" ", "")`, replicating Molgenis's server-computed `kind.id`
+    formula), which yields the same "" for any Kind missing `fn` — so two different
+    nameless contacts collided onto the same (empty) contactPoint reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_vcard_no_fn)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"contactPoint": "http://example.com/contact_no_fn_1"},
+        "contactPoint",
+        VCARD.Kind,
+        profile._resolve_reference_id,
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"contactPoint": "http://example.com/contact_no_fn_2"},
+        "contactPoint",
+        VCARD.Kind,
+        profile._resolve_reference_id,
+    )
+
+    assert dataset1["contactPoint"] != dataset2["contactPoint"]
 
 
 def test_parse_publisher():
@@ -109,6 +153,30 @@ def test_parse_publisher():
     assert result["description"] == "A test publishing organisation"
     assert result["type"] == "http://purl.org/adms/publishertype/Academia-ScientificOrganisation"
     assert result["homepage"] == "https://example.com"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/org1")
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
+
+
+def test_resolve_publisher_without_name_assigns_distinct_ids(graph_foaf_organization_no_name):
+    """Two datasets referencing different Organization resources that both lack foaf:name
+    must resolve to distinct publisher ids.
+
+    Regression test: previously the publisher FK was derived from `foaf:name` itself
+    (`name.lower().replace(" ", "")`, replicating Molgenis's server-computed `publisher.id`
+    formula), which yields the same "" for any Organization missing `name` — so two
+    different nameless publishers collided onto the same (empty) publisher reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_foaf_organization_no_name)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"publisher": "http://example.com/org_no_name_1"}, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"publisher": "http://example.com/org_no_name_2"}, "publisher", FOAF.Organization, profile._resolve_reference_id
+    )
+
+    assert dataset1["publisher"] != dataset2["publisher"]
 
 
 def test_parse_provenancestatement():
@@ -122,6 +190,37 @@ def test_parse_provenancestatement():
 
     assert result["uri"] == "http://example.com/prov1"
     assert result["label"] == "Data collected from hospital records"
+    assert result["id"] == profile._get_or_create_reference_id("http://example.com/prov1")
+    parsed = uuid.UUID(result["id"])  # raises ValueError if not a valid UUID
+    assert parsed.version == 4
+
+
+def test_resolve_provenance_without_label_assigns_distinct_ids(graph_provenancestatement_no_label):
+    """Two datasets referencing different ProvenanceStatement resources that both lack
+    rdfs:label must resolve to distinct provenance ids.
+
+    Regression test: previously the provenance FK was derived from `rdfs:label` itself
+    (a djb2-style hash of sorted labels, replicating Molgenis's server-computed
+    `provenance_statement.id` formula), which hashes to the same value for any
+    ProvenanceStatement missing `label` — so two different labelless statements collided
+    onto the same provenance reference.
+    """
+    profile = MolgenisEUCAIMDCATAPProfile(graph_provenancestatement_no_label)
+
+    dataset1 = profile._extract_and_transform_by_type(
+        {"provenance": "http://example.com/prov_no_label_1"},
+        "provenance",
+        DCT.ProvenanceStatement,
+        profile._resolve_reference_id,
+    )
+    dataset2 = profile._extract_and_transform_by_type(
+        {"provenance": "http://example.com/prov_no_label_2"},
+        "provenance",
+        DCT.ProvenanceStatement,
+        profile._resolve_reference_id,
+    )
+
+    assert dataset1["provenance"] != dataset2["provenance"]
 
 
 def test_extract_purpose_resolves_nested_purpose_object():
@@ -768,7 +867,8 @@ def test_parse_dataservice_fields():
     """parse_dataservice should extract accessRights, applicableLegislation, conformsTo,
     contactPoint, description, endpointDescription, endPointURL, format, keyword,
     landingPage, license, publisher, theme, title. contactPoint and publisher should be
-    resolved to a name, mirroring the equivalent wiring in parse_dataset/parse_datasetseries."""
+    resolved to their assigned UUIDv4 reference id, mirroring the equivalent wiring in
+    parse_dataset/parse_datasetseries."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataservice.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -784,8 +884,8 @@ def test_parse_dataservice_fields():
     assert result["landingPage"] == "http://example.com/dataservice1/landing"
     assert result["conformsTo"] == "http://example.com/standards/fhir"
     assert result["keyword"] == "test"
-    assert result["contactPoint"] == "dataservicecontact"
-    assert result["publisher"] == "dataservicepublisherorg"
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/dataservice1/contact")
+    assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/dataservice1/publisher")
 
 
 def test_extract_legalbasis_valid():
@@ -873,9 +973,9 @@ def test_parse_datasetseries_pid_field_from_identifier():
     assert "identifier" not in result
 
 
-def test_parse_datasetseries_contactpoint_extracted_as_vcard_name():
-    """contactPoint pointing to a vcard:Kind resource should be resolved to its lowercased,
-    space-stripped name."""
+def test_parse_datasetseries_contactpoint_resolved_to_reference_id():
+    """contactPoint pointing to a vcard:Kind resource should be resolved to its assigned
+    UUIDv4 reference id."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_datasetseries_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -883,7 +983,7 @@ def test_parse_datasetseries_contactpoint_extracted_as_vcard_name():
 
     result = profile.parse_datasetseries({}, series_ref)
 
-    assert result["contactPoint"] == "seriescontactperson"
+    assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/series_full2/contact")
 
 
 def test_parse_datasetseries_temporal_extracted_as_periodoftime():
