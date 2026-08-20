@@ -79,8 +79,7 @@ class HarvesterBase:
         self._import_errors = []
         self._harvest_objects = []
 
-    def _save_gather_error(self, message: str, *, level: int = logging.WARNING,
-                           exc_info: bool = False):
+    def _save_gather_error(self, message: str, *, level: int = logging.WARNING, exc_info: bool = False):
         """Record and log an error that stopped an object from being gathered or validated.
 
         Validation failures and other expected data problems are warnings; pass

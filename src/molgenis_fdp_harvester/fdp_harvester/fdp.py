@@ -72,7 +72,6 @@ class FDPHarvester(DCATRDFHarvester):
         for message in self.record_provider.fair_data_point.drain_errors():
             self._save_gather_error(message)
 
-
     def setup_record_provider(self, harvest_url):
         # Harvest catalog config can be set on global CKAN level, but can be overriden by harvest config
 

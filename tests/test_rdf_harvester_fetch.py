@@ -138,8 +138,7 @@ def test_fetch_concept_missing_required_field_logs_validation_warning(harvester,
         # no title
     }
 
-    with patch.object(harvester.parser, 'get_concept', return_value=mock_concept), \
-         caplog.at_level(logging.WARNING):
+    with patch.object(harvester.parser, "get_concept", return_value=mock_concept), caplog.at_level(logging.WARNING):
         result = harvester.fetch_stage(empty_harvestobject_dataset)
 
     assert result.content is None
@@ -159,8 +158,7 @@ def test_fetch_concept_missing_required_field_uses_type_specific_label(harvester
         # no name - the field Publishers actually use to identify themselves
     }
 
-    with patch.object(harvester.parser, 'get_concept', return_value=mock_concept), \
-         caplog.at_level(logging.WARNING):
+    with patch.object(harvester.parser, "get_concept", return_value=mock_concept), caplog.at_level(logging.WARNING):
         result = harvester.fetch_stage(harvest_object)
 
     assert result.content is None
@@ -174,8 +172,10 @@ def test_fetch_concept_missing_required_field_uses_type_specific_label(harvester
 
 def test_fetch_concept_unexpected_parser_error_is_caught_and_logged(harvester, empty_harvestobject_dataset, caplog):
     """An unexpected exception while parsing a single record must not crash the whole harvest."""
-    with patch.object(harvester.parser, 'get_concept', side_effect=KeyError("identifier")), \
-         caplog.at_level(logging.ERROR):
+    with (
+        patch.object(harvester.parser, "get_concept", side_effect=KeyError("identifier")),
+        caplog.at_level(logging.ERROR),
+    ):
         result = harvester.fetch_stage(empty_harvestobject_dataset)
 
     assert result.content is None

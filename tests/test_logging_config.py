@@ -52,11 +52,14 @@ def test_configure_logging_defaults_to_info():
     assert logging.getLogger().level == logging.INFO
 
 
-@pytest.mark.parametrize(("level_name", "expected"), [
-    ("WARNING", logging.WARNING),
-    ("ERROR", logging.ERROR),
-    ("info", logging.INFO),
-])
+@pytest.mark.parametrize(
+    ("level_name", "expected"),
+    [
+        ("WARNING", logging.WARNING),
+        ("ERROR", logging.ERROR),
+        ("info", logging.INFO),
+    ],
+)
 def test_configure_logging_respects_log_level_env_var(monkeypatch, level_name, expected):
     monkeypatch.setenv("LOG_LEVEL", level_name)
 

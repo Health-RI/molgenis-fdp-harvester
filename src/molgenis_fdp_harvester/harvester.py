@@ -175,8 +175,11 @@ def cli(
 def validate_options(fdp, fdp_list, host, config, token, input_type):
     """Check the options Click cannot enforce itself, because they allow an env var fallback."""
     missing_required = [
-        (token, "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
-                "variable or provide the --token option."),
+        (
+            token,
+            "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
+            "variable or provide the --token option.",
+        ),
         (host, "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host."),
         (config, "Configuration file is required. Set HARVEST_CONFIG or provide --config."),
         (input_type, "Input type is required. Set INPUT_TYPE or provide --input_type."),
@@ -234,7 +237,10 @@ def execute_harvest(harvester, source_url, concept_type_order):
         log.warning(
             "Harvest for %s completed with errors: %d gather/validation error(s), "
             "%d import error(s), %d object(s) processed",
-            source_url, harvester.gather_error_count, harvester.import_error_count, total_objects,
+            source_url,
+            harvester.gather_error_count,
+            harvester.import_error_count,
+            total_objects,
         )
         return False
 

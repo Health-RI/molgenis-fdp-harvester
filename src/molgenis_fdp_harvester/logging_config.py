@@ -20,6 +20,7 @@ logging is off or could not be set up.
 Give LOG_FILE a directory of its own: pruning deletes every sibling matching the run-log
 naming scheme, not just files this process created.
 """
+
 import glob
 import logging
 import os
@@ -125,9 +126,7 @@ def configure_logging() -> None:
             handlers.append(logging.FileHandler(current_run_log, encoding="utf-8"))
         except OSError as exc:
             # An unusable log file must not take down a scheduled harvest.
-            problems.append(
-                f"Could not open log file '{current_run_log}': {exc}. Logging to stdout only."
-            )
+            problems.append(f"Could not open log file '{current_run_log}': {exc}. Logging to stdout only.")
             current_run_log = None
 
     # force=True: reconfigure even if a handler was already attached to the root logger
@@ -138,7 +137,8 @@ def configure_logging() -> None:
     if current_run_log is not None:
         log.info(
             "Writing this run's log to %s (keeping the %d most recent run logs)",
-            current_run_log, retention,
+            current_run_log,
+            retention,
         )
         problems.extend(prune_old_run_logs(log_file, retention))
 

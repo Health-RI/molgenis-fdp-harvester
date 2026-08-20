@@ -3,6 +3,7 @@
 Without this, an FDP that returns nothing but unparseable records or HTTP errors would be
 logged about but still reported as a clean run, and a scheduled harvest would exit 0.
 """
+
 import logging
 from unittest.mock import Mock, patch
 
@@ -26,8 +27,7 @@ def fdp_harvester(profiles, concept_table_dict, mock_client):
 def test_unparseable_record_is_recorded_not_just_logged(caplog):
     fdp = FairDataPoint("https://fdp.example.com")
 
-    with patch.object(FairDataPoint, "_get_data", return_value="I am not a graph"), \
-         caplog.at_level(logging.ERROR):
+    with patch.object(FairDataPoint, "_get_data", return_value="I am not a graph"), caplog.at_level(logging.ERROR):
         graph = fdp.get_graph("https://fdp.example.com/dataset/1")
 
     assert len(graph) == 0
@@ -70,9 +70,7 @@ def test_fdp_client_errors_count_towards_the_harvest(fdp_harvester):
 def _record_provider_returning(identifier):
     """A record provider that yields one dataset identifier and nothing for other types."""
     record_provider = Mock()
-    record_provider.get_record_ids.side_effect = (
-        lambda concept_type: [identifier] if concept_type == "dataset" else []
-    )
+    record_provider.get_record_ids.side_effect = lambda concept_type: [identifier] if concept_type == "dataset" else []
     record_provider.fair_data_point.drain_errors.return_value = []
     return record_provider
 
@@ -103,9 +101,11 @@ def test_gather_stage_failure_is_not_logged_twice(fdp_harvester, caplog):
     fdp_harvester.record_provider = Mock()
     fdp_harvester.record_provider.get_record_ids.side_effect = RuntimeError("boom")
 
-    with caplog.at_level(logging.ERROR), \
-         patch.object(fdp_harvester, "setup_record_provider"), \
-         pytest.raises(Exception, match="Failed to gather objects"):
+    with (
+        caplog.at_level(logging.ERROR),
+        patch.object(fdp_harvester, "setup_record_provider"),
+        pytest.raises(Exception, match="Failed to gather objects"),
+    ):
         fdp_harvester.gather_stage("https://fdp.example.com")
 
     assert caplog.records == []

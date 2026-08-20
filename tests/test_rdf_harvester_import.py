@@ -76,15 +76,12 @@ def test_import_stage_change_status(harvester, mock_client, caplog):
         result = harvester.import_stage(harvest_object)
 
     # Verify
-    mock_client.save_table.assert_called_once_with(
-        table="datasets",
-        data=[{"name": "Updated Dataset"}]
-    )
+    mock_client.save_table.assert_called_once_with(table="datasets", data=[{"name": "Updated Dataset"}])
     assert "Updating dataset Updated Dataset" in caplog.text
     assert result
 
 
-def test_import_stage_logs_adding_for_new(harvester, mock_client, caplog):
+def test_import_stage_logs_adding_for_new(harvester, caplog):
     """Test import_stage logs 'Adding dataset' for new status"""
     harvest_object = HarvestObject(
         guid="http://example.com/dataset1",
@@ -102,10 +99,7 @@ def test_import_stage_logs_adding_for_new(harvester, mock_client, caplog):
 def test_import_stage_does_not_re_report_a_fetch_failure(harvester, caplog):
     """A record already reported in the fetch stage must not be counted a second time."""
     harvest_object = HarvestObject(
-        guid="http://example.com/dataset1",
-        content=None,
-        concept_type="dataset",
-        status="new"
+        guid="http://example.com/dataset1", content=None, concept_type="dataset", status="new"
     )
     harvest_object.fetch_failed = True
 

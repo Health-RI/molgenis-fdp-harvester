@@ -5,11 +5,11 @@ from molgenis_fdp_harvester.base.baseharvester import HarvestObject
 from molgenis_fdp_harvester.harvester import execute_harvest
 
 CONCEPT_TYPE_ORDER = {
-    'provenancestatement': 0,
-    'kind': 1,
-    'publisher': 2,
-    'datasetseries': 3,
-    'dataset': 4,
+    "provenancestatement": 0,
+    "kind": 1,
+    "publisher": 2,
+    "datasetseries": 3,
+    "dataset": 4,
 }
 
 
@@ -69,10 +69,12 @@ def test_invalid_record_is_reported_once_across_fetch_and_import(harvester, capl
         "http://example.com/invalid": {"uri": "http://example.com/invalid"},  # no title
     }
 
-    with patch.object(harvester.parser, 'get_concept', side_effect=lambda uri, _type: concepts[str(uri)]), \
-         patch.object(harvester, 'gather_stage'), \
-         patch.object(harvester, 'generate_missing_datasetseries'), \
-         caplog.at_level(logging.WARNING):
+    with (
+        patch.object(harvester.parser, "get_concept", side_effect=lambda uri, _type: concepts[str(uri)]),
+        patch.object(harvester, "gather_stage"),
+        patch.object(harvester, "generate_missing_datasetseries"),
+        caplog.at_level(logging.WARNING),
+    ):
         result = execute_harvest(harvester, "http://example.com/fdp", CONCEPT_TYPE_ORDER)
 
     assert result is False

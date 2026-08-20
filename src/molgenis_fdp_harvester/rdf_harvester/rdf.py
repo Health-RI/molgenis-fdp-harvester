@@ -188,7 +188,7 @@ class DCATRDFHarvester(DCATHarvester):
         A failed lookup is logged and left as-is: an unresolvable term degrades the record
         but does not invalidate it, so it is not a gather error.
         """
-        uri_lookup_table = self.harvester_config.get('uri_lookup_config', {}).get(concept_type)
+        uri_lookup_table = self.harvester_config.get("uri_lookup_config", {}).get(concept_type)
         if not uri_lookup_table:
             return
 
@@ -201,28 +201,31 @@ class DCATRDFHarvester(DCATHarvester):
             except Exception as exc:
                 log.warning(
                     "Could not resolve ontology URI or label: table %s; URI %s; %s",
-                    molgenis_table, value, exc,
+                    molgenis_table,
+                    value,
+                    exc,
                 )
                 continue
             if new_property_value:
                 concept_dict[property] = new_property_value
 
-    def _track_dataset_without_datasetseries(self, concept_dict: dict,
-                                             harvest_object: HarvestObject):
+    def _track_dataset_without_datasetseries(self, concept_dict: dict, harvest_object: HarvestObject):
         """Note a dataset that needs a datasetseries generated for it later on."""
-        if harvest_object.concept_type != 'dataset':
+        if harvest_object.concept_type != "dataset":
             return
-        if not self.harvester_config.get('auto_create_datasetseries', False):
+        if not self.harvester_config.get("auto_create_datasetseries", False):
             return
-        if concept_dict.get('in_series'):
+        if concept_dict.get("in_series"):
             return
 
-        self._datasets_without_datasetseries.append({
-            'dataset_name': concept_dict.get('title'),
-            'dataset_id': concept_dict.get('id'),
-            'dataset_description': concept_dict.get('description', ''),
-            'dataset_guid': harvest_object.guid
-        })
+        self._datasets_without_datasetseries.append(
+            {
+                "dataset_name": concept_dict.get("title"),
+                "dataset_id": concept_dict.get("id"),
+                "dataset_description": concept_dict.get("description", ""),
+                "dataset_guid": harvest_object.guid,
+            }
+        )
 
     def _resolve_uri(self, value, molgenis_table):
         return self.molgenis_client.get(table=molgenis_table, query_filter=f"ontologyTermURI == '{quote(value)}'")
@@ -335,7 +338,7 @@ class DCATRDFHarvester(DCATHarvester):
         try:
             if harvest_object.status == "new":
                 log.info("Adding %s %s", harvest_object.concept_type, dataset_name)
-            else: # harvest_object.status == "change"
+            else:  # harvest_object.status == "change"
                 log.info("Updating %s %s", harvest_object.concept_type, dataset_name)
             self.molgenis_client.save_table(table=entity_name, data=[dataset])
         except Exception as e:
