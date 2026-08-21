@@ -48,9 +48,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}    
 
+      - name: Prepare Variables for Docker image building and scan
+        id: prep
+        run: |
+          # Determine the active ref (Input overrides default branch)
+          REF="${{ github.event.inputs.ref || github.ref_name }}"
+          
+          # Sanitize ref for Docker tags (lowercase, replace invalid chars)
+          CLEAN_REF=$(echo "$REF" | sed 's/[^a-zA-Z0-9_.-]/_/g' | tr '[:upper:]' '[:lower:]')
+          echo "clean_ref=$CLEAN_REF" >> "$GITHUB_OUTPUT"
+          
+          # Sanitize image name
+          IMAGE_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          echo "image_name=$IMAGE_LOWER" >> "$GITHUB_OUTPUT"
+
       - name: Build an image from Dockerfile
         run: |
-          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker build -t ${{ env.REGISTRY }}/${{ steps.prep.outputs.image_name }}:${{ github.sha }} .
                     
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
