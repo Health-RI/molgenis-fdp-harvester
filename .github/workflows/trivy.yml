@@ -7,7 +7,9 @@ name: trivy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: 
+     - "main"
+     - "trivy-workflow"
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
@@ -48,7 +50,7 @@ jobs:
 
       - name: Build an image from Dockerfile
         run: |
-          docker build -t ${{ env.REGISTRY }}/${{ github.ref_name }}:${{ github.sha }} .
+          docker build -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
                     
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
