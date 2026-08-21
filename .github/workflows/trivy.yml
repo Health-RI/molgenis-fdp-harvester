@@ -70,7 +70,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'image'
-          image-ref: '${{ env.REGISTRY }}/${{ github.ref_name }}:${{ github.sha }}'
+          image-ref: '${{ env.REGISTRY }}/${{ steps.prep.outputs.image_name }}:${{ github.sha }}'
           # format: 'template'
           # template: '@/contrib/sarif.tpl'
           format: 'sarif'
