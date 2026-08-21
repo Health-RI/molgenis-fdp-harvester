@@ -1,4 +1,5 @@
 import json
+import logging
 from unittest.mock import patch
 
 from molgenis_fdp_harvester.base.baseharvester import HarvestObject, munge_title_to_name
@@ -127,6 +128,64 @@ def test_fetch_concept_non_dataset_not_tracked(harvester):
 
         # Verify person was NOT tracked
         assert len(harvester._datasets_without_datasetseries) == 0
+
+
+def test_fetch_concept_missing_required_field_logs_validation_warning(harvester, empty_harvestobject_dataset, caplog):
+    """Dataset without a title is a validation error: log it, skip import, keep harvesting."""
+    mock_concept = {
+        "uri": "http://example.com/dataset1",
+        "id": "existing-id",
+        # no title
+    }
+
+    with patch.object(harvester.parser, "get_concept", return_value=mock_concept), caplog.at_level(logging.WARNING):
+        result = harvester.fetch_stage(empty_harvestobject_dataset)
+
+    assert result.content is None
+    assert result.fetch_failed is True
+    assert harvester._gather_errors == [
+        "Validation error: dataset 'http://example.com/dataset1' is missing required field(s): title"
+    ]
+    # reported exactly once, not once per logging call site
+    assert len([r for r in caplog.records if "missing required field(s)" in r.getMessage()]) == 1
+
+
+def test_fetch_concept_missing_required_field_uses_type_specific_label(harvester, caplog):
+    """A Publisher (Agent) has no 'title' - the validation log must not assume one."""
+    harvest_object = HarvestObject(guid="http://example.com/publisher1", content=None, concept_type="publisher")
+    mock_concept = {
+        "uri": "http://example.com/publisher1",
+        # no name - the field Publishers actually use to identify themselves
+    }
+
+    with patch.object(harvester.parser, "get_concept", return_value=mock_concept), caplog.at_level(logging.WARNING):
+        result = harvester.fetch_stage(harvest_object)
+
+    assert result.content is None
+    reported = harvester._gather_errors[0]
+    assert "publisher" in reported
+    assert "name" in reported
+    # the URI is the only identifying field a publisher without a name has left
+    assert "http://example.com/publisher1" in reported
+    assert "title" not in reported
+
+
+def test_fetch_concept_unexpected_parser_error_is_caught_and_logged(harvester, empty_harvestobject_dataset, caplog):
+    """An unexpected exception while parsing a single record must not crash the whole harvest."""
+    with (
+        patch.object(harvester.parser, "get_concept", side_effect=KeyError("identifier")),
+        caplog.at_level(logging.ERROR),
+    ):
+        result = harvester.fetch_stage(empty_harvestobject_dataset)
+
+    assert result.content is None
+    assert result.fetch_failed is True
+    assert len(harvester._gather_errors) == 1
+
+    errors = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(errors) == 1
+    # unexpected failures carry a traceback; expected validation errors do not
+    assert errors[0].exc_info is not None
 
 
 def test_create_datasetseries_for_dataset(harvester):

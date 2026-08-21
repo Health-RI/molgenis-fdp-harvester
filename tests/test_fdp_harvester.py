@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -60,14 +61,14 @@ def test_convert_fdp_to_rdf_parses_records(fdp_harvester):
     mock_parse.assert_any_call("<> a <http://www.w3.org/ns/dcat#Dataset> .", _format="ttl")
 
 
-def test_convert_fdp_to_rdf_logs_empty_record(fdp_harvester):
+def test_convert_fdp_to_rdf_logs_empty_record(fdp_harvester, caplog):
     mock_provider = MagicMock()
     mock_provider.get_record_ids.return_value = ["url=https://fdp.example.com/dataset/1"]
     mock_provider.get_record_by_id.return_value = None
     fdp_harvester.record_provider = mock_provider
 
-    with patch("molgenis_fdp_harvester.fdp_harvester.fdp.log") as mock_log:
+    with caplog.at_level(logging.WARNING):
         fdp_harvester._convert_fdp_to_rdf()
 
-    mock_log.error.assert_called()
-    assert "Empty record" in mock_log.error.call_args[0][0]
+    assert fdp_harvester.has_errors
+    assert "Empty record" in caplog.text
