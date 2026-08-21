@@ -11,6 +11,9 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+  schedule:
+    - cron: '*/10 * * * *'
+    # bring back once a week - cron: '19 8 * * 6'
 
 permissions:
   contents: read
