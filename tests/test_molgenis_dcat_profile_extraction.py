@@ -64,7 +64,7 @@ def test_extract_datasetseries_id_fallback_to_title(graph_datasetseries_no_id):
 def test_parse_dataset_integration(graph_dataset_integration):
     """Test full dataset parsing with multiple extraction functions."""
     profile = MolgenisEUCAIMDCATAPProfile(graph_dataset_integration)
-    profile.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
+    profile.config = {"pid_service_url": "https://pid.example.com"}
     dataset_ref = URIRef("http://example.com/dataset_full")
 
     dataset_dict = {}
@@ -75,23 +75,26 @@ def test_parse_dataset_integration(graph_dataset_integration):
     assert result["title"] == "Full Integration Test Dataset"
     assert result["description"] == "A comprehensive dataset for integration testing"
 
-    # Verify PID handling: plain string identifier gets prefixed
-    assert result["id"] == "testorg-dataset-full-001"
-    assert result["identifier"] == "https://pid.example.com/testorg-dataset-full-001"
+    # Verify PID handling: original identifier moves to other_identifier, id/identifier are generated
+    assert result["other_identifier"] == "dataset-full-001"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
     # Verify the referenced VCARD contact was resolved to its assigned UUIDv4
     assert result["contactPoint"] == profile._get_or_create_reference_id("http://example.com/contact_full")
-    parsed = uuid.UUID(result["contactPoint"])  # raises ValueError if not a valid UUID
+    # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["contactPoint"])
     assert parsed.version == 4
 
     # Verify the referenced FOAF Organization publisher was resolved to its assigned UUIDv4
     assert result["publisher"] == profile._get_or_create_reference_id("http://example.com/provider_org")
-    parsed = uuid.UUID(result["publisher"])  # raises ValueError if not a valid UUID
+    # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["publisher"])
     assert parsed.version == 4
 
     # Verify the referenced ProvenanceStatement was resolved to its assigned UUIDv4
     assert result["provenance"] == profile._get_or_create_reference_id("http://example.com/provenance_full")
-    parsed = uuid.UUID(result["provenance"])  # raises ValueError if not a valid UUID
+    # raises ValueError if not a valid UUID
+    parsed = uuid.UUID(result["provenance"])
     assert parsed.version == 4
 
     # Verify extracted DatasetSeries ID
@@ -1015,7 +1018,7 @@ def _parse_wired_dataset():
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataset_wired_fields.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
-    profile.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
+    profile.config = {"pid_service_url": "https://pid.example.com"}
     dataset_ref = URIRef("http://example.com/dataset_wired")
     return profile.parse_dataset({}, dataset_ref)
 
@@ -1060,10 +1063,11 @@ def test_parse_dataset_qualifiedattribution_wired():
 
 
 def test_parse_dataset_other_identifier_wired():
-    """parse_dataset should resolve 'other_identifier' into a parsed adms:Identifier dict."""
+    """parse_dataset should preserve both the parsed and original identifiers."""
     result = _parse_wired_dataset()
 
-    assert result["other_identifier"]["notation"] == "WIRED-001"
+    assert result["other_identifier"][0]["notation"] == "WIRED-001"
+    assert result["other_identifier"][1] == "dataset-wired-001"
 
 
 def test_parse_dataset_legalbasis_wired_as_object():

@@ -28,7 +28,7 @@ def rdf_graph():
 @pytest.fixture
 def profile(rdf_graph):
     p = MolgenisEUCAIMDCATAPProfile(rdf_graph)
-    p.config = {"pid_service_url": "https://pid.example.com", "fdp_id_prefix": "testorg"}
+    p.config = {"pid_service_url": "https://pid.example.com"}
     return p
 
 
@@ -124,40 +124,63 @@ def test_parse_datasetseries():
 
 
 def test_handle_pids_no_pid(profile):
-    """Plain string identifier: id gets prefixed, identifier becomes PID service URL."""
+    """Plain string identifier: original moves to other_identifier, id/identifier are generated."""
     dataset_dict = {"identifier": "mydata"}
     result = profile.handle_pids(dataset_dict)
 
-    assert result["id"] == "testorg-mydata"
-    assert result["identifier"] == "https://pid.example.com/testorg-mydata"
+    assert result["other_identifier"] == "mydata"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
+
+
+def test_handle_pids_appends_to_existing_other_identifier_list(profile):
+    """Append the original identifier to an existing other_identifier list."""
+    dataset_dict = {"identifier": "mydata", "other_identifier": ["existing-1", "existing-2"]}
+
+    result = profile.handle_pids(dataset_dict)
+
+    assert result["other_identifier"] == ["existing-1", "existing-2", "mydata"]
+
+
+def test_handle_pids_converts_existing_other_identifier_to_list(profile):
+    """Convert a scalar other_identifier to a list before appending the original identifier."""
+    dataset_dict = {"identifier": "mydata", "other_identifier": "existing-1"}
+
+    result = profile.handle_pids(dataset_dict)
+
+    assert result["other_identifier"] == ["existing-1", "mydata"]
 
 
 def test_handle_pids_external_pid(profile):
-    """External URL identifier: id is sanitised via munge_title_to_name."""
+    """External URL identifier: original moves to other_identifier, id/identifier are generated."""
     dataset_dict = {"identifier": "https://other.pid/dataset/abc"}
     result = profile.handle_pids(dataset_dict)
 
-    assert result["id"] == "https-other-pid-dataset-abc"
+    assert result["other_identifier"] == "https://other.pid/dataset/abc"
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
 def test_handle_pids_generated_pid(profile):
-    """Identifier is a previously-generated PID service URL: id is the stable suffix, identifier unchanged."""
+    """Identifier is a previously-generated PID service URL: it still moves to other_identifier."""
     pid_url = "https://pid.example.com/testorg-mydata"
     dataset_dict = {"identifier": pid_url}
     result = profile.handle_pids(dataset_dict)
 
-    assert result["id"] == "testorg-mydata"
-    assert result["identifier"] == pid_url
+    assert result["other_identifier"] == pid_url
+    assert result["identifier"] == f"https://pid.example.com/{result['id']}"
 
 
-def test_handle_pids_no_pid_no_prefix(profile):
-    """Plain string identifier with no fdp_id_prefix: id = identifier, identifier = PID service URL/id."""
-    profile.config = {"pid_service_url": "https://pid.example.com"}  # no fdp_id_prefix
-    dataset_dict = {"identifier": "mydata"}
-    result = profile.handle_pids(dataset_dict)
+@pytest.mark.parametrize("identifier", [None, "", "   "])
+def test_handle_pids_rejects_empty_identifier(profile, identifier):
+    with pytest.raises(ValueError, match="dataset_dict is missing a non-empty 'identifier'"):
+        profile.handle_pids({"identifier": identifier})
 
-    assert result["id"] == "mydata"
-    assert result["identifier"] == "https://pid.example.com/mydata"
+
+@pytest.mark.parametrize("pid_service_url", [None, "", "   "])
+def test_handle_pids_rejects_empty_pid_service_url(profile, pid_service_url):
+    profile.config = {"pid_service_url": pid_service_url}
+
+    with pytest.raises(ValueError, match="pid_service_url is not configured"):
+        profile.handle_pids({"identifier": "mydata"})
 
 
 # --- reference id (UUID) tests ---
