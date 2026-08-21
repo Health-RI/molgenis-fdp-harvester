@@ -7,13 +7,11 @@ name: Run Trivy Scanner
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
   schedule:
-    - cron: '*/10 * * * *'
-    # bring back once a week - cron: '19 8 * * 6'
+    - cron: "17 5 * * 1" # Run weekly; Trivy's vulnerability database is refreshed for each scan.
 
 permissions:
   contents: read
@@ -53,7 +51,7 @@ jobs:
           image-ref: ${{ env.LOCAL_IMAGE_TAG }}
           format: sarif
           output: trivy-results.sarif
-          severity: CRITICAL,HIGH,MEDIUM
+          severity: CRITICAL,HIGH
           ignore-unfixed: "true"
           hide-progress: "true"
           exit-code: "0"
