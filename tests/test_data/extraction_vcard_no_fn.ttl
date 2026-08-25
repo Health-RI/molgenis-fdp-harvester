@@ -1,8 +1,0 @@
-@prefix dct: <http://purl.org/dc/terms/> .
-@prefix vcard: <http://www.w3.org/2006/vcard/ns#> .
-
-<http://example.com/contact_no_fn_1> a vcard:Kind ;
-    vcard:hasEmail <mailto:contact1@example.com> .
-
-<http://example.com/contact_no_fn_2> a vcard:Kind ;
-    vcard:hasEmail <mailto:contact2@example.com> .

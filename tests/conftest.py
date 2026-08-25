@@ -80,14 +80,6 @@ def graph_vcard_missing():
 
 
 @pytest.fixture
-def graph_vcard_no_fn():
-    """Load RDF graph with two VCARD.Kind resources, both missing vcard:fn."""
-    g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_vcard_no_fn.ttl", format="turtle")
-    return g
-
-
-@pytest.fixture
 def graph_foaf_person():
     """Load RDF graph with FOAF Person."""
     g = rdflib.Dataset()
@@ -100,22 +92,6 @@ def graph_foaf_wrong_type():
     """Load RDF graph with wrong type for provider."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_foaf_wrong_type.ttl", format="turtle")
-    return g
-
-
-@pytest.fixture
-def graph_foaf_organization_no_name():
-    """Load RDF graph with two FOAF.Organization resources, both missing foaf:name."""
-    g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_foaf_organization_no_name.ttl", format="turtle")
-    return g
-
-
-@pytest.fixture
-def graph_provenancestatement_no_label():
-    """Load RDF graph with two ProvenanceStatement resources, both missing rdfs:label."""
-    g = rdflib.Dataset()
-    g.parse("tests/test_data/extraction_provenancestatement_no_label.ttl", format="turtle")
     return g
 
 
