@@ -40,6 +40,7 @@ def concept_table_dict():
         "kind": "kind",
         "publisher": "publisher",
         "provenancestatement": "provenancestatement",
+        "purpose": "purpose",
     }
 
 

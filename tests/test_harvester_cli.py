@@ -26,6 +26,7 @@ datasetseries = "biobanks"
 kind = "kind"
 publisher = "publisher"
 provenancestatement = "provenancestatement"
+purpose = "purpose"
 
 [harvester_config]
 auto_create_datasetseries = true
@@ -62,6 +63,7 @@ def concept_table_dict():
         "kind": "kind",
         "publisher": "publisher",
         "provenancestatement": "provenancestatement",
+        "purpose": "purpose",
     }
 
 

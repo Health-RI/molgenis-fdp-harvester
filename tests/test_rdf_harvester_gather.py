@@ -136,6 +136,7 @@ def test_extract_concepts_from_rdf_success(harvester):
     """Test _extract_concepts_from_rdf extracts all concept types"""
     # Setup mock parser methods
     mock_provenancestatements = [{"uri": "http://example.com/prov1", "name": "Prov 1"}]
+    mock_purposes = [{"uri": "http://example.com/purpose1", "name": "Purpose 1"}]
     mock_kinds = [{"uri": "http://example.com/kind1", "name": "Kind 1"}]
     mock_publishers = [{"uri": "http://example.com/publisher1", "name": "Publisher 1"}]
     mock_datasetseries = [{"uri": "http://example.com/series1", "name": "Series 1"}]
@@ -146,6 +147,7 @@ def test_extract_concepts_from_rdf_success(harvester):
 
     with (
         patch.object(harvester.parser, "provenancestatement", return_value=mock_provenancestatements),
+        patch.object(harvester.parser, "purpose", return_value=mock_purposes),
         patch.object(harvester.parser, "kind", return_value=mock_kinds),
         patch.object(harvester.parser, "publisher", return_value=mock_publishers),
         patch.object(harvester.parser, "datasetseries", return_value=mock_datasetseries),
@@ -155,8 +157,9 @@ def test_extract_concepts_from_rdf_success(harvester):
         harvester._extract_concepts_from_rdf()
 
         # Verify _gather_concept_guid was called for each concept
-        assert mock_gather.call_count == 6
+        assert mock_gather.call_count == 7
         mock_gather.assert_any_call(mock_provenancestatements[0], "provenancestatement")
+        mock_gather.assert_any_call(mock_purposes[0], "purpose")
         mock_gather.assert_any_call(mock_kinds[0], "kind")
         mock_gather.assert_any_call(mock_publishers[0], "publisher")
         mock_gather.assert_any_call(mock_datasetseries[0], "datasetseries")
@@ -231,13 +234,14 @@ def test_get_guids_in_db(harvester, mock_client):
         [{"id": "kind1-id"}],  # kind
         [{"id": "publisher1-id"}],  # publisher
         [],  # provenancestatement
+        [{"id": "purpose1-id"}],  # purpose
     ]
 
     # Call method
     harvester._get_guids_in_db()
 
     # Verify client calls — one per concept type
-    assert mock_client.get.call_count == 5
+    assert mock_client.get.call_count == 6
 
     # Verify guids_in_db was populated
     assert harvester.guids_in_db["dataset"] == ["dataset1-id", "dataset2-id"]
@@ -245,6 +249,7 @@ def test_get_guids_in_db(harvester, mock_client):
     assert harvester.guids_in_db["kind"] == ["kind1-id"]
     assert harvester.guids_in_db["publisher"] == ["publisher1-id"]
     assert harvester.guids_in_db["provenancestatement"] == []
+    assert harvester.guids_in_db["purpose"] == ["purpose1-id"]
 
 
 def test_get_guids_in_db_error_handling(harvester, mock_client):

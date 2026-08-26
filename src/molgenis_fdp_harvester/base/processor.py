@@ -17,7 +17,7 @@ from rdflib.namespace import DCAT, RDF
 
 from molgenis_fdp_harvester.utils import HarvesterException
 
-from .baseparser import DCT, HYDRA, VCARD
+from .baseparser import DCT, DPV, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -109,6 +109,9 @@ class RDFParser(RDFProcessor):
 
     def _provenancestatement(self):
         yield from self.g.subjects(RDF.type, DCT.ProvenanceStatement)
+
+    def _purpose(self):
+        yield from self.g.subjects(RDF.type, DPV.Purpose)
 
     def _catalogs(self):
         """
@@ -271,6 +274,25 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def purpose(self):
+        """
+        Generator that returns dpv:Purpose concepts parsed from the RDF graph
+
+        Each purpose object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._purpose():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_purpose(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "purpose"
+
+            yield dataset_dict
+
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
         for profile in self._get_profile_instances():
@@ -284,6 +306,8 @@ class RDFParser(RDFProcessor):
                 profile.parse_datasetseries(concept_dict, uri_ref)
             elif concept_type == "provenancestatement":
                 profile.parse_provenancestatement(concept_dict, uri_ref)
+            elif concept_type == "purpose":
+                profile.parse_purpose(concept_dict, uri_ref)
 
         return concept_dict
 

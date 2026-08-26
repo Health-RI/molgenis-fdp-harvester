@@ -224,8 +224,9 @@ def test_resolve_provenance_without_label_assigns_distinct_ids(graph_provenances
 
 
 def test_extract_purpose_resolves_nested_purpose_object():
-    """hasPurpose_obj pointing to a dpv:Purpose resource should be parsed via parse_purpose,
-    and hasPurpose_IRI should be dropped."""
+    """hasPurpose_obj pointing to a dpv:Purpose resource should resolve to the same cached
+    UUIDv4 reference id assigned to the standalone purpose row, and hasPurpose_IRI should be
+    dropped."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_purpose.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -236,8 +237,7 @@ def test_extract_purpose_resolves_nested_purpose_object():
     }
     result = profile._extract_purpose(dataset_dict)
 
-    assert result["hasPurpose_obj"]["uri"] == "http://example.com/purpose1"
-    assert result["hasPurpose_obj"]["description"] == "Scientific research"
+    assert result["hasPurpose_obj"] == profile._get_or_create_reference_id("http://example.com/purpose1")
     assert "hasPurpose_IRI" not in result
 
 
@@ -274,8 +274,8 @@ def test_extract_purpose_missing_key_is_noop():
 def test_extract_purpose_resolves_multiple_mixed_values():
     """dpv:hasPurpose is a ref_array in the Molgenis model, so a dataset may declare more than
     one value. A dpv:Purpose-typed value and a plain vocabulary IRI given together should both
-    survive: hasPurpose_obj gets the parsed object, hasPurpose_IRI keeps the plain IRI, rather
-    than one silently overwriting/dropping the other."""
+    survive: hasPurpose_obj gets the resolved reference id, hasPurpose_IRI keeps the plain IRI,
+    rather than one silently overwriting/dropping the other."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_purpose.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -286,8 +286,7 @@ def test_extract_purpose_resolves_multiple_mixed_values():
     }
     result = profile._extract_purpose(dataset_dict)
 
-    assert result["hasPurpose_obj"]["uri"] == "http://example.com/purpose1"
-    assert result["hasPurpose_obj"]["description"] == "Scientific research"
+    assert result["hasPurpose_obj"] == profile._get_or_create_reference_id("http://example.com/purpose1")
     assert result["hasPurpose_IRI"] == "https://w3id.org/dpv#AcademicResearch"
 
 
@@ -1020,12 +1019,13 @@ def _parse_wired_dataset():
     return profile.parse_dataset({}, dataset_ref)
 
 
-def test_parse_dataset_purpose_wired_as_nested_object():
-    """parse_dataset should resolve hasPurpose into hasPurpose_obj via _extract_purpose when
-    the target resource is typed dpv:Purpose."""
+def test_parse_dataset_purpose_wired_as_reference_id():
+    """parse_dataset should resolve hasPurpose into hasPurpose_obj as a reference id when the
+    target resource is typed dpv:Purpose, since purpose is independently harvested and
+    upserted into its own MOLGENIS table rather than embedded as a nested object."""
     result = _parse_wired_dataset()
 
-    assert result["hasPurpose_obj"]["description"] == "Wired purpose"
+    uuid.UUID(result["hasPurpose_obj"])  # raises ValueError if not a valid UUID
     assert "hasPurpose_IRI" not in result
 
 
