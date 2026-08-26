@@ -19,12 +19,7 @@ fdp:new
     hea:healthTheme <http://publications.europa.eu/resource/authority/health-theme/CANCER_DISEASE>;
     hea:numberOfRecords "6"^^xsd:nonNegativeInteger;
     hea:numberOfUniqueIndividuals "5"^^xsd:nonNegativeInteger;
-    hea:analytics
-        [
-            a dcat:Distribution;
-            dct:title "Test dataset 6 - analytics distribution";
-            dcat:accessURL <https://cancerimage.eu/analytics>
-        ];
+    hea:analytics <http://fdp-2.test/distribution/analytics>;
     dct:accessRights <http://publications.europa.eu/resource/authority/access-right/NON_PUBLIC>;
     dct:description "Test dataset 6 - description";
     dct:identifier "testdataset6-identifier";
@@ -35,19 +30,7 @@ fdp:new
     dct:title "Test dataset 6";
     dct:type <https://cancerimage.eu/ontology/EUCAIM#SPEC1000020>;
     adms:interoperabilityLevel <https://cancerimage.eu/ontology/EUCAIM#SPEC1000009>;
-    adms:sample
-        [
-            a dcat:Distribution;
-            dct:title "Test dataset 6 - sample distribution";
-            dcat:accessURL <https://cancerimage.eu/sample>;
-            dcat:accessService
-                [
-                    a dcat:DataService;
-                    dct:title "Test dataset 6 - access service";
-                    dcat:endPointURL <https://cancerimage.eu/api>
-                ];
-            dct:rights [ a dct:RightsStatement; rdfs:label "Test dataset 6 - rights" ]
-        ];
+    adms:sample <http://fdp-2.test/distribution/sample>;
     dcat:contactPoint [ a vcard:Kind; vcard:fn "Test dataset 6 - Contact point"; vcard:hasEmail <mailto:test@example.com> ];
     dcat:keyword "testkeyword";
     dcat:theme <http://publications.europa.eu/resource/authority/data-theme/HEAL>;
@@ -59,3 +42,28 @@ fdp:new
     EUC:hasImageBodyPart <http://purl.bioontology.org/ontology/SNOMEDCT/43799004>;
     EUC:hasImageModality <https://cancerimage.eu/ontology/EUCAIM#IMG1000038>;
     dpv:hasPurpose [ a dpv:Purpose; dct:description "Test dataset 6 - purpose" ].
+
+# sample/analytics/accessService must be dereferenceable IRIs, not inline blank nodes -
+# the EUCAIM SHACL shapes for adms:sample/healthdcatap:analytics/dcat:accessService all
+# require sh:nodeKind sh:IRI.
+<http://fdp-2.test/distribution/sample>
+    a dcat:Distribution;
+    dct:title "Test dataset 6 - sample distribution";
+    dcat:accessURL <https://cancerimage.eu/sample>;
+    r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
+    dcat:accessService <http://fdp-2.test/dataservice/access>;
+    dct:rights [ a dct:RightsStatement; rdfs:label "Test dataset 6 - sample rights" ] .
+
+<http://fdp-2.test/distribution/analytics>
+    a dcat:Distribution;
+    dct:title "Test dataset 6 - analytics distribution";
+    dcat:accessURL <https://cancerimage.eu/analytics>;
+    r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
+    dcat:accessService <http://fdp-2.test/dataservice/access>;
+    dct:rights [ a dct:RightsStatement; rdfs:label "Test dataset 6 - analytics rights" ] .
+
+<http://fdp-2.test/dataservice/access>
+    a dcat:DataService;
+    dct:title "Test dataset 6 - access service";
+    dcat:endPointURL <https://cancerimage.eu/api>;
+    dct:publisher [ a foaf:Organization; foaf:name "Test dataset 6 - dataservice publisher" ] .
