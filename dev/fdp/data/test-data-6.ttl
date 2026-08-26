@@ -45,14 +45,17 @@ fdp:new
 
 # sample/analytics/accessService must be dereferenceable IRIs, not inline blank nodes -
 # the EUCAIM SHACL shapes for adms:sample/healthdcatap:analytics/dcat:accessService all
-# require sh:nodeKind sh:IRI.
+# require sh:nodeKind sh:IRI. dct:rights/dct:publisher are also given their own IRIs here
+# (SHACL itself would allow blank nodes for these two via BlankNodeEditor) rather than
+# nested one level further inside an already-separately-IRI'd resource, since a live FDP
+# round-trip was observed to drop that second level of nesting.
 <http://fdp-2.test/distribution/sample>
     a dcat:Distribution;
     dct:title "Test dataset 6 - sample distribution";
     dcat:accessURL <https://cancerimage.eu/sample>;
     r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
     dcat:accessService <http://fdp-2.test/dataservice/access>;
-    dct:rights [ a dct:RightsStatement; rdfs:label "Test dataset 6 - sample rights" ] .
+    dct:rights <http://fdp-2.test/rightsstatement/sample> .
 
 <http://fdp-2.test/distribution/analytics>
     a dcat:Distribution;
@@ -60,10 +63,22 @@ fdp:new
     dcat:accessURL <https://cancerimage.eu/analytics>;
     r:applicableLegislation <http://data.europa.eu/eli/reg/2025/327/oj>;
     dcat:accessService <http://fdp-2.test/dataservice/access>;
-    dct:rights [ a dct:RightsStatement; rdfs:label "Test dataset 6 - analytics rights" ] .
+    dct:rights <http://fdp-2.test/rightsstatement/analytics> .
+
+<http://fdp-2.test/rightsstatement/sample>
+    a dct:RightsStatement;
+    rdfs:label "Test dataset 6 - sample rights" .
+
+<http://fdp-2.test/rightsstatement/analytics>
+    a dct:RightsStatement;
+    rdfs:label "Test dataset 6 - analytics rights" .
 
 <http://fdp-2.test/dataservice/access>
     a dcat:DataService;
     dct:title "Test dataset 6 - access service";
     dcat:endPointURL <https://cancerimage.eu/api>;
-    dct:publisher [ a foaf:Organization; foaf:name "Test dataset 6 - dataservice publisher" ] .
+    dct:publisher <http://fdp-2.test/publisher/dataservice> .
+
+<http://fdp-2.test/publisher/dataservice>
+    a foaf:Organization;
+    foaf:name "Test dataset 6 - dataservice publisher" .
