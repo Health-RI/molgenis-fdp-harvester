@@ -198,6 +198,31 @@ def test_attribution_agent_generator(parser):
     assert attribution_agents[0]["name"] == "Wired Attribution Agent"
 
 
+def test_legalbasis_generator(parser):
+    """legalbasis() yields dicts with concept_type 'legalbasis' for dpv:LegalBasis resources."""
+    with Path("tests/test_data/extraction_legal_basis.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    legal_bases = list(parser.legalbasis())
+    assert len(legal_bases) == 1
+    assert legal_bases[0]["concept_type"] == "legalbasis"
+    assert legal_bases[0]["description"] == "GDPR Art. 9(2)(j)"
+
+
+def test_rightsstatement_generator(parser):
+    """rightsstatement() yields dicts with concept_type 'rightsstatement' for dct:RightsStatement
+    resources reached via a dataset's distribution.rights (dct:RightsStatement is also commonly
+    used to type a dataset's own dct:accessRights value, so this can't be a whole-graph type
+    scan like legalbasis/purpose - it walks the predicate path instead)."""
+    with Path("tests/test_data/extraction_dataset_with_rights.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    rightsstatements = list(parser.rightsstatement())
+    assert len(rightsstatements) == 1
+    assert rightsstatements[0]["concept_type"] == "rightsstatement"
+    assert rightsstatements[0]["label"] == "Rights via distribution"
+
+
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
     with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
@@ -268,6 +293,30 @@ def test_get_concept_attribution_agent(parser):
 
     assert concept["uri"] == "http://example.com/dataset_wired/attribution_agent"
     assert concept["name"] == "Wired Attribution Agent"
+
+
+def test_get_concept_legalbasis(parser):
+    """get_concept() with type 'legalbasis' returns a dict with legalbasis fields."""
+    with Path("tests/test_data/extraction_legal_basis.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    legalbasis_uri = URIRef("http://example.com/legalbasis1")
+    concept = parser.get_concept(legalbasis_uri, "legalbasis")
+
+    assert concept["uri"] == "http://example.com/legalbasis1"
+    assert concept["description"] == "GDPR Art. 9(2)(j)"
+
+
+def test_get_concept_rightsstatement(parser):
+    """get_concept() with type 'rightsstatement' returns a dict with rightsstatement fields."""
+    with Path("tests/test_data/extraction_distribution_full.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    rightsstatement_uri = URIRef("http://example.com/distribution1/rights")
+    concept = parser.get_concept(rightsstatement_uri, "rightsstatement")
+
+    assert concept["uri"] == "http://example.com/distribution1/rights"
+    assert concept["label"] == "Access restricted to authorised researchers"
 
 
 def test_supplementary_class_reference_id_is_shared_across_calls(parser):

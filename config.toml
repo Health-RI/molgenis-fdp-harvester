@@ -8,6 +8,8 @@ kind = "kind"
 publisher = "publisher"
 creator = "creator"
 attribution_agent = "attribution_agent"
+legalbasis = "legalbasis"
+rightsstatement = "rightsstatement"
 dataset = "collections"
 datasetseries = "biobanks"
 

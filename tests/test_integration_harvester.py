@@ -46,7 +46,8 @@ def test_full_harvest_flow(harvester, mock_client, catalog_url, concept_table_di
         import_results.append(result)
 
     # Verify content was saved to Molgenis
-    data = json.loads(obj.content)
+    dataset_obj = next(obj for obj in processed_objects if obj.concept_type == "dataset")
+    data = json.loads(dataset_obj.content)
     mock_client.save_table.assert_any_call(table=concept_table_dict["dataset"], data=[data])
 
     expected_save_calls = len(processed_objects)

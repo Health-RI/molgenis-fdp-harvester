@@ -1,0 +1,16 @@
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix adms: <http://www.w3.org/ns/adms#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<http://example.com/dataset_rights> a dcat:Dataset ;
+    dct:identifier "dataset-rights-001" ;
+    dct:title "Rights Test Dataset" ;
+    adms:sample <http://example.com/dataset_rights/sample> .
+
+<http://example.com/dataset_rights/sample> a dcat:Distribution ;
+    dct:title "Rights Sample Distribution" ;
+    dct:rights <http://example.com/dataset_rights/rights> .
+
+<http://example.com/dataset_rights/rights> a dct:RightsStatement ;
+    rdfs:label "Rights via distribution" .

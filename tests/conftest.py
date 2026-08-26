@@ -43,6 +43,8 @@ def concept_table_dict():
         "purpose": "purpose",
         "creator": "creator",
         "attribution_agent": "attribution_agent",
+        "legalbasis": "legalbasis",
+        "rightsstatement": "rightsstatement",
     }
 
 

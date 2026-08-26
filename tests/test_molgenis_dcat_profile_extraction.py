@@ -640,8 +640,9 @@ def test_parse_distribution_scalar_fields():
 
 
 def test_parse_distribution_nested_rights():
-    """parse_distribution should resolve 'rights' into a parsed dct:RightsStatement dict when
-    typed accordingly."""
+    """parse_distribution should resolve 'rights' into a reference id when typed
+    dct:RightsStatement, since rightsstatement is independently harvested and upserted into
+    its own MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_distribution_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -649,8 +650,7 @@ def test_parse_distribution_nested_rights():
 
     result = profile.parse_distribution({}, distribution_ref)
 
-    assert result["rights"]["uri"] == "http://example.com/distribution1/rights"
-    assert result["rights"]["label"] == "Access restricted to authorised researchers"
+    assert result["rights"] == profile._get_or_create_reference_id("http://example.com/distribution1/rights")
 
 
 def test_parse_distribution_nested_checksum():
@@ -828,7 +828,9 @@ def test_parse_checksum_fields():
 
 
 def test_extract_rightsstatement_valid():
-    """rights pointing to a dct:RightsStatement resource should be replaced with a parsed dict."""
+    """rights pointing to a dct:RightsStatement resource should resolve to its cached
+    reference id, since rightsstatement is independently harvested and upserted into its own
+    MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_distribution_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -836,8 +838,7 @@ def test_extract_rightsstatement_valid():
     dataset_dict = {"rights": "http://example.com/distribution1/rights"}
     result = profile._extract_rightsstatement(dataset_dict, "rights")
 
-    assert result["rights"]["uri"] == "http://example.com/distribution1/rights"
-    assert result["rights"]["label"] == "Access restricted to authorised researchers"
+    assert result["rights"] == profile._get_or_create_reference_id("http://example.com/distribution1/rights")
 
 
 def test_parse_rightsstatement_fields():
@@ -893,7 +894,9 @@ def test_parse_dataservice_fields():
 
 
 def test_extract_legalbasis_valid():
-    """hasLegalBasis pointing to a dpv:LegalBasis resource should be replaced with a parsed dict."""
+    """hasLegalBasis pointing to a dpv:LegalBasis resource should resolve to its cached
+    reference id, since legalbasis is independently harvested and upserted into its own
+    MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_legal_basis.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -901,8 +904,7 @@ def test_extract_legalbasis_valid():
     dataset_dict = {"hasLegalBasis": "http://example.com/legalbasis1"}
     result = profile._extract_legalbasis(dataset_dict, "hasLegalBasis")
 
-    assert result["hasLegalBasis"]["uri"] == "http://example.com/legalbasis1"
-    assert result["hasLegalBasis"]["description"] == "GDPR Art. 9(2)(j)"
+    assert result["hasLegalBasis"] == profile._get_or_create_reference_id("http://example.com/legalbasis1")
 
 
 def test_extract_legalbasis_wrong_type_left_as_iri():
@@ -1075,11 +1077,12 @@ def test_parse_dataset_other_identifier_wired():
     assert result["other_identifier"][1] == "dataset-wired-001"
 
 
-def test_parse_dataset_legalbasis_wired_as_object():
-    """parse_dataset should resolve 'hasLegalBasis' into a parsed dpv:LegalBasis dict."""
+def test_parse_dataset_legalbasis_wired_as_reference_id():
+    """parse_dataset should resolve 'hasLegalBasis' into a reference id, since legalbasis is
+    independently harvested and upserted into its own MOLGENIS table."""
     result = _parse_wired_dataset()
 
-    assert result["hasLegalBasis"]["description"] == "Wired legal basis"
+    uuid.UUID(result["hasLegalBasis"])  # raises ValueError if not a valid UUID
 
 
 def test_parse_dataset_sample_wired_as_distribution():

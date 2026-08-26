@@ -17,7 +17,7 @@ from rdflib.namespace import DCAT, RDF
 
 from molgenis_fdp_harvester.utils import HarvesterException
 
-from .baseparser import DCT, DPV, HYDRA, VCARD
+from .baseparser import ADMS, DCT, DPV, HEALTHDCATAP, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -112,6 +112,27 @@ class RDFParser(RDFProcessor):
 
     def _purpose(self):
         yield from self.g.subjects(RDF.type, DPV.Purpose)
+
+    def _legalbasis(self):
+        yield from self.g.subjects(RDF.type, DPV.LegalBasis)
+
+    def _rightsstatement(self):
+        """dct:RightsStatement resources reached via a dataset's distribution.rights.
+
+        Unlike dpv:LegalBasis, dct:RightsStatement is also commonly used to type a
+        dataset's own dct:accessRights value - a whole-graph type scan would incorrectly
+        harvest those as well, so this walks the specific predicate path instead
+        (dataset -> sample/analytics -> distribution -> rights).
+        """
+        seen = set()
+        for dataset_ref in self._datasets():
+            distribution_refs = set(self.g.objects(dataset_ref, ADMS.sample))
+            distribution_refs.update(self.g.objects(dataset_ref, HEALTHDCATAP.analytics))
+            for distribution_ref in distribution_refs:
+                for obj in self.g.objects(distribution_ref, DCT.rights):
+                    if obj not in seen and (obj, RDF.type, DCT.RightsStatement) in self.g:
+                        seen.add(obj)
+                        yield obj
 
     def _creator(self):
         """foaf:Agent resources reached via dct:creator on a dataset.
@@ -357,6 +378,44 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def legalbasis(self):
+        """
+        Generator that returns dpv:LegalBasis concepts parsed from the RDF graph
+
+        Each legal basis object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._legalbasis():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_legal_basis(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "legalbasis"
+
+            yield dataset_dict
+
+    def rightsstatement(self):
+        """
+        Generator that returns dct:RightsStatement concepts parsed from the RDF graph
+
+        Each rights statement object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._rightsstatement():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_rightsstatement(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "rightsstatement"
+
+            yield dataset_dict
+
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
         for profile in self._get_profile_instances():
@@ -376,6 +435,10 @@ class RDFParser(RDFProcessor):
                 profile.parse_creator(concept_dict, uri_ref)
             elif concept_type == "attribution_agent":
                 profile.parse_attribution_agent(concept_dict, uri_ref)
+            elif concept_type == "legalbasis":
+                profile.parse_legal_basis(concept_dict, uri_ref)
+            elif concept_type == "rightsstatement":
+                profile.parse_rightsstatement(concept_dict, uri_ref)
 
         return concept_dict
 

@@ -19,6 +19,8 @@ def valid_config_data():
             "purpose": "purpose",
             "creator": "creator",
             "attribution_agent": "attribution_agent",
+            "legalbasis": "legalbasis",
+            "rightsstatement": "rightsstatement",
         }
     }
 
@@ -48,6 +50,8 @@ def test_validate_config_missing_section():
         "purpose",
         "creator",
         "attribution_agent",
+        "legalbasis",
+        "rightsstatement",
     ],
 )
 def test_validate_config_missing_concept(valid_config_data, missing_concept):

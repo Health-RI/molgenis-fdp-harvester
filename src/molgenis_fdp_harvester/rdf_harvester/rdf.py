@@ -92,6 +92,8 @@ class DCATRDFHarvester(DCATHarvester):
             extraction_methods = [
                 ("provenancestatement", self.parser.provenancestatement),
                 ("purpose", self.parser.purpose),
+                ("legalbasis", self.parser.legalbasis),
+                ("rightsstatement", self.parser.rightsstatement),
                 ("kind", self.parser.kind),
                 ("publisher", self.parser.publisher),
                 ("creator", self.parser.creator),
