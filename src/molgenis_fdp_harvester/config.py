@@ -30,6 +30,8 @@ class ConceptTableLink:
     attribution_agent: str
     legalbasis: str
     rightsstatement: str
+    dataservice: str
+    distribution: str
 
     def __post_init__(self):
         """Validate that all fields are strings."""
@@ -44,6 +46,8 @@ class ConceptTableLink:
             "attribution_agent",
             "legalbasis",
             "rightsstatement",
+            "dataservice",
+            "distribution",
         ]:
             field_value = getattr(self, field_name)
             if not isinstance(field_value, str):

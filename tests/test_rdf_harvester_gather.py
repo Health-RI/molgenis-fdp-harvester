@@ -245,13 +245,15 @@ def test_get_guids_in_db(harvester, mock_client):
         [],  # attribution_agent
         [{"id": "legalbasis1-id"}],  # legalbasis
         [],  # rightsstatement
+        [{"id": "dataservice1-id"}],  # dataservice
+        [],  # distribution
     ]
 
     # Call method
     harvester._get_guids_in_db()
 
     # Verify client calls — one per concept type
-    assert mock_client.get.call_count == 10
+    assert mock_client.get.call_count == 12
 
     # Verify guids_in_db was populated
     assert harvester.guids_in_db["dataset"] == ["dataset1-id", "dataset2-id"]
@@ -264,6 +266,8 @@ def test_get_guids_in_db(harvester, mock_client):
     assert harvester.guids_in_db["attribution_agent"] == []
     assert harvester.guids_in_db["legalbasis"] == ["legalbasis1-id"]
     assert harvester.guids_in_db["rightsstatement"] == []
+    assert harvester.guids_in_db["dataservice"] == ["dataservice1-id"]
+    assert harvester.guids_in_db["distribution"] == []
 
 
 def test_get_guids_in_db_error_handling(harvester, mock_client):

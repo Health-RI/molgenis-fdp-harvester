@@ -10,6 +10,8 @@ creator = "creator"
 attribution_agent = "attribution_agent"
 legalbasis = "legalbasis"
 rightsstatement = "rightsstatement"
+dataservice = "dataservice"
+distribution = "distribution"
 dataset = "collections"
 datasetseries = "biobanks"
 

@@ -223,6 +223,29 @@ def test_rightsstatement_generator(parser):
     assert rightsstatements[0]["label"] == "Rights via distribution"
 
 
+def test_dataservice_generator(parser):
+    """dataservice() yields dicts with concept_type 'dataservice' for dcat:DataService resources."""
+    with Path("tests/test_data/extraction_dataservice.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    dataservices = list(parser.dataservice())
+    assert len(dataservices) == 1
+    assert dataservices[0]["concept_type"] == "dataservice"
+    assert dataservices[0]["title"] == "Test Data Service"
+
+
+def test_distribution_generator(parser):
+    """distribution() yields dicts with concept_type 'distribution' for dcat:Distribution
+    resources."""
+    with Path("tests/test_data/extraction_distribution_full.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    distributions = list(parser.distribution())
+    assert len(distributions) == 1
+    assert distributions[0]["concept_type"] == "distribution"
+    assert distributions[0]["title"] == "Full Distribution"
+
+
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
     with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
@@ -317,6 +340,30 @@ def test_get_concept_rightsstatement(parser):
 
     assert concept["uri"] == "http://example.com/distribution1/rights"
     assert concept["label"] == "Access restricted to authorised researchers"
+
+
+def test_get_concept_dataservice(parser):
+    """get_concept() with type 'dataservice' returns a dict with dataservice fields."""
+    with Path("tests/test_data/extraction_dataservice.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    dataservice_uri = URIRef("http://example.com/dataservice1")
+    concept = parser.get_concept(dataservice_uri, "dataservice")
+
+    assert concept["uri"] == "http://example.com/dataservice1"
+    assert concept["title"] == "Test Data Service"
+
+
+def test_get_concept_distribution(parser):
+    """get_concept() with type 'distribution' returns a dict with distribution fields."""
+    with Path("tests/test_data/extraction_distribution_full.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    distribution_uri = URIRef("http://example.com/distribution1")
+    concept = parser.get_concept(distribution_uri, "distribution")
+
+    assert concept["uri"] == "http://example.com/distribution1"
+    assert concept["title"] == "Full Distribution"
 
 
 def test_supplementary_class_reference_id_is_shared_across_calls(parser):

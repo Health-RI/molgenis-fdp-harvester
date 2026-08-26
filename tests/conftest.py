@@ -45,6 +45,8 @@ def concept_table_dict():
         "attribution_agent": "attribution_agent",
         "legalbasis": "legalbasis",
         "rightsstatement": "rightsstatement",
+        "dataservice": "dataservice",
+        "distribution": "distribution",
     }
 
 

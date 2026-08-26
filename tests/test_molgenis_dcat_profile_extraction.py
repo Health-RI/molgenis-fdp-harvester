@@ -569,7 +569,9 @@ def test_parse_other_identifier_fields():
 
 
 def test_extract_distribution_sample_valid():
-    """sample pointing to a dcat:Distribution resource should be replaced with a parsed dict."""
+    """sample pointing to a dcat:Distribution resource should resolve to its cached reference
+    id, since distribution is independently harvested and upserted into its own MOLGENIS
+    table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_distribution_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -577,12 +579,13 @@ def test_extract_distribution_sample_valid():
     dataset_dict = {"sample": "http://example.com/distribution1"}
     result = profile._extract_distribution(dataset_dict, "sample")
 
-    assert result["sample"]["uri"] == "http://example.com/distribution1"
-    assert result["sample"]["title"] == "Full Distribution"
+    assert result["sample"] == profile._get_or_create_reference_id("http://example.com/distribution1")
 
 
 def test_extract_distribution_analytics_valid():
-    """analytics pointing to a dcat:Distribution resource should be replaced with a parsed dict."""
+    """analytics pointing to a dcat:Distribution resource should resolve to its cached
+    reference id, since distribution is independently harvested and upserted into its own
+    MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_distribution_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -590,8 +593,7 @@ def test_extract_distribution_analytics_valid():
     dataset_dict = {"analytics": "http://example.com/distribution1"}
     result = profile._extract_distribution(dataset_dict, "analytics")
 
-    assert result["analytics"]["uri"] == "http://example.com/distribution1"
-    assert result["analytics"]["title"] == "Full Distribution"
+    assert result["analytics"] == profile._get_or_create_reference_id("http://example.com/distribution1")
 
 
 def test_extract_distribution_wrong_type_left_as_iri():
@@ -685,11 +687,9 @@ def test_parse_distribution_nested_policy():
 
 
 def test_parse_distribution_nested_dataservice():
-    """parse_distribution should resolve 'accessService' into a parsed dcat:DataService dict
-    when the referenced resource is typed dcat:DataService. Requires
-    extraction_distribution_full.ttl's <.../service> resource to gain `a dcat:DataService`
-    plus its own descriptive fields (see tests/test_data/extraction_dataservice.ttl for the
-    expected shape)."""
+    """parse_distribution should resolve 'accessService' into a reference id when the
+    referenced resource is typed dcat:DataService, since dataservice is independently
+    harvested and upserted into its own MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_distribution_full.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -697,7 +697,7 @@ def test_parse_distribution_nested_dataservice():
 
     result = profile.parse_distribution({}, distribution_ref)
 
-    assert result["accessService"]["uri"] == "http://example.com/distribution1/service"
+    assert result["accessService"] == profile._get_or_create_reference_id("http://example.com/distribution1/service")
 
 
 def test_extract_policy_valid():
@@ -855,8 +855,9 @@ def test_parse_rightsstatement_fields():
 
 
 def test_extract_dataservice_valid():
-    """accessService pointing to a dcat:DataService resource should be replaced with a parsed
-    dict."""
+    """accessService pointing to a dcat:DataService resource should resolve to its cached
+    reference id, since dataservice is independently harvested and upserted into its own
+    MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_dataservice.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -864,8 +865,7 @@ def test_extract_dataservice_valid():
     dataset_dict = {"accessService": "http://example.com/dataservice1"}
     result = profile._extract_dataservice(dataset_dict, "accessService")
 
-    assert result["accessService"]["uri"] == "http://example.com/dataservice1"
-    assert result["accessService"]["title"] == "Test Data Service"
+    assert result["accessService"] == profile._get_or_create_reference_id("http://example.com/dataservice1")
 
 
 def test_parse_dataservice_fields():
@@ -1085,15 +1085,17 @@ def test_parse_dataset_legalbasis_wired_as_reference_id():
     uuid.UUID(result["hasLegalBasis"])  # raises ValueError if not a valid UUID
 
 
-def test_parse_dataset_sample_wired_as_distribution():
-    """parse_dataset should resolve 'sample' into a parsed dcat:Distribution dict."""
+def test_parse_dataset_sample_wired_as_reference_id():
+    """parse_dataset should resolve 'sample' into a reference id, since distribution is
+    independently harvested and upserted into its own MOLGENIS table."""
     result = _parse_wired_dataset()
 
-    assert result["sample"]["title"] == "Wired Sample Distribution"
+    uuid.UUID(result["sample"])  # raises ValueError if not a valid UUID
 
 
-def test_parse_dataset_analytics_wired_as_distribution():
-    """parse_dataset should resolve 'analytics' into a parsed dcat:Distribution dict."""
+def test_parse_dataset_analytics_wired_as_reference_id():
+    """parse_dataset should resolve 'analytics' into a reference id, since distribution is
+    independently harvested and upserted into its own MOLGENIS table."""
     result = _parse_wired_dataset()
 
-    assert result["analytics"]["title"] == "Wired Analytics Distribution"
+    uuid.UUID(result["analytics"])  # raises ValueError if not a valid UUID

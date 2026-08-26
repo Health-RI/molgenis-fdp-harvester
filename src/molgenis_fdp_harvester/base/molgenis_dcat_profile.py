@@ -215,10 +215,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, ADMS.Identifier, extraction)
 
     def _extract_distribution(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_distribution({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.Distribution, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.Distribution, self._resolve_reference_id)
 
     def _extract_policy(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -236,10 +233,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, DCT.RightsStatement, self._resolve_reference_id)
 
     def _extract_dataservice(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_dataservice({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.DataService, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.DataService, self._resolve_reference_id)
 
     def _extract_permission(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -504,7 +498,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("checksum", SPDX.checksum),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         dataset_dict = self._extract_policy(dataset_dict, "hasPolicy")
         dataset_dict = self._extract_checksum(dataset_dict, "checksum")
         dataset_dict = self._extract_rightsstatement(dataset_dict, "rights")
@@ -529,7 +523,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("title", DCT.title),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         dataset_dict = self._extract_and_transform_by_type(
             dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
         )

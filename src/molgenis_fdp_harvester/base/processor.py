@@ -9,6 +9,7 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 import xml
+from typing import ClassVar
 
 import rdflib
 import rdflib.parser
@@ -158,6 +159,12 @@ class RDFParser(RDFProcessor):
                     if obj not in seen and (obj, RDF.type, FOAF.Agent) in self.g:
                         seen.add(obj)
                         yield obj
+
+    def _dataservice(self):
+        yield from self.g.subjects(RDF.type, DCAT.DataService)
+
+    def _distribution(self):
+        yield from self.g.subjects(RDF.type, DCAT.Distribution)
 
     def _catalogs(self):
         """
@@ -416,29 +423,68 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def dataservice(self):
+        """
+        Generator that returns dcat:DataService concepts parsed from the RDF graph
+
+        Each dataservice object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._dataservice():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_dataservice(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "dataservice"
+
+            yield dataset_dict
+
+    def distribution(self):
+        """
+        Generator that returns dcat:Distribution concepts parsed from the RDF graph
+
+        Each distribution object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._distribution():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_distribution(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "distribution"
+
+            yield dataset_dict
+
+    #: Maps a concept_type to the profile method that parses a single resource of that type.
+    _CONCEPT_PARSE_METHODS: ClassVar[dict[str, str]] = {
+        "publisher": "parse_publisher",
+        "kind": "parse_kind",
+        "dataset": "parse_dataset",
+        "datasetseries": "parse_datasetseries",
+        "provenancestatement": "parse_provenancestatement",
+        "purpose": "parse_purpose",
+        "creator": "parse_creator",
+        "attribution_agent": "parse_attribution_agent",
+        "legalbasis": "parse_legal_basis",
+        "rightsstatement": "parse_rightsstatement",
+        "dataservice": "parse_dataservice",
+        "distribution": "parse_distribution",
+    }
+
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
+        method_name = self._CONCEPT_PARSE_METHODS.get(concept_type)
+        if method_name is None:
+            return concept_dict
+
         for profile in self._get_profile_instances():
-            if concept_type == "publisher":
-                profile.parse_publisher(concept_dict, uri_ref)
-            elif concept_type == "kind":
-                profile.parse_kind(concept_dict, uri_ref)
-            elif concept_type == "dataset":
-                profile.parse_dataset(concept_dict, uri_ref)
-            elif concept_type == "datasetseries":
-                profile.parse_datasetseries(concept_dict, uri_ref)
-            elif concept_type == "provenancestatement":
-                profile.parse_provenancestatement(concept_dict, uri_ref)
-            elif concept_type == "purpose":
-                profile.parse_purpose(concept_dict, uri_ref)
-            elif concept_type == "creator":
-                profile.parse_creator(concept_dict, uri_ref)
-            elif concept_type == "attribution_agent":
-                profile.parse_attribution_agent(concept_dict, uri_ref)
-            elif concept_type == "legalbasis":
-                profile.parse_legal_basis(concept_dict, uri_ref)
-            elif concept_type == "rightsstatement":
-                profile.parse_rightsstatement(concept_dict, uri_ref)
+            getattr(profile, method_name)(concept_dict, uri_ref)
 
         return concept_dict
 

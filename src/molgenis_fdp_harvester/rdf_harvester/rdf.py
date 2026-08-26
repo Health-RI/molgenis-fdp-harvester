@@ -98,6 +98,8 @@ class DCATRDFHarvester(DCATHarvester):
                 ("publisher", self.parser.publisher),
                 ("creator", self.parser.creator),
                 ("attribution_agent", self.parser.attribution_agent),
+                ("dataservice", self.parser.dataservice),
+                ("distribution", self.parser.distribution),
                 ("datasetseries", self.parser.datasetseries),
                 ("dataset", self.parser.datasets),
             ]

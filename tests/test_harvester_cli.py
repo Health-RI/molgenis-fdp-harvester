@@ -46,6 +46,8 @@ creator = "creator"
 attribution_agent = "attribution_agent"
 legalbasis = "legalbasis"
 rightsstatement = "rightsstatement"
+dataservice = "dataservice"
+distribution = "distribution"
 
 [harvester_config]
 auto_create_datasetseries = true
@@ -87,6 +89,8 @@ def concept_table_dict():
         "attribution_agent": "attribution_agent",
         "legalbasis": "legalbasis",
         "rightsstatement": "rightsstatement",
+        "dataservice": "dataservice",
+        "distribution": "distribution",
     }
 
 

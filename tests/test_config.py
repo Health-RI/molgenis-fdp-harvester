@@ -21,6 +21,8 @@ def valid_config_data():
             "attribution_agent": "attribution_agent",
             "legalbasis": "legalbasis",
             "rightsstatement": "rightsstatement",
+            "dataservice": "dataservice",
+            "distribution": "distribution",
         }
     }
 
@@ -52,6 +54,8 @@ def test_validate_config_missing_section():
         "attribution_agent",
         "legalbasis",
         "rightsstatement",
+        "dataservice",
+        "distribution",
     ],
 )
 def test_validate_config_missing_concept(valid_config_data, missing_concept):
