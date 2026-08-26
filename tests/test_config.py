@@ -16,6 +16,7 @@ def valid_config_data():
             "kind": "kind",
             "publisher": "publisher",
             "provenancestatement": "provenancestatement",
+            "purpose": "purpose",
         }
     }
 
@@ -34,7 +35,9 @@ def test_validate_config_missing_section():
         validate_config(config_data)
 
 
-@pytest.mark.parametrize("missing_concept", ["kind", "publisher", "dataset", "datasetseries", "provenancestatement"])
+@pytest.mark.parametrize(
+    "missing_concept", ["kind", "publisher", "dataset", "datasetseries", "provenancestatement", "purpose"]
+)
 def test_validate_config_missing_concept(valid_config_data, missing_concept):
     """Test validation fails when a concept field is missing."""
     invalid_config_data = valid_config_data.copy()
