@@ -191,10 +191,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return dataset_dict
 
     def _extract_creator(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_creator({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, self._resolve_reference_id)
 
     def _extract_periodoftime(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -209,10 +206,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, PROV.Attribution, extraction)
 
     def _extract_attribution_agent(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_attribution_agent({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, self._resolve_reference_id)
 
     def _extract_other_identifier(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -452,7 +446,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("homepage", FOAF.homepage),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         if "mbox" in dataset_dict:
             dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict

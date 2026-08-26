@@ -6,6 +6,8 @@ provenancestatement = "provenance_statement"
 purpose = "purpose"
 kind = "kind"
 publisher = "publisher"
+creator = "creator"
+attribution_agent = "attribution_agent"
 dataset = "collections"
 datasetseries = "biobanks"
 

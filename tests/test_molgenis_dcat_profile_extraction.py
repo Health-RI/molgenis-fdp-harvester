@@ -301,7 +301,8 @@ def test_extract_purpose_resolves_multiple_mixed_values():
 
 
 def test_extract_creator_valid_agent_is_parsed():
-    """creator pointing to a foaf:Agent resource should be replaced with a parsed dict."""
+    """creator pointing to a foaf:Agent resource should resolve to its cached reference id,
+    since creator is independently harvested and upserted into its own MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_creator_foaf_agent.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -309,8 +310,7 @@ def test_extract_creator_valid_agent_is_parsed():
     dataset_dict = {"creator": "http://example.com/creator1"}
     result = profile._extract_creator(dataset_dict, "creator")
 
-    assert result["creator"]["uri"] == "http://example.com/creator1"
-    assert result["creator"]["name"] == "Test Creator"
+    assert result["creator"] == profile._get_or_create_reference_id("http://example.com/creator1")
 
 
 def test_extract_creator_wrong_type_left_as_iri(graph_foaf_wrong_type):
@@ -348,8 +348,8 @@ def test_parse_creator_fields():
 def test_extract_creator_multiple_values_resolved_independently():
     """dct:creator is a ref_array in the Molgenis model, so a dataset may declare more than one
     creator. _extract_and_transform_by_type must resolve each value independently instead of
-    crashing on URIRef(list) -- each matching foaf:Agent gets parsed, non-matching resources
-    are left as plain IRI strings, same as the single-value case."""
+    crashing on URIRef(list) -- each matching foaf:Agent resolves to its own distinct reference
+    id, non-matching resources are left as plain IRI strings, same as the single-value case."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_creator_multi.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -365,8 +365,9 @@ def test_extract_creator_multiple_values_resolved_independently():
 
     assert isinstance(result["creator"], list)
     assert len(result["creator"]) == 3
-    assert result["creator"][0]["name"] == "First Multi Creator"
-    assert result["creator"][1]["name"] == "Second Multi Creator"
+    assert result["creator"][0] == profile._get_or_create_reference_id("http://example.com/creator_multi_1")
+    assert result["creator"][1] == profile._get_or_create_reference_id("http://example.com/creator_multi_2")
+    assert result["creator"][0] != result["creator"][1]
     assert result["creator"][2] == "http://example.com/creator_multi_not_agent"
 
 
@@ -464,7 +465,9 @@ def test_extract_periodoftime_missing_key_is_noop(graph_date_range_missing):
 
 def test_extract_attribution_valid():
     """qualifiedAttribution pointing to a prov:Attribution resource should be replaced with a
-    parsed dict, including a nested parsed agent."""
+    parsed dict. attribution itself stays embedded (its id has no MOLGENIS-computed override),
+    but its nested agent now resolves to a reference id, since attribution_agent is independently
+    harvested and upserted into its own MOLGENIS table."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_attribution.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -475,7 +478,7 @@ def test_extract_attribution_valid():
     attribution = result["qualifiedAttribution"]
     assert attribution["uri"] == "http://example.com/attribution1"
     assert attribution["hadRole"] == "http://registry.it.csiro.au/def/isotc211/CI_RoleCode/author"
-    assert attribution["agent"]["name"] == "Attribution Agent"
+    assert attribution["agent"] == profile._get_or_create_reference_id("http://example.com/attribution_agent1")
 
 
 def test_extract_attribution_wrong_type_left_as_iri():
@@ -492,8 +495,8 @@ def test_extract_attribution_wrong_type_left_as_iri():
 
 
 def test_parse_attribution_fields_and_nested_agent():
-    """parse_attribution should extract hadRole and resolve agent into a parsed attribution
-    agent dict when the agent resource is typed foaf:Agent."""
+    """parse_attribution should extract hadRole and resolve agent into a reference id when the
+    agent resource is typed foaf:Agent."""
     g = rdflib.Dataset()
     g.parse("tests/test_data/extraction_attribution.ttl", format="turtle")
     profile = MolgenisEUCAIMDCATAPProfile(g)
@@ -503,8 +506,7 @@ def test_parse_attribution_fields_and_nested_agent():
 
     assert result["uri"] == "http://example.com/attribution1"
     assert result["hadRole"] == "http://registry.it.csiro.au/def/isotc211/CI_RoleCode/author"
-    assert result["agent"]["uri"] == "http://example.com/attribution_agent1"
-    assert result["agent"]["name"] == "Attribution Agent"
+    assert result["agent"] == profile._get_or_create_reference_id("http://example.com/attribution_agent1")
 
 
 def test_parse_attribution_agent_fields():
@@ -1032,11 +1034,12 @@ def test_parse_dataset_purpose_wired_as_reference_id():
     assert "hasPurpose_IRI" not in result
 
 
-def test_parse_dataset_creator_wired_as_object():
-    """parse_dataset should resolve 'creator' into a parsed foaf:Agent dict."""
+def test_parse_dataset_creator_wired_as_reference_id():
+    """parse_dataset should resolve 'creator' into a reference id, since creator is
+    independently harvested and upserted into its own MOLGENIS table."""
     result = _parse_wired_dataset()
 
-    assert result["creator"]["name"] == "Wired Creator"
+    uuid.UUID(result["creator"])  # raises ValueError if not a valid UUID
 
 
 def test_parse_dataset_temporal_wired_as_periodoftime():
@@ -1056,10 +1059,12 @@ def test_parse_dataset_retentionperiod_wired_as_periodoftime():
 
 
 def test_parse_dataset_qualifiedattribution_wired():
-    """parse_dataset should resolve 'qualifiedAttribution' into a parsed prov:Attribution dict."""
+    """parse_dataset should resolve 'qualifiedAttribution' into a parsed prov:Attribution dict,
+    with its nested agent resolved to a reference id (attribution_agent is independently
+    harvested and upserted into its own MOLGENIS table)."""
     result = _parse_wired_dataset()
 
-    assert result["qualifiedAttribution"]["agent"]["name"] == "Wired Attribution Agent"
+    uuid.UUID(result["qualifiedAttribution"]["agent"])  # raises ValueError if not a valid UUID
 
 
 def test_parse_dataset_other_identifier_wired():

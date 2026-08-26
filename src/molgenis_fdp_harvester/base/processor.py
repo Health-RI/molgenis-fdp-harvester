@@ -12,7 +12,7 @@ import xml
 
 import rdflib
 import rdflib.parser
-from rdflib import FOAF
+from rdflib import FOAF, PROV
 from rdflib.namespace import DCAT, RDF
 
 from molgenis_fdp_harvester.utils import HarvesterException
@@ -112,6 +112,31 @@ class RDFParser(RDFProcessor):
 
     def _purpose(self):
         yield from self.g.subjects(RDF.type, DPV.Purpose)
+
+    def _creator(self):
+        """foaf:Agent resources reached via dct:creator on a dataset.
+
+        creator and attribution_agent are both plain foaf:Agent in RDF - there's no
+        rdf:type that distinguishes "this agent is a dataset's creator" from "this agent
+        is an attribution's agent" - so unlike the whole-graph type scans above, these
+        have to be found by walking the specific predicate path from datasets instead.
+        """
+        seen = set()
+        for dataset_ref in self._datasets():
+            for obj in self.g.objects(dataset_ref, DCT.creator):
+                if obj not in seen and (obj, RDF.type, FOAF.Agent) in self.g:
+                    seen.add(obj)
+                    yield obj
+
+    def _attribution_agent(self):
+        """foaf:Agent resources reached via prov:qualifiedAttribution/prov:agent on a dataset."""
+        seen = set()
+        for dataset_ref in self._datasets():
+            for attribution_ref in self.g.objects(dataset_ref, PROV.qualifiedAttribution):
+                for obj in self.g.objects(attribution_ref, PROV.agent):
+                    if obj not in seen and (obj, RDF.type, FOAF.Agent) in self.g:
+                        seen.add(obj)
+                        yield obj
 
     def _catalogs(self):
         """
@@ -293,6 +318,45 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def creator(self):
+        """
+        Generator that returns foaf:Agent concepts (reached via dct:creator) parsed from the RDF graph
+
+        Each creator object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._creator():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_creator(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "creator"
+
+            yield dataset_dict
+
+    def attribution_agent(self):
+        """
+        Generator that returns foaf:Agent concepts (reached via prov:qualifiedAttribution/prov:agent)
+        parsed from the RDF graph
+
+        Each attribution agent object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._attribution_agent():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_attribution_agent(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "attribution_agent"
+
+            yield dataset_dict
+
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
         for profile in self._get_profile_instances():
@@ -308,6 +372,10 @@ class RDFParser(RDFProcessor):
                 profile.parse_provenancestatement(concept_dict, uri_ref)
             elif concept_type == "purpose":
                 profile.parse_purpose(concept_dict, uri_ref)
+            elif concept_type == "creator":
+                profile.parse_creator(concept_dict, uri_ref)
+            elif concept_type == "attribution_agent":
+                profile.parse_attribution_agent(concept_dict, uri_ref)
 
         return concept_dict
 

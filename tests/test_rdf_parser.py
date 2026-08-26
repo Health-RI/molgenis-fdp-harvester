@@ -173,6 +173,31 @@ def test_purpose_generator(parser):
     assert purposes[0]["description"] == "Scientific research"
 
 
+def test_creator_generator(parser):
+    """creator() yields dicts with concept_type 'creator' for foaf:Agent resources reached via
+    a dataset's dct:creator (creator and attribution_agent share the same rdf:type, so this
+    can't be a whole-graph type scan like the other generators - it walks the predicate path)."""
+    with Path("tests/test_data/extraction_dataset_wired_fields.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    creators = list(parser.creator())
+    assert len(creators) == 1
+    assert creators[0]["concept_type"] == "creator"
+    assert creators[0]["name"] == "Wired Creator"
+
+
+def test_attribution_agent_generator(parser):
+    """attribution_agent() yields dicts with concept_type 'attribution_agent' for foaf:Agent
+    resources reached via a dataset's prov:qualifiedAttribution/prov:agent."""
+    with Path("tests/test_data/extraction_dataset_wired_fields.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    attribution_agents = list(parser.attribution_agent())
+    assert len(attribution_agents) == 1
+    assert attribution_agents[0]["concept_type"] == "attribution_agent"
+    assert attribution_agents[0]["name"] == "Wired Attribution Agent"
+
+
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
     with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
@@ -219,6 +244,30 @@ def test_get_concept_purpose(parser):
 
     assert concept["uri"] == "http://example.com/purpose1"
     assert concept["description"] == "Scientific research"
+
+
+def test_get_concept_creator(parser):
+    """get_concept() with type 'creator' returns a dict with creator fields."""
+    with Path("tests/test_data/extraction_dataset_wired_fields.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    creator_uri = URIRef("http://example.com/dataset_wired/creator")
+    concept = parser.get_concept(creator_uri, "creator")
+
+    assert concept["uri"] == "http://example.com/dataset_wired/creator"
+    assert concept["name"] == "Wired Creator"
+
+
+def test_get_concept_attribution_agent(parser):
+    """get_concept() with type 'attribution_agent' returns a dict with attribution_agent fields."""
+    with Path("tests/test_data/extraction_dataset_wired_fields.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    attribution_agent_uri = URIRef("http://example.com/dataset_wired/attribution_agent")
+    concept = parser.get_concept(attribution_agent_uri, "attribution_agent")
+
+    assert concept["uri"] == "http://example.com/dataset_wired/attribution_agent"
+    assert concept["name"] == "Wired Attribution Agent"
 
 
 def test_supplementary_class_reference_id_is_shared_across_calls(parser):
