@@ -18,7 +18,7 @@ from rdflib.namespace import DCAT, RDF
 
 from molgenis_fdp_harvester.utils import HarvesterException
 
-from .baseparser import ADMS, DCT, DPV, HEALTHDCATAP, HYDRA, VCARD
+from .baseparser import DCT, DPV, HYDRA, VCARD
 
 RDF_PROFILES_ENTRY_POINT_GROUP = "ckan.rdf.profiles"
 RDF_PROFILES_CONFIG_OPTION = "ckanext.dcat.rdf.profiles"
@@ -118,22 +118,28 @@ class RDFParser(RDFProcessor):
         yield from self.g.subjects(RDF.type, DPV.LegalBasis)
 
     def _rightsstatement(self):
-        """dct:RightsStatement resources reached via a dataset's distribution.rights.
+        """dct:RightsStatement resources reached via a distribution's dct:rights.
 
         Unlike dpv:LegalBasis, dct:RightsStatement is also commonly used to type a
         dataset's own dct:accessRights value - a whole-graph type scan would incorrectly
-        harvest those as well, so this walks the specific predicate path instead
-        (dataset -> sample/analytics -> distribution -> rights).
+        harvest those as well, so this walks the predicate path from distributions
+        instead. Deliberately not walked from datasets via sample/analytics the way
+        creator/attribution_agent are: a live FAIR Data Point was observed to model
+        adms:sample/healthdcatap:analytics as LDP DirectContainer membership relations
+        rather than plain properties, silently dropping that link on a plain-triple
+        submission while still preserving the distribution's own (now orphaned)
+        description elsewhere in the same document - so distribution.rights could be
+        resolved (via the whole-graph distribution scan) while the referenced
+        rightsstatement itself was never independently harvested, a foreign key
+        violation on upload. Reusing the same whole-graph distribution scan here
+        sidesteps that unreliable link entirely.
         """
         seen = set()
-        for dataset_ref in self._datasets():
-            distribution_refs = set(self.g.objects(dataset_ref, ADMS.sample))
-            distribution_refs.update(self.g.objects(dataset_ref, HEALTHDCATAP.analytics))
-            for distribution_ref in distribution_refs:
-                for obj in self.g.objects(distribution_ref, DCT.rights):
-                    if obj not in seen and (obj, RDF.type, DCT.RightsStatement) in self.g:
-                        seen.add(obj)
-                        yield obj
+        for distribution_ref in self._distribution():
+            for obj in self.g.objects(distribution_ref, DCT.rights):
+                if obj not in seen and (obj, RDF.type, DCT.RightsStatement) in self.g:
+                    seen.add(obj)
+                    yield obj
 
     def _creator(self):
         """foaf:Agent resources reached via dct:creator on a dataset.
