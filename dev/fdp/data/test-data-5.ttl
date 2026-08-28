@@ -43,7 +43,6 @@ fdp:new
     EUC:hasImageBodyPart <http://purl.bioontology.org/ontology/SNOMEDCT/43799004>;
     EUC:hasImageModality <https://cancerimage.eu/ontology/EUCAIM#IMG1000038>;
     dpv:hasPurpose [ a dpv:Purpose; dct:description "Test dataset 5 - purpose" ];
-    dpv:hasLegalBasis <https://w3id.org/dpv/legal/eu/gdpr#A9-2-j>;
     prov:qualifiedAttribution
         [
             a prov:Attribution;
