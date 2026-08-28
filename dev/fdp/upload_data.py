@@ -67,13 +67,13 @@ def upload(fdp_url: str, ttls: tuple[Path, ...], catalog_uri: URIRef | None = No
     dataset; otherwise each graph is published as a catalog.
     """
     client = FDPClient(fdp_url, FDP_USER, FDP_PASSWORD)
-    resource_type = "dataset" if catalog_uri is not None else "catalog"
 
     uris = []
     for ttl in ttls:
         graph = load_graph(ttl)
         if catalog_uri is not None:
             link_to_catalog(graph, catalog_uri)
+        resource_type = "catalog" if (None, RDF.type, DCAT.Catalog) in graph else "dataset"
         uri = client.create_and_publish(resource_type, graph)
         logger.info("%s: created and published %s %s", fdp_url, resource_type, uri)
         uris.append(uri)
