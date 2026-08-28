@@ -60,26 +60,31 @@ def link_to_catalog(dataset: Graph, catalog_uri: URIRef) -> Graph:
     return dataset
 
 
-def upload(fdp_url: str, catalog_ttl: Path, dataset_ttls: tuple[Path, ...]) -> None:
-    """Creates and publishes a catalog and linked datasets on a single FDP."""
-    catalog_graph = load_graph(catalog_ttl)
+def upload(fdp_url: str, ttls: tuple[Path, ...], catalog_uri: URIRef | None = None) -> tuple[URIRef, ...]:
+    """Creates and publishes each of the ttls on a single FDP, returning the created URIs in order.
 
+    When `catalog_uri` is given, each graph is linked to it via dct:isPartOf and published as a
+    dataset; otherwise each graph is published as a catalog.
+    """
     client = FDPClient(fdp_url, FDP_USER, FDP_PASSWORD)
+    resource_type = "dataset" if catalog_uri is not None else "catalog"
 
-    catalog_uri = client.create_and_publish("catalog", catalog_graph)
-    logger.info("%s: created and published catalog %s", fdp_url, catalog_uri)
-
-    for dataset_ttl in dataset_ttls:
-        dataset_graph = load_graph(dataset_ttl)
-        link_to_catalog(dataset_graph, catalog_uri)
-        dataset_uri = client.create_and_publish("dataset", dataset_graph)
-        logger.info("%s: created and published dataset %s", fdp_url, dataset_uri)
+    uris = []
+    for ttl in ttls:
+        graph = load_graph(ttl)
+        if catalog_uri is not None:
+            link_to_catalog(graph, catalog_uri)
+        uri = client.create_and_publish(resource_type, graph)
+        logger.info("%s: created and published %s %s", fdp_url, resource_type, uri)
+        uris.append(uri)
+    return tuple(uris)
 
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    for fdp_url, (catalog_ttl, dataset_ttl) in TTL_PER_FDP.items():
-        upload(fdp_url, catalog_ttl, dataset_ttl)
+    for fdp_url, (catalog_ttl, dataset_ttls) in TTL_PER_FDP.items():
+        (catalog_uri,) = upload(fdp_url, (catalog_ttl,))
+        upload(fdp_url, dataset_ttls, catalog_uri)
     return 0
 
 
