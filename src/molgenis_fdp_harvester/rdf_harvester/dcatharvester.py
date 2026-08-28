@@ -35,7 +35,7 @@ class DCATHarvester(HarvesterBase):
                     content = f.read()
                 content_type = content_type or rdflib.util.guess_format(url)
                 return content, content_type
-            self._save_gather_error("Could not get content for this url", url)
+            self._save_gather_error(f"Could not get content for url {url}")
             return None, None
 
         try:

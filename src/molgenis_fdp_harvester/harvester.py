@@ -15,7 +15,7 @@ from pathlib import Path
 
 import click
 import yaml
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from molgenis_emx2_pyclient import Client
 
 from molgenis_fdp_harvester.rdf_harvester.rdf import DCATRDFHarvester
@@ -25,11 +25,15 @@ from .base.molgenis_dcat_profile import (
 )
 from .config import load_config
 from .fdp_harvester.fdp import FDPHarvester
+from .logging_config import configure_logging
 
-# Environment variables:
-# MOLGENIS_TOKEN
-load_dotenv()
-logging.basicConfig(level="INFO")
+# See .env.example for every variable this reads.
+# Loaded at import time because click resolves option envvars before cli() runs. usecwd
+# keeps .env relative to where the harvester is run from; the default resolves it relative
+# to this file, which in an installed deployment is somewhere in site-packages.
+load_dotenv(find_dotenv(usecwd=True))
+
+log = logging.getLogger(__name__)
 
 
 def read_fdp_list(yaml_path: Path) -> list[tuple[str, str | None]]:
@@ -106,24 +110,10 @@ def cli(
     fdp_id_prefix: str,
 ):
     """Run the harvester with the specified configuration."""
-    # Check required options (not enforced at Click level to allow env var fallback)
-    if not token:
-        raise click.ClickException(
-            "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
-            "variable or provide the --token option."
-        )
-    if not host:
-        raise click.ClickException("MOLGENIS host is required. Set MOLGENIS_HOST or provide --host.")
-    if not config:
-        raise click.ClickException("Configuration file is required. Set HARVEST_CONFIG or provide --config.")
-    if not input_type:
-        raise click.ClickException("Input type is required. Set INPUT_TYPE or provide --input_type.")
+    # Not at import time: importing this module must not take over logging for its importer.
+    configure_logging()
 
-    # Validate mutual exclusivity of --fdp and --fdp-list
-    if fdp and fdp_list:
-        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
-    if not fdp and not fdp_list:
-        raise click.UsageError("One of --fdp or --fdp-list is required.")
+    validate_options(fdp, fdp_list, host, config, token, input_type)
 
     # Load configuration
     config_data = load_config(config)
@@ -147,14 +137,61 @@ def cli(
         "dataset": 4,
     }
 
-    with Client(url=host, schema=schema, token=token) as client:
+    # An unreachable MOLGENIS is an expected operational failure, so it gets a logged
+    # reason and an exit code rather than a traceback. Client.__enter__ does no I/O.
+    try:
+        molgenis_client = Client(url=host, schema=schema, token=token)
+    except Exception as exc:
+        log.exception("Could not connect to MOLGENIS at %s: %s", host, exc)
+        raise click.ClickException(
+            f"Could not connect to MOLGENIS at {host}. See the log output above for details."
+        ) from exc
+
+    had_errors = False
+    with molgenis_client as client:
         for entry_fdp_url, entry_fdp_id_prefix in fdp_entries:
             entry_config = dict(harvester_config)
             if entry_fdp_id_prefix is not None:
                 entry_config["fdp_id_prefix"] = entry_fdp_id_prefix
 
             harvester = create_harvester(input_type, concept_table_dict, client, entry_config)
-            execute_harvest(harvester, entry_fdp_url, concept_type_order)
+            try:
+                success = execute_harvest(harvester, entry_fdp_url, concept_type_order)
+            except Exception as exc:
+                # One failing FDP must not abort the rest of the list.
+                log.exception("Unexpected error while harvesting %s: %s", entry_fdp_url, exc)
+                had_errors = True
+                continue
+
+            if not success:
+                had_errors = True
+
+    if had_errors:
+        raise click.ClickException(
+            "One or more FAIR Data Points failed to harvest cleanly. See the log output above for details."
+        )
+
+
+def validate_options(fdp, fdp_list, host, config, token, input_type):
+    """Check the options Click cannot enforce itself, because they allow an env var fallback."""
+    missing_required = [
+        (
+            token,
+            "Authentication token is required. Either set the MOLGENIS_TOKEN environment "
+            "variable or provide the --token option.",
+        ),
+        (host, "MOLGENIS host is required. Set MOLGENIS_HOST or provide --host."),
+        (config, "Configuration file is required. Set HARVEST_CONFIG or provide --config."),
+        (input_type, "Input type is required. Set INPUT_TYPE or provide --input_type."),
+    ]
+    for value, message in missing_required:
+        if not value:
+            raise click.ClickException(message)
+
+    if fdp and fdp_list:
+        raise click.UsageError("--fdp and --fdp-list are mutually exclusive. Provide only one.")
+    if not fdp and not fdp_list:
+        raise click.UsageError("One of --fdp or --fdp-list is required.")
 
 
 def create_harvester(input_type, concept_table_dict, client, harvester_config):
@@ -171,7 +208,12 @@ def create_harvester(input_type, concept_table_dict, client, harvester_config):
 
 
 def execute_harvest(harvester, source_url, concept_type_order):
-    """Execute the complete harvesting process."""
+    """Execute the complete harvesting process for a single FDP.
+
+    Individual object failures are recorded by the harvester itself and do not stop the
+    run. Returns whether the harvest was clean, so a scheduler can tell a good run from
+    one that needs attention.
+    """
     # Gather objects to harvest
     harvester.gather_stage(source_url)
 
@@ -185,9 +227,31 @@ def execute_harvest(harvester, source_url, concept_type_order):
     # Sort by dependency order (now including auto-generated datasetseries)
     harvester._harvest_objects.sort(key=lambda obj: concept_type_order[obj.concept_type])
 
-    # Import all objects in dependency order
+    # Import all objects in dependency order. A failing object never stops the rest.
     for harvest_object in harvester._harvest_objects:
         harvester.import_stage(harvest_object)
+
+    total_objects = len(harvester._harvest_objects)
+
+    if harvester.has_errors:
+        log.warning(
+            "Harvest for %s completed with errors: %d gather/validation error(s), "
+            "%d import error(s), %d object(s) processed",
+            source_url,
+            harvester.gather_error_count,
+            harvester.import_error_count,
+            total_objects,
+        )
+        return False
+
+    if not total_objects:
+        # An FDP is allowed to be empty, but harvesting nothing usually means a
+        # misconfigured or unreachable endpoint.
+        log.warning("Harvest for %s completed without errors but produced no objects", source_url)
+        return True
+
+    log.info("Harvest for %s completed successfully: %d object(s) processed", source_url, total_objects)
+    return True
 
 
 if __name__ == "__main__":
