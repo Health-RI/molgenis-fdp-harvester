@@ -12,7 +12,7 @@
     dct:conformsTo <http://example.com/standards/fhir> ;
     dcat:contactPoint <http://example.com/dataservice1/contact> ;
     dcat:endpointDescription "OpenAPI specification available for this service" ;
-    dcat:endPointURL <http://example.com/dataservice1/api> ;
+    dcat:endpointURL <http://example.com/dataservice1/api> ;
     dct:format <http://publications.europa.eu/resource/authority/file-type/JSON> ;
     dcat:keyword "test" ;
     dcat:landingPage <http://example.com/dataservice1/landing> ;

@@ -58,5 +58,5 @@
 <http://example.com/distribution1/service> a dcat:DataService ;
     dct:title "Distribution Access Service" ;
     dct:description "Data service providing programmatic access to the distribution" ;
-    dcat:endPointURL <http://example.com/distribution1/service/api> ;
+    dcat:endpointURL <http://example.com/distribution1/service/api> ;
     dcat:endpointDescription <http://example.com/distribution1/service/openapi> .

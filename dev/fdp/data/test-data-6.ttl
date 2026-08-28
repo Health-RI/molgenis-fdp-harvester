@@ -76,7 +76,7 @@ fdp:new
 <http://fdp-2.test/dataservice/access>
     a dcat:DataService;
     dct:title "Test dataset 6 - access service";
-    dcat:endPointURL <https://cancerimage.eu/api>;
+    dcat:endpointURL <https://cancerimage.eu/api>;
     dct:publisher <http://fdp-2.test/publisher/dataservice> .
 
 <http://fdp-2.test/publisher/dataservice>

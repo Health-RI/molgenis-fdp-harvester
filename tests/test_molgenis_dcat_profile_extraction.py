@@ -870,7 +870,7 @@ def test_extract_dataservice_valid():
 
 def test_parse_dataservice_fields():
     """parse_dataservice should extract accessRights, applicableLegislation, conformsTo,
-    contactPoint, description, endpointDescription, endPointURL, format, keyword,
+    contactPoint, description, endpointDescription, endpointURL, format, keyword,
     landingPage, license, publisher, theme, title. contactPoint and publisher should be
     resolved to their assigned UUIDv4 reference id, mirroring the equivalent wiring in
     parse_dataset/parse_datasetseries."""
@@ -884,7 +884,7 @@ def test_parse_dataservice_fields():
     assert result["uri"] == "http://example.com/dataservice1"
     assert result["title"] == "Test Data Service"
     assert result["description"] == "A test data service"
-    assert result["endPointURL"] == "http://example.com/dataservice1/api"
+    assert result["endpointURL"] == "http://example.com/dataservice1/api"
     assert result["endpointDescription"] == "OpenAPI specification available for this service"
     assert result["landingPage"] == "http://example.com/dataservice1/landing"
     assert result["conformsTo"] == "http://example.com/standards/fhir"
