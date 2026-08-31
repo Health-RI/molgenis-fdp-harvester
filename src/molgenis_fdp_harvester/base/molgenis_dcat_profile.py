@@ -513,7 +513,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("contactPoint", DCAT.contactPoint),
             ("description", DCT.description),
             ("endpointDescription", DCAT.endpointDescription),
-            ("endpointURL", DCAT.endpointURL),
+            ("endPointURL", DCAT.endpointURL),
             ("format", DCT.format),
             ("keyword", DCAT.keyword),
             ("landingPage", DCAT.landingPage),

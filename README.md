@@ -163,15 +163,6 @@ The default URLs are:
 - FDP 1: `http://localhost:8081`
 - FDP 2: `http://localhost:8082`
 
-The `fdp-init` installs [Health-RI/fairclient](https://github.com/Health-RI/fairclient) (A Pythonic client for FAIR Data Point) from a local
-checkout rather than from PyPI. Clone it next to this repository, or anywhere else on your machine:
-
-```console
-git clone https://github.com/Health-RI/fairclient.git
-```
-
-By default `fdp-init` expects the checkout at `~/Documents/Repositories/fairclient`. Edit the `FAIRCLIENT_PATH` to use a custom path.
-
 Start the services by running in order:
 ```
 cd dev
@@ -208,7 +199,7 @@ Note that you still have to manually upload the Molgenis metadata model in the b
 To configure the Molgenis catalogue:
 - Log in to the Molgenis catalogue with the default credentials (username: `admin`, password: `admin`).
 - Click on (or create) a database (preferred name 'Eucaim'), and click `Upload files`.
-- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - september 2026.xlsx` to configure the metadata model.
+- Here upload `./dev/molgenis/D5.3 - EUCAIM - Molgenis metadata model - march 2026.xlsx` to configure the metadata model.
 
 You may also manually create a Molgenis token:
 To retrieve a Molgenis token:

@@ -51,7 +51,7 @@ eucaim:DataServiceShape a sh:NodeShape;
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:conformsTo>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:contactPoint>,
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:description>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/foaf:page>,
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endpointDescription>,
-    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endpointURL>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:format>,
+    <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endPointURL>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:format>,
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:keyword>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:landingPage>,
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:license>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:publisher>,
     <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:theme>, <https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dct:title> .
@@ -122,8 +122,8 @@ _:692d6552996f4a0f8bd2256d9969a1834 rdf:first eu:NON_PUBLIC;
   dash:viewer dash:URIViewer;
   dash:editor dash:URIEditor .
 
-<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endpointURL> sh:path
-    dcat:endpointURL;
+<https://cancerimage.eu/ontology/EUCAIM#DataServiceShape/dcat:endPointURL> sh:path
+    dcat:endPointURL;
   sh:name "end point URL"@en;
   sh:description "The root location or primary endpoint of the service (a Web-resolvable IRI)."@en;
   sh:minCount 1;
