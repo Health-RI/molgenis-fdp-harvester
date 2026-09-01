@@ -29,11 +29,11 @@ DATA_DIR = Path(__file__).parent / "data"
 TTL_PER_FDP = {
     "http://fdp-1.test": (
         DATA_DIR / "test-catalog-1.ttl",
-        (DATA_DIR / "test-data-1.ttl", DATA_DIR / "test-data-3.ttl"),
+        (DATA_DIR / "test-data-1.ttl", DATA_DIR / "test-data-3.ttl", DATA_DIR / "test-data-5.ttl"),
     ),
     "http://fdp-2.test": (
         DATA_DIR / "test-catalog-2.ttl",
-        (DATA_DIR / "test-data-2.ttl", DATA_DIR / "test-data-4.ttl"),
+        (DATA_DIR / "test-data-2.ttl", DATA_DIR / "test-data-4.ttl", DATA_DIR / "test-data-6.ttl"),
     ),
 }
 

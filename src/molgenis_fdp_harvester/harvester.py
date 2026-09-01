@@ -131,10 +131,16 @@ def cli(
     concept_type_order = {
         "provenancestatement": 0,
         "purpose": 1,
-        "kind": 2,
-        "publisher": 3,
-        "datasetseries": 4,
-        "dataset": 5,
+        "legalbasis": 2,
+        "rightsstatement": 3,
+        "kind": 4,
+        "publisher": 5,
+        "creator": 6,
+        "attribution_agent": 7,
+        "dataservice": 8,  # needs kind, publisher
+        "distribution": 9,  # needs dataservice, rightsstatement
+        "datasetseries": 10,
+        "dataset": 11,
     }
 
     with Client(url=host, schema=schema, token=token) as client:

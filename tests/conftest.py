@@ -41,6 +41,12 @@ def concept_table_dict():
         "publisher": "publisher",
         "provenancestatement": "provenancestatement",
         "purpose": "purpose",
+        "creator": "creator",
+        "attribution_agent": "attribution_agent",
+        "legalbasis": "legalbasis",
+        "rightsstatement": "rightsstatement",
+        "dataservice": "dataservice",
+        "distribution": "distribution",
     }
 
 

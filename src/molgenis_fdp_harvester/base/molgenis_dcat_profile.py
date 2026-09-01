@@ -191,10 +191,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return dataset_dict
 
     def _extract_creator(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_creator({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, self._resolve_reference_id)
 
     def _extract_periodoftime(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -209,10 +206,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, PROV.Attribution, extraction)
 
     def _extract_attribution_agent(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_attribution_agent({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, FOAF.Agent, self._resolve_reference_id)
 
     def _extract_other_identifier(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -221,10 +215,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, ADMS.Identifier, extraction)
 
     def _extract_distribution(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_distribution({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.Distribution, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.Distribution, self._resolve_reference_id)
 
     def _extract_policy(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -239,16 +230,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, SPDX.Checksum, extraction)
 
     def _extract_rightsstatement(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_rightsstatement({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DCT.RightsStatement, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCT.RightsStatement, self._resolve_reference_id)
 
     def _extract_dataservice(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_dataservice({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.DataService, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DCAT.DataService, self._resolve_reference_id)
 
     def _extract_permission(self, dataset_dict: dict, key: str):
         def extraction(uri_ref, _):
@@ -272,10 +257,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_and_transform_by_type(dataset_dict, key, [ODRL.Duty, ODRL.Obligation], extraction)
 
     def _extract_legalbasis(self, dataset_dict: dict, key: str):
-        def extraction(uri_ref, _):
-            return self.parse_legal_basis({}, uri_ref)
-
-        return self._extract_and_transform_by_type(dataset_dict, key, DPV.LegalBasis, extraction)
+        return self._extract_and_transform_by_type(dataset_dict, key, DPV.LegalBasis, self._resolve_reference_id)
 
     def _extract_purpose(self, dataset_dict: dict):
         """Resolve hasPurpose to nested Purpose object(s) and/or plain vocabulary IRI(s).
@@ -452,7 +434,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("homepage", FOAF.homepage),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         if "mbox" in dataset_dict:
             dataset_dict["mbox"] = self._strip_mailto_prefix(dataset_dict["mbox"])
         return dataset_dict
@@ -469,7 +451,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._parse_agent_like(dataset_dict, dataset_ref)
 
     def parse_legal_basis(self, dataset_dict: dict, dataset_ref: URIRef):
-        return self._parse_single_field_concept(dataset_dict, dataset_ref, "description", DCT.description)
+        dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
+        key_predicate_tuple = (("description", DCT.description),)
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_kind(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
@@ -513,7 +498,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("checksum", SPDX.checksum),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         dataset_dict = self._extract_policy(dataset_dict, "hasPolicy")
         dataset_dict = self._extract_checksum(dataset_dict, "checksum")
         dataset_dict = self._extract_rightsstatement(dataset_dict, "rights")
@@ -538,7 +523,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
             ("title", DCT.title),
         )
         dataset_dict = self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
-        dataset_dict["id"] = str(uuid.uuid4())
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
         dataset_dict = self._extract_and_transform_by_type(
             dataset_dict, "contactPoint", VCARD.Kind, self._resolve_reference_id
         )
@@ -607,7 +592,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_rightsstatement(self, dataset_dict: dict, dataset_ref: URIRef):
-        return self._parse_single_field_concept(dataset_dict, dataset_ref, "label", RDFS.label)
+        dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
+        key_predicate_tuple = (("label", RDFS.label),)
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_policy(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)

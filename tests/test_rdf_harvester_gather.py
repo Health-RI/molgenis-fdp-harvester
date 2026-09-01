@@ -139,6 +139,8 @@ def test_extract_concepts_from_rdf_success(harvester):
     mock_purposes = [{"uri": "http://example.com/purpose1", "name": "Purpose 1"}]
     mock_kinds = [{"uri": "http://example.com/kind1", "name": "Kind 1"}]
     mock_publishers = [{"uri": "http://example.com/publisher1", "name": "Publisher 1"}]
+    mock_creators = [{"uri": "http://example.com/creator1", "name": "Creator 1"}]
+    mock_attribution_agents = [{"uri": "http://example.com/attrib_agent1", "name": "Attribution Agent 1"}]
     mock_datasetseries = [{"uri": "http://example.com/series1", "name": "Series 1"}]
     mock_datasets = [
         {"uri": "http://example.com/dataset1", "name": "Dataset 1"},
@@ -150,6 +152,8 @@ def test_extract_concepts_from_rdf_success(harvester):
         patch.object(harvester.parser, "purpose", return_value=mock_purposes),
         patch.object(harvester.parser, "kind", return_value=mock_kinds),
         patch.object(harvester.parser, "publisher", return_value=mock_publishers),
+        patch.object(harvester.parser, "creator", return_value=mock_creators),
+        patch.object(harvester.parser, "attribution_agent", return_value=mock_attribution_agents),
         patch.object(harvester.parser, "datasetseries", return_value=mock_datasetseries),
         patch.object(harvester.parser, "datasets", return_value=mock_datasets),
         patch.object(harvester, "_gather_concept_guid") as mock_gather,
@@ -157,11 +161,13 @@ def test_extract_concepts_from_rdf_success(harvester):
         harvester._extract_concepts_from_rdf()
 
         # Verify _gather_concept_guid was called for each concept
-        assert mock_gather.call_count == 7
+        assert mock_gather.call_count == 9
         mock_gather.assert_any_call(mock_provenancestatements[0], "provenancestatement")
         mock_gather.assert_any_call(mock_purposes[0], "purpose")
         mock_gather.assert_any_call(mock_kinds[0], "kind")
         mock_gather.assert_any_call(mock_publishers[0], "publisher")
+        mock_gather.assert_any_call(mock_creators[0], "creator")
+        mock_gather.assert_any_call(mock_attribution_agents[0], "attribution_agent")
         mock_gather.assert_any_call(mock_datasetseries[0], "datasetseries")
         mock_gather.assert_any_call(mock_datasets[0], "dataset")
         mock_gather.assert_any_call(mock_datasets[1], "dataset")
@@ -235,13 +241,19 @@ def test_get_guids_in_db(harvester, mock_client):
         [{"id": "publisher1-id"}],  # publisher
         [],  # provenancestatement
         [{"id": "purpose1-id"}],  # purpose
+        [{"id": "creator1-id"}],  # creator
+        [],  # attribution_agent
+        [{"id": "legalbasis1-id"}],  # legalbasis
+        [],  # rightsstatement
+        [{"id": "dataservice1-id"}],  # dataservice
+        [],  # distribution
     ]
 
     # Call method
     harvester._get_guids_in_db()
 
     # Verify client calls — one per concept type
-    assert mock_client.get.call_count == 6
+    assert mock_client.get.call_count == 12
 
     # Verify guids_in_db was populated
     assert harvester.guids_in_db["dataset"] == ["dataset1-id", "dataset2-id"]
@@ -250,6 +262,12 @@ def test_get_guids_in_db(harvester, mock_client):
     assert harvester.guids_in_db["publisher"] == ["publisher1-id"]
     assert harvester.guids_in_db["provenancestatement"] == []
     assert harvester.guids_in_db["purpose"] == ["purpose1-id"]
+    assert harvester.guids_in_db["creator"] == ["creator1-id"]
+    assert harvester.guids_in_db["attribution_agent"] == []
+    assert harvester.guids_in_db["legalbasis"] == ["legalbasis1-id"]
+    assert harvester.guids_in_db["rightsstatement"] == []
+    assert harvester.guids_in_db["dataservice"] == ["dataservice1-id"]
+    assert harvester.guids_in_db["distribution"] == []
 
 
 def test_get_guids_in_db_error_handling(harvester, mock_client):

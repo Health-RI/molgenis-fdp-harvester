@@ -26,10 +26,29 @@ class ConceptTableLink:
     publisher: str
     provenancestatement: str
     purpose: str
+    creator: str
+    attribution_agent: str
+    legalbasis: str
+    rightsstatement: str
+    dataservice: str
+    distribution: str
 
     def __post_init__(self):
         """Validate that all fields are strings."""
-        for field_name in ["kind", "publisher", "dataset", "datasetseries", "provenancestatement", "purpose"]:
+        for field_name in [
+            "kind",
+            "publisher",
+            "dataset",
+            "datasetseries",
+            "provenancestatement",
+            "purpose",
+            "creator",
+            "attribution_agent",
+            "legalbasis",
+            "rightsstatement",
+            "dataservice",
+            "distribution",
+        ]:
             field_value = getattr(self, field_name)
             if not isinstance(field_value, str):
                 raise TypeError(

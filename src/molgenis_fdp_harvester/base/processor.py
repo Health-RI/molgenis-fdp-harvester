@@ -9,10 +9,11 @@
 #
 # Modified by Stichting Health-RI to remove dependencies on CKAN
 import xml
+from typing import ClassVar
 
 import rdflib
 import rdflib.parser
-from rdflib import FOAF
+from rdflib import FOAF, PROV
 from rdflib.namespace import DCAT, RDF
 
 from molgenis_fdp_harvester.utils import HarvesterException
@@ -112,6 +113,64 @@ class RDFParser(RDFProcessor):
 
     def _purpose(self):
         yield from self.g.subjects(RDF.type, DPV.Purpose)
+
+    def _legalbasis(self):
+        yield from self.g.subjects(RDF.type, DPV.LegalBasis)
+
+    def _rightsstatement(self):
+        """dct:RightsStatement resources reached via a distribution's dct:rights.
+
+        Unlike dpv:LegalBasis, dct:RightsStatement is also commonly used to type a
+        dataset's own dct:accessRights value - a whole-graph type scan would incorrectly
+        harvest those as well, so this walks the predicate path from distributions
+        instead. Deliberately not walked from datasets via sample/analytics the way
+        creator/attribution_agent are: a live FAIR Data Point was observed to model
+        adms:sample/healthdcatap:analytics as LDP DirectContainer membership relations
+        rather than plain properties, silently dropping that link on a plain-triple
+        submission while still preserving the distribution's own (now orphaned)
+        description elsewhere in the same document - so distribution.rights could be
+        resolved (via the whole-graph distribution scan) while the referenced
+        rightsstatement itself was never independently harvested, a foreign key
+        violation on upload. Reusing the same whole-graph distribution scan here
+        sidesteps that unreliable link entirely.
+        """
+        seen = set()
+        for distribution_ref in self._distribution():
+            for obj in self.g.objects(distribution_ref, DCT.rights):
+                if obj not in seen and (obj, RDF.type, DCT.RightsStatement) in self.g:
+                    seen.add(obj)
+                    yield obj
+
+    def _creator(self):
+        """foaf:Agent resources reached via dct:creator on a dataset.
+
+        creator and attribution_agent are both plain foaf:Agent in RDF - there's no
+        rdf:type that distinguishes "this agent is a dataset's creator" from "this agent
+        is an attribution's agent" - so unlike the whole-graph type scans above, these
+        have to be found by walking the specific predicate path from datasets instead.
+        """
+        seen = set()
+        for dataset_ref in self._datasets():
+            for obj in self.g.objects(dataset_ref, DCT.creator):
+                if obj not in seen and (obj, RDF.type, FOAF.Agent) in self.g:
+                    seen.add(obj)
+                    yield obj
+
+    def _attribution_agent(self):
+        """foaf:Agent resources reached via prov:qualifiedAttribution/prov:agent on a dataset."""
+        seen = set()
+        for dataset_ref in self._datasets():
+            for attribution_ref in self.g.objects(dataset_ref, PROV.qualifiedAttribution):
+                for obj in self.g.objects(attribution_ref, PROV.agent):
+                    if obj not in seen and (obj, RDF.type, FOAF.Agent) in self.g:
+                        seen.add(obj)
+                        yield obj
+
+    def _dataservice(self):
+        yield from self.g.subjects(RDF.type, DCAT.DataService)
+
+    def _distribution(self):
+        yield from self.g.subjects(RDF.type, DCAT.Distribution)
 
     def _catalogs(self):
         """
@@ -293,21 +352,145 @@ class RDFParser(RDFProcessor):
 
             yield dataset_dict
 
+    def creator(self):
+        """
+        Generator that returns foaf:Agent concepts (reached via dct:creator) parsed from the RDF graph
+
+        Each creator object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._creator():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_creator(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "creator"
+
+            yield dataset_dict
+
+    def attribution_agent(self):
+        """
+        Generator that returns foaf:Agent concepts (reached via prov:qualifiedAttribution/prov:agent)
+        parsed from the RDF graph
+
+        Each attribution agent object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._attribution_agent():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_attribution_agent(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "attribution_agent"
+
+            yield dataset_dict
+
+    def legalbasis(self):
+        """
+        Generator that returns dpv:LegalBasis concepts parsed from the RDF graph
+
+        Each legal basis object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._legalbasis():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_legal_basis(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "legalbasis"
+
+            yield dataset_dict
+
+    def rightsstatement(self):
+        """
+        Generator that returns dct:RightsStatement concepts parsed from the RDF graph
+
+        Each rights statement object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._rightsstatement():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_rightsstatement(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "rightsstatement"
+
+            yield dataset_dict
+
+    def dataservice(self):
+        """
+        Generator that returns dcat:DataService concepts parsed from the RDF graph
+
+        Each dataservice object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._dataservice():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_dataservice(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "dataservice"
+
+            yield dataset_dict
+
+    def distribution(self):
+        """
+        Generator that returns dcat:Distribution concepts parsed from the RDF graph
+
+        Each distribution object is passed to all the loaded profiles before being
+        yielded, so it can be further modified by each one of them.
+
+        Returns a dataset dict that can be passed to eg `package_create`
+        or `package_update`
+        """
+        for dataset_ref in self._distribution():
+            dataset_dict = {}
+            for profile in self._get_profile_instances():
+                profile.parse_distribution(dataset_dict, dataset_ref)
+
+            dataset_dict["concept_type"] = "distribution"
+
+            yield dataset_dict
+
+    #: Maps a concept_type to the profile method that parses a single resource of that type.
+    _CONCEPT_PARSE_METHODS: ClassVar[dict[str, str]] = {
+        "publisher": "parse_publisher",
+        "kind": "parse_kind",
+        "dataset": "parse_dataset",
+        "datasetseries": "parse_datasetseries",
+        "provenancestatement": "parse_provenancestatement",
+        "purpose": "parse_purpose",
+        "creator": "parse_creator",
+        "attribution_agent": "parse_attribution_agent",
+        "legalbasis": "parse_legal_basis",
+        "rightsstatement": "parse_rightsstatement",
+        "dataservice": "parse_dataservice",
+        "distribution": "parse_distribution",
+    }
+
     def get_concept(self, uri_ref, concept_type):
         concept_dict = {}
+        method_name = self._CONCEPT_PARSE_METHODS.get(concept_type)
+        if method_name is None:
+            return concept_dict
+
         for profile in self._get_profile_instances():
-            if concept_type == "publisher":
-                profile.parse_publisher(concept_dict, uri_ref)
-            elif concept_type == "kind":
-                profile.parse_kind(concept_dict, uri_ref)
-            elif concept_type == "dataset":
-                profile.parse_dataset(concept_dict, uri_ref)
-            elif concept_type == "datasetseries":
-                profile.parse_datasetseries(concept_dict, uri_ref)
-            elif concept_type == "provenancestatement":
-                profile.parse_provenancestatement(concept_dict, uri_ref)
-            elif concept_type == "purpose":
-                profile.parse_purpose(concept_dict, uri_ref)
+            getattr(profile, method_name)(concept_dict, uri_ref)
 
         return concept_dict
 
