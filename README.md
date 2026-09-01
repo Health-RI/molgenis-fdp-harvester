@@ -25,26 +25,21 @@ Usage: harvest [OPTIONS]
 
 Options:
   --fdp TEXT            FAIR Data Point catalog URL to harvest
-  --fdp-list PATH       Path to YML file with columns fdp_url and fdp_id_prefix (one FDP per row)
+  --fdp-list PATH       Path to YML file with column fdp_url (one FDP per row)
   --host TEXT           MOLGENIS host to harvest to
   --schema TEXT         Schema on MOLGENIS host to harvest to
   --config PATH         Configuration.
   --token TEXT          Authentication token for the Molgenis catalogue of the user harvesting data.
   --input_type TEXT     Type of endpoint to harvest from: 'rdf' or 'fdp'.
-  --fdp-id-prefix TEXT  FDP ID prefix used for PID construction. Optional.
   --help                Show this message and exit.
 ```
 
 Either `--fdp` (single URL) or `--fdp-list` (YML file) must be provided; they are mutually exclusive.
 
-The `--fdp-list` YML file must have columns `fdp_url` and `fdp_id_prefix` (one FDP per row). 
+The `--fdp-list` YML file must have a column `fdp_url` (one FDP per row).
 
 The configuration contains a linking table between the concept types, used internally in the script to separate the
 handling of the different concepts, and the table in the harvesting MOLGENIS catalogue.
-
-When `--fdp-id-prefix` is provided, it is prepended to plain-string identifiers to form the record `id`
-(e.g. `myprefix-mydataset`), and the PID service URL is used to construct the full `identifier`.
-When omitted, the plain-string identifier is used as-is for `id`, and the PID service URL is still applied.
 
 Every CLI option can also be set via an environment variable, which is the recommended approach when running
 in Docker or Kubernetes:
@@ -58,7 +53,6 @@ in Docker or Kubernetes:
 | `MOLGENIS_SCHEMA`    | `--schema`        | No (default: `Eucaim`) |
 | `FDP_URL`            | `--fdp`           | One of                 |
 | `FDP_LIST_PATH`      | `--fdp-list`      | One of                 |
-| `FDP_ID_PREFIX`      | `--fdp-id-prefix` | No                     |
 
 ## Docker
 
@@ -102,9 +96,7 @@ The YML file format:
 ```yml
 fdps:
   - fdp_url: http://fdp-1.test
-    fdp_id_prefix: prefix1
   - fdp_url: http://fdp-2.test
-    fdp_id_prefix: prefix2
 ```
 
 ### Building the image locally

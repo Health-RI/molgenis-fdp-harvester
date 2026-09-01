@@ -3,6 +3,13 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
+    "containerEnv": {
+        "GH_TOKEN": "${localEnv:GH_TOKEN}",
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers-extra/features/ripgrep:1": {}
+    },
     "customizations": {
         "vscode": {
             "settings": {

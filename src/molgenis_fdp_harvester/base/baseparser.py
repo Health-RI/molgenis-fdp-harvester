@@ -92,7 +92,8 @@ class URIRefOrLiteral:
         try:
             stripped_value = value.strip()
             if isinstance(value, str) and (
-                stripped_value.startswith("http://") or stripped_value.startswith("https://")
+                stripped_value.startswith("http://")  # NOSONAR
+                or stripped_value.startswith("https://")
             ):
                 uri_obj = CleanedURIRef(value)
                 # although all invalid chars checked by rdflib should have been quoted, try to serialize
@@ -156,11 +157,6 @@ class RDFProfile:
         # Cache for mappings of licenses URL/title to ID built when needed in
         # _license().
         self._licenceregister_cache = None
-
-        # self.config = {
-        #     'pid_service_url': 'http://pid.eucaim.cancerimage.eu',
-        #     'fdp_id_prefix': 'testidprefix'
-        # }
 
     def _datasets(self):
         """

@@ -1,5 +1,3 @@
 fdps:
   - fdp_url: http://fdp-1.test
-    fdp_id_prefix: prefix1
   - fdp_url: http://fdp-2.test
-    fdp_id_prefix: prefix2

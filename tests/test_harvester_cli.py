@@ -16,6 +16,21 @@ from molgenis_emx2_pyclient import Client
 from molgenis_fdp_harvester.harvester import cli, create_harvester, read_fdp_list
 
 
+@pytest.fixture(autouse=True)
+def clean_cli_env(monkeypatch):
+    """Ensure CLI-related env vars from the ambient shell/.env don't leak into tests."""
+    for var in (
+        "MOLGENIS_TOKEN",
+        "MOLGENIS_HOST",
+        "MOLGENIS_SCHEMA",
+        "HARVEST_CONFIG",
+        "INPUT_TYPE",
+        "FDP_URL",
+        "FDP_LIST_PATH",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+
 @pytest.fixture
 def temp_config_file():
     """Create a temporary config file"""
@@ -267,9 +282,7 @@ def temp_fdp_list():
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
         f.write("fdps:\n")
         f.write("  - fdp_url: http://fdp1.example.com\n")
-        f.write("    fdp_id_prefix: prefix1\n")
         f.write("  - fdp_url: http://fdp2.example.com\n")
-        f.write("    fdp_id_prefix: prefix2\n")
         yaml_path = f.name
 
     yield yaml_path
@@ -351,68 +364,6 @@ def test_fdp_list(temp_config_file, temp_fdp_list, mock_harvester_patches, monke
     assert "http://fdp2.example.com" in urls
 
 
-def test_fdp_list_per_row_prefix(temp_config_file, temp_fdp_list, mock_harvester_patches, monkeypatch):
-    """Each YML row's fdp_id_prefix is passed to create_harvester as entry_config"""
-    runner = CliRunner()
-    monkeypatch.setenv("MOLGENIS_TOKEN", "token")
-
-    result = runner.invoke(
-        cli,
-        [
-            "--fdp-list",
-            temp_fdp_list,
-            "--host",
-            "http://localhost:8080",
-            "--config",
-            temp_config_file,
-            "--input_type",
-            "fdp",
-        ],
-    )
-
-    assert result.exit_code == 0, f"Unexpected failure: {result.output}"
-    assert mock_harvester_patches["create_harvester"].call_count == 2
-
-    calls = mock_harvester_patches["create_harvester"].call_args_list
-    prefixes = [c[0][3].get("fdp_id_prefix") for c in calls]
-    assert "prefix1" in prefixes
-    assert "prefix2" in prefixes
-
-
-def test_fdp_list_row_without_prefix(temp_config_file, mock_harvester_patches, monkeypatch):
-    """An entry with no prefix should not set fdp_id_prefix in config"""
-    runner = CliRunner()
-    monkeypatch.setenv("MOLGENIS_TOKEN", "token")
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
-        f.write("fdps:\n")
-        f.write("  - fdp_url: http://fdp1.example.com\n")
-        f.write("    fdp_id_prefix: ''\n")
-        yaml_path = f.name
-
-    try:
-        result = runner.invoke(
-            cli,
-            [
-                "--fdp-list",
-                yaml_path,
-                "--host",
-                "http://localhost:8080",
-                "--config",
-                temp_config_file,
-                "--input_type",
-                "fdp",
-            ],
-        )
-
-        assert result.exit_code == 0, f"Unexpected failure: {result.output}"
-        call_args = mock_harvester_patches["create_harvester"].call_args
-        entry_config = call_args[0][3]
-        assert "fdp_id_prefix" not in entry_config
-    finally:
-        Path(yaml_path).unlink()
-
-
 def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monkeypatch):
     """--fdp still works and execute_harvest is called exactly once"""
     runner = CliRunner()
@@ -434,56 +385,31 @@ def test_single_fdp_backward_compat(base_cli_args, mock_harvester_patches, monke
 def test_read_fdp_list(tmp_path):
     """read_fdp_list parses YAML entries and trims whitespace"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n  - fdp_url: http://a.com\n    fdp_id_prefix: pA\n  - fdp_url: http://b.com\n    fdp_id_prefix: pB\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: http://a.com\n  - fdp_url: http://b.com\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == [("http://a.com", "pA"), ("http://b.com", "pB")]
-
-
-def test_read_fdp_list_missing_prefix_column(tmp_path):
-    """read_fdp_list returns None for prefix when the YAML value is absent or blank"""
-    yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text("fdps:\n  - fdp_url: http://a.com\n    fdp_id_prefix: ''\n  - fdp_url: http://b.com\n")
-
-    result = read_fdp_list(yaml_file)
-
-    assert result == [("http://a.com", None), ("http://b.com", None)]
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_read_fdp_list_skips_blank_rows(tmp_path):
     """read_fdp_list skips entries without a URL"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n"
-        "  - fdp_url: http://a.com\n"
-        "    fdp_id_prefix: pA\n"
-        "  - fdp_url: ''\n"
-        "  - fdp_url: http://b.com\n"
-        "    fdp_id_prefix: pB\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: http://a.com\n  - fdp_url: ''\n  - fdp_url: http://b.com\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == [("http://a.com", "pA"), ("http://b.com", "pB")]
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_read_fdp_list_strips_whitespace(tmp_path):
-    """read_fdp_list strips whitespace from values and returns None for blank prefix"""
+    """read_fdp_list strips whitespace from URL values"""
     yaml_file = tmp_path / "fdps.yml"
-    yaml_file.write_text(
-        "fdps:\n"
-        "  - fdp_url: '  http://a.com  '\n"
-        "    fdp_id_prefix: '  pA  '\n"
-        "  - fdp_url: 'http://b.com'\n"
-        "    fdp_id_prefix: ''\n"
-    )
+    yaml_file.write_text("fdps:\n  - fdp_url: '  http://a.com  '\n  - fdp_url: 'http://b.com'\n")
 
     result = read_fdp_list(yaml_file)
 
-    assert result == [("http://a.com", "pA"), ("http://b.com", None)]
+    assert result == ["http://a.com", "http://b.com"]
 
 
 def test_fdp_list_empty_raises_error(temp_config_file, monkeypatch):
