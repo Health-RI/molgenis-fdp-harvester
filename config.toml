@@ -3,6 +3,7 @@
 # Table mappings for different concept types
 [concept_table_link]
 provenancestatement = "provenance_statement"
+purpose = "purpose"
 kind = "kind"
 publisher = "publisher"
 dataset = "collections"

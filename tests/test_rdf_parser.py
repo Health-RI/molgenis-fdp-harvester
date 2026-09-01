@@ -162,6 +162,17 @@ def test_provenancestatement_generator(parser):
     assert provs[0]["label"] == "Data collected from hospital records"
 
 
+def test_purpose_generator(parser):
+    """purpose() yields dicts with concept_type 'purpose' for dpv:Purpose resources."""
+    with Path("tests/test_data/extraction_purpose.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    purposes = list(parser.purpose())
+    assert len(purposes) == 1
+    assert purposes[0]["concept_type"] == "purpose"
+    assert purposes[0]["description"] == "Scientific research"
+
+
 def test_get_concept_publisher(parser):
     """get_concept() with type 'publisher' returns a dict with publisher fields."""
     with Path("tests/test_data/extraction_foaf_organization.ttl").open() as f:
@@ -196,6 +207,18 @@ def test_get_concept_provenancestatement(parser):
 
     assert concept["uri"] == "http://example.com/prov1"
     assert concept["label"] == "Data collected from hospital records"
+
+
+def test_get_concept_purpose(parser):
+    """get_concept() with type 'purpose' returns a dict with purpose fields."""
+    with Path("tests/test_data/extraction_purpose.ttl").open() as f:
+        parser.parse(data=f.read(), _format="turtle")
+
+    purpose_uri = URIRef("http://example.com/purpose1")
+    concept = parser.get_concept(purpose_uri, "purpose")
+
+    assert concept["uri"] == "http://example.com/purpose1"
+    assert concept["description"] == "Scientific research"
 
 
 def test_supplementary_class_reference_id_is_shared_across_calls(parser):

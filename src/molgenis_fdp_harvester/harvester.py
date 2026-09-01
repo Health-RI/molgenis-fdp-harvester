@@ -130,10 +130,11 @@ def cli(
     # Define processing order for concept types
     concept_type_order = {
         "provenancestatement": 0,
-        "kind": 1,
-        "publisher": 2,
-        "datasetseries": 3,
-        "dataset": 4,
+        "purpose": 1,
+        "kind": 2,
+        "publisher": 3,
+        "datasetseries": 4,
+        "dataset": 5,
     }
 
     with Client(url=host, schema=schema, token=token) as client:

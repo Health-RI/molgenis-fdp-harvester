@@ -297,7 +297,13 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return dataset_dict
 
     def _split_purpose_values(self, purpose_values: list) -> tuple[list, list]:
-        """Split hasPurpose values into resolved dpv:Purpose objects and plain vocabulary IRIs."""
+        """Split hasPurpose values into resolved dpv:Purpose objects and plain vocabulary IRIs.
+
+        dpv:Purpose resources are independently harvested and upserted into their own
+        MOLGENIS table (see `RDFParser.purpose`), so a dataset only needs to reference
+        them by id here, the same way contactPoint/publisher/provenance are resolved to
+        their cached UUIDv4 rather than the full nested object.
+        """
         purpose_objects = []
         purpose_iris = []
         for value in purpose_values:
@@ -307,7 +313,7 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
                 purpose_type = [purpose_type]
 
             if str(DPV.Purpose) in purpose_type:
-                purpose_objects.append(self.parse_purpose({}, purpose_ref))
+                purpose_objects.append(self._resolve_reference_id(purpose_ref))
             else:
                 purpose_iris.append(value)
         return purpose_objects, purpose_iris
@@ -547,7 +553,10 @@ class MolgenisEUCAIMDCATAPProfile(RDFProfile):
         return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_purpose(self, dataset_dict: dict, dataset_ref: URIRef):
-        return self._parse_single_field_concept(dataset_dict, dataset_ref, "description", DCT.description)
+        dataset_dict["uri"] = str(dataset_ref)
+        dataset_dict["id"] = self._get_or_create_reference_id(dataset_dict["uri"])
+        key_predicate_tuple = (("description", DCT.description),)
+        return self._extract_concept_dict(dataset_ref, dataset_dict, key_predicate_tuple)
 
     def parse_other_identifier(self, dataset_dict: dict, dataset_ref: URIRef):
         dataset_dict["uri"] = str(dataset_ref)
