@@ -9,10 +9,10 @@ resolution-markers = [
     "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version < '3.11'",
 ]
@@ -520,7 +520,7 @@ wheels = [
 
 [[package]]
 name = "molgenis-emx2-pyclient"
-version = "13.165.2"
+version = "13.196.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "openpyxl" },
@@ -532,9 +532,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/d0/daef97944048b6b2017eefda1bd2216a76aa06b1d4ec0633f4c132111658/molgenis_emx2_pyclient-13.165.2.tar.gz", hash = "sha256:39364176fb64379974a3e298e2f3b9f144a250905cd979a4d630518688040cfe", size = 32418, upload-time = "2026-07-13T13:21:13.352Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/e4/70d255f13120de377db259d6f9afc72f5bf8928c5f3757e694678958d02a/molgenis_emx2_pyclient-13.196.1.tar.gz", hash = "sha256:b1cfb30bcfa753623a7e1bb9a196f972e1f6b4f8d18aa444a5e2d317a3d7db4d", size = 33745, upload-time = "2026-09-14T13:14:35.712Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/3b/4dc499aeead94106c2d16f7dc0bec1bbfdf124392a3f9a37b48b477d884d/molgenis_emx2_pyclient-13.165.2-py3-none-any.whl", hash = "sha256:7837020f75ec529078994cc5d45b92cc2a82a55453631199836315685a967d98", size = 24553, upload-time = "2026-07-13T13:21:11.91Z" },
+    { url = "https://files.pythonhosted.org/packages/bb/79/0e9f8488506738045f6719dc37e38f34b0317158572da2be05bc8ee5cc2f/molgenis_emx2_pyclient-13.196.1-py3-none-any.whl", hash = "sha256:21aeac7d103fd707ad7e271ee66c4842a6ca56bd5295202e043dd60f5de11f64", size = 25319, upload-time = "2026-09-14T13:14:33.975Z" },
 ]
 
 [[package]]
@@ -1016,10 +1016,10 @@ resolution-markers = [
     "python_full_version == '3.14.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.14.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version == '3.11.*' and sys_platform == 'win32'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
     "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'win32'",
+    "python_full_version == '3.11.*' and sys_platform == 'emscripten'",
     "python_full_version == '3.11.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
